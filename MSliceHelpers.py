@@ -365,7 +365,7 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
     if vstat:
         print "stat: ",stat
         print mtd.doesExist(str(Workspace))
-        print mtd.doesExist(Workspace)
+#        print mtd.doesExist(Workspace) #FIXME - need to use try catch if using Workspace this way...
     
     if stat:
         #case where it exists, now make sure that workspace is at python (rather than Mantid) layer
@@ -391,7 +391,7 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
         AlgName='DgsReduction'
     elif ((xdimName=='Energy transfer') & (ydimName=='q')):
         #case where we have S(Q,w)
-        AlgName='SofQ:-)'
+        AlgName='SofQ'
     else:
         #if here, we don't know the workspace type...
         AlgName=''

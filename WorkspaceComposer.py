@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'WorkspaceComposer.ui'
 #
-# Created: Wed Apr 16 14:59:33 2014
+# Created: Mon Apr 21 16:58:32 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -38,7 +38,7 @@ class Ui_WorkspaceComposer(object):
         self.tableWidgetWGE.setSizePolicy(sizePolicy)
         self.tableWidgetWGE.setRowCount(16)
         self.tableWidgetWGE.setObjectName(_fromUtf8("tableWidgetWGE"))
-        self.tableWidgetWGE.setColumnCount(6)
+        self.tableWidgetWGE.setColumnCount(5)
         item = QtGui.QTableWidgetItem()
         self.tableWidgetWGE.setHorizontalHeaderItem(0, item)
         item = QtGui.QTableWidgetItem()
@@ -49,8 +49,6 @@ class Ui_WorkspaceComposer(object):
         self.tableWidgetWGE.setHorizontalHeaderItem(3, item)
         item = QtGui.QTableWidgetItem()
         self.tableWidgetWGE.setHorizontalHeaderItem(4, item)
-        item = QtGui.QTableWidgetItem()
-        self.tableWidgetWGE.setHorizontalHeaderItem(5, item)
         self.tableWidgetWGE.verticalHeader().setDefaultSectionSize(18)
         self.tableWidgetWGE.verticalHeader().setMinimumSectionSize(15)
         self.groupBox = QtGui.QGroupBox(self.centralwidget)
@@ -129,14 +127,12 @@ class Ui_WorkspaceComposer(object):
         item = self.tableWidgetWGE.horizontalHeaderItem(0)
         item.setText(_translate("WorkspaceComposer", "Workspace", None))
         item = self.tableWidgetWGE.horizontalHeaderItem(1)
-        item.setText(_translate("WorkspaceComposer", "Type", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(2)
         item.setText(_translate("WorkspaceComposer", "Location", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(3)
+        item = self.tableWidgetWGE.horizontalHeaderItem(2)
         item.setText(_translate("WorkspaceComposer", "Date", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(4)
+        item = self.tableWidgetWGE.horizontalHeaderItem(3)
         item.setText(_translate("WorkspaceComposer", "Size", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(5)
+        item = self.tableWidgetWGE.horizontalHeaderItem(4)
         item.setText(_translate("WorkspaceComposer", "Select", None))
         self.lineEditGroupName.setText(_translate("WorkspaceComposer", "NewWorkspaceGroup", None))
         self.label.setText(_translate("WorkspaceComposer", "Group Name", None))

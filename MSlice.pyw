@@ -37,6 +37,7 @@ from PyQt4 import Qt, QtCore, QtGui
 from MSlice import *  # .py file created from the .ui file produced by PyQt corresponding to the .pyw file used to instantiate the GUI
 import psutil
 import numpy as np
+from pylab import *  #matplotlib
 from MSliceHelpers import getReduceAlgFromWorkspace 
 #import h5py 
 from WorkspaceComposerMain import *
@@ -64,7 +65,7 @@ class MSlice(QtGui.QMainWindow):
         #set global font style by system type as point size seems different on different platforms.
         if os.sys.platform == 'win32':
             #set for windows
-            self.setStyleSheet('font-size: 11pt; font-family: Ariel;')
+            self.setStyleSheet('font-size: 10pt; font-family: Ariel;')
         elif os.sys.platform == 'linux2':
             #set for Linux
             self.setStyleSheet('font-size: 11pt; font-family: Ariel;')
@@ -103,11 +104,7 @@ class MSlice(QtGui.QMainWindow):
         #setup Calc Proj section
         QtCore.QObject.connect(self.ui.pushButtonPowderCalcProj, QtCore.SIGNAL('clicked(bool)'),self.PowderCalcProjSelect)
         QtCore.QObject.connect(self.ui.pushButtonSCCalcProj, QtCore.SIGNAL('clicked(bool)'),self.SCCalcProjSelect)
-        self.ui.pushButtonPowderSaveWorkspace.setEnabled(False) 
-        self.ui.pushButtonSCSaveWorkspace.setEnabled(False) 
-        QtCore.QObject.connect(self.ui.pushButtonPowderSaveWorkspace, QtCore.SIGNAL('clicked(bool)'),self.PowderSaveWorkspaceSelect)
-        QtCore.QObject.connect(self.ui.pushButtonSCSaveWorkspace, QtCore.SIGNAL('clicked(bool)'),self.SCSaveWorkspaceSelect)
-        self.ui.pushButtonPowderCalcProj.setEnabled(False) 
+        self.ui.pushButtonPowderCalcProj.setEnabled(True) 
         self.ui.pushButtonSCCalcProj.setEnabled(False) 
         self.ui.comboBoxPowderu1.setCurrentIndex(1) #set initial index for powder Calc Projections 
         self.ui.comboBoxPowderu2.setCurrentIndex(1) #set initial index for powder Calc Projections
@@ -127,8 +124,7 @@ class MSlice(QtGui.QMainWindow):
 #        self.ui.labelSCUCbeta.setFont(QtGui.QFont('Symbol',10))
 #        self.ui.labelSCUCgamma.setFont(QtGui.QFont('Symbol',10))
 
-        #set Powder Calculate Projections Tab as default on startup
-        self.ui.SampleTabWidget.setCurrentIndex(0)
+
 		
         #setup callback for Quit Load Files button
         QtCore.QObject.connect(self.ui.pushButtonWorkspaceManager, QtCore.SIGNAL('clicked(bool)'), self.pushButtonWorkspaceManagerSelect)
@@ -231,8 +227,11 @@ class MSlice(QtGui.QMainWindow):
         self.ui.comboBoxPowderSliceY.setCurrentIndex(1)		
         self.ui.comboBoxPowderSliceY.setCurrentIndex(0)		# seem to need to toggle index 0 to get label to appear initially in GUI
 		
-        #setup view tabs
-        self.ui.ViewTabWidget.setCurrentIndex(0)		
+        #setup view tabs once the application has been initialized
+        self.ui.ViewTabWidget.setCurrentIndex(0)	
+        #set Powder Calculate Projections Tab as default on startup
+        self.ui.SampleTabWidget.setCurrentIndex(0)  
+	
 		
         #Initialize Status area
         self.ui.statusText="Status Updates"
@@ -271,13 +270,6 @@ class MSlice(QtGui.QMainWindow):
             fileObj.write(log)
             fileObj.close()
 
-    def PowderSaveWorkspaceSelect(self):
-        SaveWorkspaceSelect(self,'Powder')
-
-		
-    def SCSaveWorkspaceSelect(self):
-        SaveWorkspaceSelect(self,'Single Crystal')
-
 		
     def PowderCalcProjSelect(self):
 	
@@ -306,29 +298,47 @@ class MSlice(QtGui.QMainWindow):
         print "LESCu2Label: ",LESCu2Label
 
         NumActiveWorkspaces=self.ui.numActiveWorkspaces
-        #for demo purposes, activate the application status progress bar
-        cnt=0
-        for i in range(NumActiveWorkspaces):
-            itemText=str(table.item(i,const.WSM_LastAlgCol).text())
-            print "row: ",i,"  itemText: ",itemText
-            if itemText == "DgsReduction":
-                #only process appropriate workspaces
-                cnt +=1
-                #************ incorporate Powder Calculate Projections algorithm here
-                print "i: ",str(i)
-                percentcpubusy=100*(i+1)/NumActiveWorkspaces #determine % busy
-                self.ui.progressBarStatusProgress.setValue(percentcpubusy) #adjust progress bar according to % busy
-                time.sleep(0.01)  #seem to need a small delay to ensure that status updates
-                progressText="  Projecting workspace: "+self.ui.activeWSNames[i]
-                print "progressText: ",progressText
-                self.ui.StatusText.append(progressText)
-                thisWS=self.ui.activeWSVarsList[i]
-                PCP=np.sum(thisWS,axis=0) #to simulate projection, select an axis to sum along
-                #examine thisWS size to see if data look "right"
-                print "thisWS shape: ",thisWS.shape," WS name: ",self.ui.activeWSNames[i]," PCP shape: ",PCP.shape
-                time.sleep(1) #have a 1 second delay to enable viewing progress bar update changes
+        print "NumActiveWorkspaces: ",NumActiveWorkspaces
+        
+        #need to determine which workspaces are selected 
+        Nrows=table.rowCount()
+        pwsSuffix=str(self.ui.lineEditPowderWorkspaceSuffix.text())
         self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
-        self.ui.pushButtonPowderSaveWorkspace.setEnabled(True) 
+        addcntr=0
+        for row in range(Nrows):
+            percentbusy=int(100*(row+1)/Nrows)
+            self.ui.progressBarStatusProgress.setValue(percentbusy)
+            cw=table.cellWidget(row,const.WSM_SelectCol) 
+            cbstat=cw.isChecked()
+            if cbstat:
+                
+                #case to attempt to run calculate projections
+                #FIXME - skipped for now, but will need to verify workspace type before running calc proj
+                #but for now, we'll assume that it's a powder workspace
+                pws=str(table.item(row,const.WSM_WorkspaceCol).text())
+                self.ui.StatusText.append(time.strftime('  Input Workspace: '+pws))	
+                print "  pws: ",pws
+                pws_out=pws+pwsSuffix
+                self.ui.StatusText.append(time.strftime('  Output Workspace: '+pws_out))	
+                print "  pws_out: ",pws_out
+                h=ConvertToMDHelper(pws,'|Q|','Direct')
+                #need to figure out how to make the output workspace name 
+                ConvertToMD(pws,MinValues=h[0],MaxValues=h[1],QDimensions='|Q|',dEAnalysisMode='Direct',Outputworkspace=pws_out)
+                placeholderws=mtd.retrieve(pws_out)
+                #once outputworkspace exists, add it back to the table
+                pws_type='Powder Calc Proj'
+                pws_size=str(float(int(float(placeholderws.getMemorySize())/float(1024*1024)*10))/10)+' MB'
+                pws_indx=Nrows+addcntr
+                print "pws_out: ",pws_out
+                print "pws_type: ",pws_type
+                print "pws_size: ",pws_size
+                table.insertRow(pws_indx)
+                addmemWStoTable(table,pws_out,pws_type,pws_size,pws_indx)
+                addCheckboxToWSTCell(table,row,const.WSM_SelectCol,False) #row was: pws_indx-1
+                addcntr +=1 #increment row counter for where to add a workspace
+        table.resizeColumnsToContents();
+        time.sleep(0.2) #give some time since processing before clearing progress bar
+        self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
         #upon successful completion enable Powder Calc Proj button
         self.ui.pushButtonPowderCalcProj.setEnabled(True)      
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Calculate Projections Complete")	
@@ -443,7 +453,7 @@ class MSlice(QtGui.QMainWindow):
         const=constants()
 
         self.ui.tableWidgetWorkspaces.setEnabled(False)
-        self.ui.pushButtonPowderCalcProj.setEnabled(False) 
+        self.ui.pushButtonPowderCalcProj.setEnabled(True) 
         self.ui.pushButtonSCCalcProj.setEnabled(False) 
         self.ui.activeWSNames=[]
         table=self.ui.tableWidgetWorkspaces
@@ -489,7 +499,7 @@ class MSlice(QtGui.QMainWindow):
                 #now populate table
                 self.ui.StatusText.append("  Loading workspace:"+str(wsName))
                 addWStoTable(table,wsName,wsfile)
-#            table.resizeColumnsToContents();
+            table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy
             
         elif self.ui.radioButtonCreateWSG.isChecked():  
@@ -590,44 +600,104 @@ class MSlice(QtGui.QMainWindow):
             # if none were selected
             # if more than one were selected
             # or just one was selected
-            dosave=False
             if len(selrow) == 0:
                 #warn that no rows were selected
-                dosave=False
+
                 dialog=QtGui.QMessageBox(self)
                 dialog.setText("No workspaces selected to save")
                 dialog.exec_()
             elif len(selrow) == 1:
-                #preferred case - just do it
-                dosave=True
+                #when saving one file, user specifies filename and directory to save
                 row=selrow[0]
                 if row != -1:
                     wsname=str(table.item(row,const.WSM_WorkspaceCol).text())
-            elif len(selrow) > 1:
-                #warn that too many rows selected - using first one
-                dosave=True
-                dialog=QtGui.QMessageBox(self)
-                dialog.setText("Currently supporting single workspace save - using the one with the lowest row value")
-                dialog.exec_()
-                row=selrow[0]
-                wsname=str(str(table.item(row,const.WSM_WorkspaceCol).text()))
-                pass
-            else:
-                dosave=False
-                print "this case not anticipated...doing nothing"
-            
-            if dosave == True:
+                    
                 filter='.nxs'
                 wsnamext=wsname+filter
                 wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsnamext,filter))
                 print "Workspace Save: ",wspathname
                 
-                #now save workspace to nexus file
-                self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Saving Workspace: "+str(wsname))
-                SaveNexus(wsname,wspathname)
-                table.item(row,const.WSM_SavedCol).setText('Yes')
+                if wspathname != '':
+                    #now save workspace to nexus file
+                    self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Saving Workspace: "+str(wsname))
+                    stws=str(type(mtd.retrieve(wsname))) #get the type of workspace, convert to string
+                    print "stws: ",stws
+                    if (('MatrixWorkspace' in stws) or ('IEventWorkspace' in stws)):
+                        #case for "standard" 2D workspace
+                        SaveNexus(wsname,wspathname)
+                    else:
+                        #case for MD workspace
+                        SaveMD(wsname,wspathname)
+                    table.item(row,const.WSM_SavedCol).setText('Yes')
+                    
+                    
+            elif len(selrow) > 1:
+                #when saving more than one file, user selects directory and filenames are automatically generated.
+
+                dialog=QtGui.QMessageBox(self)
+                dialog.setText("Multiple files selected to save - user selects the directory to save the files and filenames will be automatically generated")
+                dialog.exec_()
+                             
+                filter='.nxs'
+#                wsnamext=wsname+filter
+#                wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsnamext,filter))
+                home=getHomeDir()
+                wspathname = str(QtGui.QFileDialog.getExistingDirectory(self,'Save Workspaces Directory',home))
+                print "Workspace Save: ",wspathname
+                
+                #check if files already exist
+                fcnt=0
+                fstat=False
+                for row in selrow:
+                    wsname=str(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                    wspathname1 = wspathname + os.sep + wsname + '.nxs'
+                    tmp=os.path.isfile(wspathname1)
+                    if tmp:
+                        fcnt += 1
+                        fstat=True
+
+                print " fstat: ",fstat                
+                
+                if fstat:
+                    print "one or more files already exist - overwrite?"
+                    reply = QtGui.QMessageBox.question(self, 'Warning', "One or more files already exist - overwrite all existing files?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+                    print "Button pressed: ",reply
+                    
+                if reply == QtGui.QMessageBox.Yes:
+                    #case to overwrite files
+                    if wspathname != '':
+                        #wspathname will be empty if the cancel button was selected on the path dialog.
+                        cntr=1
+                        for row in selrow:
+                            wsname=str(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                            #since wspathname contains a directory, need to add filename and extension to it
+                            wspathname1 = wspathname + os.sep + wsname + '.nxs'
+                            print "save wsname: ",wsname
+                            print "wspathname1: ",wspathname1
+                            
+                            percentbusy=int(float(cntr)/float(len(selrow))*100)
+                            self.ui.progressBarStatusProgress.setValue(percentbusy) 
+                            #now save workspace to nexus file
+                            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Saving Workspace: "+str(wsname))
+                            stws=str(type(mtd.retrieve(wsname))) #get the type of workspace, convert to string
+                            print "stws: ",stws
+                            if (('MatrixWorkspace' in stws) or ('IEventWorkspace' in stws)):
+                                #case for "standard" 2D workspace
+                                SaveNexus(wsname,wspathname1)
+                            else:
+                                #case for MD workspace
+                                SaveMD(wsname,wspathname1)
+                            table.item(row,const.WSM_SavedCol).setText('Yes')
+                            cntr += 1
+
+                time.sleep(0.2)
+                self.ui.progressBarStatusProgress.setValue(0) 
+
+            else:
+                print "this case not anticipated...doing nothing"
             
-            pass
+
+            
         elif self.ui.radioButtonRemoveSelected.isChecked(): 
             #remove selected workspaces from the application
             
@@ -1104,6 +1174,87 @@ class MSlice(QtGui.QMainWindow):
         PSSmoothing=self.ui.lineEditPowderSliceSmoothing.text()
         print "Powder Surface values: ",PSXcomboIndex,PSXFrom,PSXTo,PSXStep,PSYcomboIndex,PSYFrom,PSYTo,PSYStep,PSIntensityFrom,PSIntensityTo,PSSmoothing
         #**** code to extract data and perform plot placed here
+        
+        #get constants
+        const=constants()
+        
+        table=self.ui.tableWidgetWorkspaces
+        #first let's clean up empty rows
+        Nrows=table.rowCount()
+        for row in range(Nrows):
+            cw=table.cellWidget(row,const.WSM_SelectCol) 
+            cbstat=cw.isChecked()
+            #check if this workspace is selected for display
+            if cbstat == True:
+                #case where it is selected
+                #get workspace
+                wsitem=str(table.item(row,const.WSM_WorkspaceCol).text())
+                print " wsitem:",wsitem
+                print " mtd.getObjectNames():",mtd.getObjectNames()
+                ws=mtd.retrieve(wsitem)
+    
+                wsX=ws.getXDimension()
+                wsY=ws.getYDimension()
+                
+                xmin=wsX.getMinimum()
+                xmax=wsX.getMaximum()
+                
+                ymin=wsY.getMinimum()
+                ymax=wsY.getMaximum()
+                
+                xname= wsX.getName()
+                yname= wsY.getName()
+                
+                ad0=xname+','+str(xmin)+','+str(xmax)+',100'
+                ad1=yname+','+str(ymin)+','+str(ymax)+',100'
+                
+                MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)
+                sig=MDH.getSignalArray()
+                ne=MDH.getNumEventsArray()
+                dne=sig/ne
+                
+#                figure(1)
+#                imshow(flipud(sig))
+                
+                figure(2)
+                imshow(flipud(dne.T))
+                
+                XD,YD=shape(sig)
+                
+                Ndx=5                  #label span per tick
+                xrng=round(xmax-xmin)  #label range
+                xbins=(xrng/Ndx)  #number of label ticks 
+                
+                dx=XD/xbins            #data x dimension divided by number of label ticks gives data bins per label tick
+                print "dx: ",dx
+                
+                Ndy=100
+                yrng=round(ymax-ymin)
+                ybins=(yrng/Ndy)
+                
+                dy=YD/ybins
+                
+                #need to add one to include end point on plot
+                xbins=xbins+1
+                ybins=ybins+1
+                
+                xtick_locs=[j for j in arange(xbins)*dx]
+                xtick_lbls=[int(j+xmin) for j in arange(xbins)*Ndx] 
+                xtick_lbls.reverse()
+                
+                ytick_locs=[j for j in arange(ybins)*dy]
+                ytick_lbls=[int(j+ymin) for j in arange(ybins)*Ndy] 
+                
+                xticks(ytick_locs,ytick_lbls)
+                yticks(xtick_locs,xtick_lbls)
+                
+                suptitle('Powder Slice View',fontsize=20)
+                xlabel(wsY.getName(),fontsize=18)
+                ylabel(wsX.getName(),fontsize=18)
+                
+        show()
+        
+        
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Surface Slice")				
 
 		
@@ -1320,11 +1471,11 @@ class MSlice(QtGui.QMainWindow):
             self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)		
 			#Add file TYPE to table
             col=const.CWS_TypeCol
-            type=os.path.basename(repr(fname)).split('.')[-1]  #take the extension part of the filename
-            type=os.path.basename(type).split("'")[0] #strip off extraneous stuff left behind from the repr command...
-            type.strip()			#remove any extra spaces left over...
-            print "type: ",type
-            item_type=QtGui.QTableWidgetItem(type)
+            wstype=os.path.basename(repr(fname)).split('.')[-1]  #take the extension part of the filename
+            wstype=os.path.basename(wstype).split("'")[0] #strip off extraneous stuff left behind from the repr command...
+            wstype.strip()			#remove any extra spaces left over...
+            print "type: ",wstype
+            item_type=QtGui.QTableWidgetItem(wstype)
             self.ui.tableWidget.setItem(row,col, item_type)
 #            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignVCenter)
             self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignCenter)
@@ -1403,63 +1554,7 @@ def constantUpdateActor(self):
     totalmemstr='Max Mem: '+str(totalmem)+' GB'
 #        print "Total Mem str: ",totalmemstr
     self.ui.labelMaxMem.setText(totalmemstr)
-		
-def SaveWorkspaceSelect(self,type):
-    #save workspaces once projections have been calculated
-    
-    #get constants
-    const=constants()
-    
-    if type == "Powder":
-        suffix=self.ui.lineEditPowderWorkspaceSuffix.text()
-        saveStr=" Saving Powder Calc Proj Workspace(s)"
-    else:
-        #single crystal case
-        suffix=self.ui.lineEditSCWorkspaceSuffix.text()
-        saveStr=" Saving Single Crystal Calc Proj Workspace(s)"
-    #get pathname
-    self.ui.progressBarStatusProgress.setValue(10)
-    home=getHomeDir()
-    cpwspathname = str(QtGui.QFileDialog.getExistingDirectory(self, 'Select Calculate Projections Save Directory', home,QtGui.QFileDialog.ShowDirsOnly))
-    if cpwspathname == '':
-        return
-		
-    table=self.ui.tableWidgetWorkspaces
-    Nrows=table.rowCount()	
-    wsnames=[]
-    for row in range(Nrows):
-        #check if row item has appropriate type
-        wsname=table.item(row,const.WSM_WorkspaceCol).text()
-        wsAlg=table.item(row,const.WSM_LastAlgCol).text()
-        if wsAlg == "DgsReduction":
-            wsnames.append(wsname)
 				
-    filetype='.nxs'
-    Nwsnames=len(wsnames)
-    print "Nwsnames: ",Nwsnames
-    sep=os.sep
-    cnt=1
-    datetimestr=time.strftime("%a %b %d %Y %H:%M:%S")+" - Application Start: "
-    self.ui.StatusText.append(datetimestr+saveStr)
-    for wsname in wsnames:
-        print "cpwspathname: ", cpwspathname
-        print "wsname: ",wsname
-        print "suffix: ",suffix
-        print "filetype: ",filetype
-        outfile=cpwspathname+sep+wsname+suffix+filetype
-        print "outfile: ",outfile
-        fileObj=open(outfile,'w')
-        data=np.random.rand(1024,1024)
-        fileObj.write(data)
-        fileObj.close()
-        progress=(90/(Nwsnames))*cnt+10
-        cnt +=1
-        self.ui.progressBarStatusProgress.setValue(progress)	
-        self.ui.StatusText.append("  Writing: "+outfile)			
-    #for now put some delay before immediately clearing the progress bar to zero
-    time.sleep(1)
-    self.ui.progressBarStatusProgress.setValue(0)	
-		
 def getHomeDir():
         if sys.platform == 'win32':
             home = expanduser("~")
@@ -1538,7 +1633,8 @@ def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
     table.setItem(userow,const.WSM_TypeCol,QtGui.QTableWidgetItem(wstype)) #Workspace Type
     table.setItem(userow,const.WSM_SavedCol,QtGui.QTableWidgetItem(saved)) #FIXXME Hard coded for now
     table.setItem(userow,const.WSM_SizeCol,QtGui.QTableWidgetItem(wssize)) #Size 
-    table.setItem(userow,const.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
+    addCheckboxToWSTCell(table,userow,const.WSM_SelectCol,True)
+#    table.setItem(userow,const.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
 
        	
 def addWStoTable(table,workspaceName,workspaceLocation):

@@ -592,7 +592,7 @@
     </widget>
     <widget class="QTabWidget" name="SampleTabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="PowderTab">
       <attribute name="title">
@@ -756,8 +756,8 @@
       <widget class="QPushButton" name="pushButtonPowderCalcProj">
        <property name="geometry">
         <rect>
-         <x>510</x>
-         <y>160</y>
+         <x>750</x>
+         <y>150</y>
          <width>151</width>
          <height>23</height>
         </rect>
@@ -769,34 +769,21 @@
       <widget class="QGroupBox" name="groupBox_7">
        <property name="geometry">
         <rect>
-         <x>670</x>
-         <y>80</y>
-         <width>161</width>
-         <height>111</height>
+         <x>520</x>
+         <y>120</y>
+         <width>211</width>
+         <height>61</height>
         </rect>
        </property>
        <property name="title">
-        <string>Output Workspace(s)</string>
+        <string/>
        </property>
-       <widget class="QPushButton" name="pushButtonPowderSaveWorkspace">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>80</y>
-          <width>141</width>
-          <height>23</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Save Workspace(s)</string>
-        </property>
-       </widget>
        <widget class="QLineEdit" name="lineEditPowderWorkspaceSuffix">
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>50</y>
-          <width>141</width>
+          <y>30</y>
+          <width>151</width>
           <height>20</height>
          </rect>
         </property>
@@ -808,28 +795,15 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>30</y>
-          <width>131</width>
+          <y>10</y>
+          <width>181</width>
           <height>16</height>
          </rect>
         </property>
         <property name="text">
-         <string>Workspace Suffix</string>
+         <string>Projection Workspace Suffix</string>
         </property>
        </widget>
-      </widget>
-      <widget class="QLabel" name="labelPowderWorkspaces">
-       <property name="geometry">
-        <rect>
-         <x>510</x>
-         <y>140</y>
-         <width>161</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Available Workspaces:</string>
-       </property>
       </widget>
      </widget>
      <widget class="QWidget" name="SingleCrystalTab">
@@ -1713,8 +1687,8 @@
       <widget class="QPushButton" name="pushButtonSCCalcProj">
        <property name="geometry">
         <rect>
-         <x>510</x>
-         <y>160</y>
+         <x>750</x>
+         <y>150</y>
          <width>151</width>
          <height>23</height>
         </rect>
@@ -1726,33 +1700,20 @@
       <widget class="QGroupBox" name="groupBox_4">
        <property name="geometry">
         <rect>
-         <x>670</x>
-         <y>80</y>
-         <width>161</width>
-         <height>111</height>
+         <x>520</x>
+         <y>120</y>
+         <width>211</width>
+         <height>61</height>
         </rect>
        </property>
        <property name="title">
-        <string>Output Workspace(s)</string>
+        <string/>
        </property>
-       <widget class="QPushButton" name="pushButtonSCSaveWorkspace">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>80</y>
-          <width>141</width>
-          <height>23</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Save Workspace(s)</string>
-        </property>
-       </widget>
        <widget class="QLineEdit" name="lineEditSCWorkspaceSuffix">
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>50</y>
+          <y>30</y>
           <width>141</width>
           <height>20</height>
          </rect>
@@ -1765,28 +1726,15 @@
         <property name="geometry">
          <rect>
           <x>10</x>
-          <y>30</y>
-          <width>131</width>
+          <y>10</y>
+          <width>201</width>
           <height>16</height>
          </rect>
         </property>
         <property name="text">
-         <string>Workspace Suffix</string>
+         <string>Projection Workspace Suffix</string>
         </property>
        </widget>
-      </widget>
-      <widget class="QLabel" name="labelSCWorkspaces">
-       <property name="geometry">
-        <rect>
-         <x>510</x>
-         <y>140</y>
-         <width>161</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Available Workspaces:</string>
-       </property>
       </widget>
      </widget>
     </widget>
@@ -5207,70 +5155,6 @@
     <hint type="destinationlabel">
      <x>905</x>
      <y>172</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonSCSaveWorkspace</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>pushButtonSCSaveWorkspace</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>752</x>
-     <y>463</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>752</x>
-     <y>463</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonPowderSaveWorkspace</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>pushButtonPowderSaveWorkspace</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>752</x>
-     <y>463</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>752</x>
-     <y>463</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>lineEditPowderWorkspaceSuffix</sender>
-   <signal>textChanged(QString)</signal>
-   <receiver>pushButtonPowderSaveWorkspace</receiver>
-   <slot>raise()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>754</x>
-     <y>448</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>754</x>
-     <y>481</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>lineEditSCWorkspaceSuffix</sender>
-   <signal>textChanged(QString)</signal>
-   <receiver>pushButtonSCSaveWorkspace</receiver>
-   <slot>raise()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>754</x>
-     <y>448</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>754</x>
-     <y>481</y>
     </hint>
    </hints>
   </connection>

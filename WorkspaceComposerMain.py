@@ -155,6 +155,10 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Loading Workspace: "+str(gwsName))
             self.parent.ui.progressBarStatusProgress.setValue(25) #update progress bar    
             Load(Filename=loadstr,OutputWorkspace=gwsName)  #using a string containing a list of files, create the workspace
+            
+            #FIXME - this would be the place to do a workspace compatibility check once the workspaces have been loaded in and can be tested
+#            if self.ui.checkBoxEnforceCompatibility.checkState():
+                
             self.parent.ui.progressBarStatusProgress.setValue(75) #update progress bar
             val=self.ui.lineEditGroupComment.text()
             print "Group Comment: ",val            
@@ -202,6 +206,10 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     percentbusy=int(float(row+1)/float(Nrows))*100
                     self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
                     Load(Filename=locs[row],OutputWorkspace=names[row])
+                    
+                    #FIXME - place to consider incorporating a workspace compatibility check
+#                    if self.ui.checkBoxEnforceCompatibility.checkState():
+                    
                     #then add it to the group
                     thisGWS.add(names[row])
                     
@@ -221,7 +229,15 @@ class WorkspaceComposer(QtGui.QMainWindow):
 
         #for now, get group workspace type from the workspace group edit table
         #when enforcing workspace consistency, this approach is reasonable
-        gwsType=str(table.item(row,const.WGE_DataTransformCol).text())
+#        gwsType=str(table.item(row,const.WGE_DataTransformCol).text())
+
+        ws=mtd.retrieve(names[0])
+        print "ws: ",ws
+        print "wstype: ",type(ws)
+        print "mtd.getObjectNames(): ",mtd.getObjectNames()
+        gwsType=getReduceAlgFromWorkspace(ws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
+        print "gwsType: ",gwsType
+        
         
         #now let's determine the size of the group workspace
         thisGWS=mtd.retrieve(gwsName)
@@ -240,7 +256,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
         self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Workspace Create Complete")
         print "gwsName: ",gwsName,"  gwsType: ",gwsType
         self.parent.ui.GWSName=gwsName
-        self.parent.ui.GWSType=gwsType
+        self.parent.ui.GWSType=gwsType  #need to get workspace type from the newly created workspace
         self.parent.ui.GWSSize=gwsSize
         self.parent.mySignal.emit()
         #now that we have the info we need, destroy the WorkspaceComposer
@@ -318,17 +334,6 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 addWStoTable(table,wsName,wsFile)
 #            table.resizeColumnsToContents();
                     
-            #let's do a workspace compatibility check next
-            for row in range(table.rowCount()):
-                dataTform=str(table.item(row,const.WGE_DataTransformCol).text()) #check versus the 0th table row as this enable a check of subsequent open workspaces
-                if row == 0:
-                    tformtype=dataTform
-                if row > 0:
-                    if self.ui.checkBoxEnforceCompatibility.checkState():
-                        print "dataTform: ",dataTform,"  tformtype: ",tformtype
-                        if tformtype != dataTform:
-                            statusMsg='Data Type Compatibility Mismatch!!!'
-
             self.ui.labelNumWorkspaces.setText('Number of Workspaces:  '+str(cnt))
             if statusMsg == '':
                 statusMsg=' Workspace Select OK'
@@ -428,11 +433,11 @@ class WorkspaceComposer(QtGui.QMainWindow):
 class constants:
     def __init__(self):
         self.WGE_WorkspaceCol=0
-        self.WGE_DataTransformCol=1
-        self.WGE_LocationCol=2
-        self.WGE_DateCol=3
-        self.WGE_SizeCol=4
-        self.WGE_SelectCol=5
+#        self.WGE_DataTransformCol=1
+        self.WGE_LocationCol=1
+        self.WGE_DateCol=2
+        self.WGE_SizeCol=3
+        self.WGE_SelectCol=4
         
 
 def addWStoTable(table,workspaceName,workspaceLocation):
@@ -459,11 +464,11 @@ def addWStoTable(table,workspaceName,workspaceLocation):
 #        h5WS=h5py.File(str(workspaceLocation),'r')
 #        WSAlg=getReduceAlgFromH5Workspace(h5WS)
         
-        WSAlg=getReduceAlgFromWorkspace(workspaceName)
+#        WSAlg=getReduceAlgFromWorkspace(workspaceName)
         
-        if WSAlg == "":
-            WSAlg="Not Available"
-            WSAlg="DgsReduction"  #hard coded for now...
+#        if WSAlg == "":
+#            WSAlg="Not Available"
+#            WSAlg="DgsReduction.."  #hard coded for now...
     else:
         ws_date=''
         ws_size=''
@@ -506,8 +511,8 @@ def addWStoTable(table,workspaceName,workspaceLocation):
     table.item(userow,const.WGE_LocationCol).setFont(QtGui.QFont('Courier',10))
     table.setItem(userow,const.WGE_DateCol,QtGui.QTableWidgetItem(ws_date)) 
     table.setItem(userow,const.WGE_SizeCol,QtGui.QTableWidgetItem(ws_size)) 
-    addCheckboxToWSTCell(table,userow,const.WGE_SelectCol,False)	
-    table.setItem(userow,const.WGE_DataTransformCol,QtGui.QTableWidgetItem(WSAlg))   
+    addCheckboxToWSTCell(table,userow,const.WGE_SelectCol,True)	
+#    table.setItem(userow,const.WGE_DataTransformCol,QtGui.QTableWidgetItem(WSAlg))   
     
          
 def addCheckboxToWSTCell(table,row,col,state):
