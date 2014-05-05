@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'MSlice.ui'
 #
-# Created: Mon Apr 21 16:58:05 2014
+# Created: Fri May 02 14:13:01 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!

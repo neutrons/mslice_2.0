@@ -35,9 +35,61 @@ import sys, os, time
 from os.path import expanduser
 from PyQt4 import Qt, QtCore, QtGui
 from MSlice import *  # .py file created from the .ui file produced by PyQt corresponding to the .pyw file used to instantiate the GUI
-import psutil
+
+#FIXME ahead - need to sort out how to handle psutil
+# currently on python path for my mac
+# not currently on my python path for my PC
+# Linux status unknow...
+if os.sys.platform == 'win32':
+    #import psutil from a local installation of it on my computer - need to specify path to this module
+    import imp
+    sys.path.append(r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages')
+    psutil=imp.load_package('psutil',r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages\psutil')
+elif os.sys.platform == 'darwin':
+    #psutil found on my mac
+    import psutil
+elif os.sys.platform == 'linux2':    
+    #guessing psutil will be available on Linux, but not sure...
+    import psutil
+else:
+    #when in doubt, do it the easy way...
+    import psutil
+
 import numpy as np
-from pylab import *  #matplotlib
+
+#from pylab import *  #matplotlib
+if os.sys.platform == 'win32':
+    #import psutil from a local installation of it on my computer - need to specify path to this module
+    import imp, sys
+#    PyQt4=imp.load_package('PyQt4',r'C:\Python27\Lib\site-packages\PyQt4')
+    sys.path.append(r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages')
+    matplotlib=imp.load_package('matplotlib',r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages\matplotlib')
+    #check if the QT backend for matplotlib is being used, if not, make it so!
+    if matplotlib.get_backend() != 'QT4Agg':
+        matplotlib.use('QT4Agg')
+    pylab=imp.load_source('pylab',r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\lib\site-packages\pylab.py')
+    #now make life easier so we don't have to include the pylab prefix to things from this module
+    from pylab import *
+    
+    
+    
+elif os.sys.platform == 'darwin':
+    #psutil found on my mac
+    from pylab import * 
+elif os.sys.platform == 'linux2':    
+    #guessing psutil will be available on Linux, but not sure...
+    from pylab import * 
+else:
+    #when in doubt, do it the easy way...
+    from pylab import * 
+
+
+
+
+
+
+
+
 from MSliceHelpers import getReduceAlgFromWorkspace 
 #import h5py 
 from WorkspaceComposerMain import *
@@ -46,9 +98,12 @@ from WorkspaceComposerMain import *
 sys.path.append(os.environ['MANTIDPATH'])
 from mantid.simpleapi import *
 
+#import SliceViewer (here it assumes local module as a Mantid produced module for this does not exist)
+from SliceViewer import *
+
 class MSlice(QtGui.QMainWindow):
     
-    mySignal = QtCore.pyqtSignal()  #establish signal for communicating with Workspace Group Editor
+    mySignal = QtCore.pyqtSignal()  #establish signal for communicating with Workspace Composer
     
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -1212,6 +1267,23 @@ class MSlice(QtGui.QMainWindow):
                 sig=MDH.getSignalArray()
                 ne=MDH.getNumEventsArray()
                 dne=sig/ne
+                
+                
+                #Incorporate SliceViewer here
+                sv = SliceViewer()
+                label='Python Only SliceViewer'
+                #hard coded workspace for demo purpose - needs to be changed to dynamically pick up workspace
+                LoadMD(filename=r'C:\Users\mid\Documents\Mantid\Powder\CalcProj\zrh_1000_PCalcProj.nxs',OutputWorkspace='ws')
+                sv.LoadData('ws',label)
+                xydim=None
+                slicepoint=None
+                colormin=None
+                colormax=None
+                colorscalelog=False
+                limits=None
+                normalization=1
+                sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
+                sv.Show()
                 
 #                figure(1)
 #                imshow(flipud(sig))
