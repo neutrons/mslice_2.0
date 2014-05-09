@@ -568,7 +568,7 @@
          </font>
         </property>
         <property name="text">
-         <string>Load Workspace or Group</string>
+         <string>Load Data</string>
         </property>
         <property name="checked">
          <bool>true</bool>

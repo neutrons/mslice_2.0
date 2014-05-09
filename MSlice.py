@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'MSlice.ui'
 #
-# Created: Fri May 02 14:13:01 2014
+# Created: Mon May 05 12:15:34 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -1482,7 +1482,7 @@ class Ui_MainWindow(object):
         self.radioButtonRemoveSelected.setText(_translate("MainWindow", "Remove Selected", None))
         self.radioButtonEditSelected.setText(_translate("MainWindow", "Edit Selected", None))
         self.radioButtonCreateWSG.setText(_translate("MainWindow", "Create Workspace Group", None))
-        self.radioButtonLoadSingleWorkspace.setText(_translate("MainWindow", "Load Workspace or Group", None))
+        self.radioButtonLoadSingleWorkspace.setText(_translate("MainWindow", "Load Data", None))
         self.radioButtonProcessSelected.setText(_translate("MainWindow", "Process Selected", None))
         self.groupBox_3.setTitle(_translate("MainWindow", "Viewing Axes:", None))
         self.label.setText(_translate("MainWindow", "u1", None))

@@ -24,6 +24,7 @@ from MSliceHelpers import getReduceAlgFromWorkspace
 #import Mantid computatinal modules
 sys.path.append(os.environ['MANTIDPATH'])
 from mantid.simpleapi import *
+import re #regular expressions needed to work with equation parsing
 
 class WorkspaceComposer(QtGui.QMainWindow):
 
@@ -60,12 +61,18 @@ class WorkspaceComposer(QtGui.QMainWindow):
             thisGWS=mtd.retrieve(gwsName)
             try:
                 #case for a group workspace
-                Nrows=thisGWS.size()
-                for row in range(Nrows):
-                    wsName=thisGWS[row].name()
-#                    wsFile=os.path.normpath(r'C:\Users\mid\Documents\Mantid\Wagman\autoreduce\\'+wsName+'.nxs')  #for now just hard code path name...will eventually need to dig this out of workspace
+                try:
+                    Nrows=thisGWS.size()  #note that a group workspace as a size attribute to tell you the number of workspaces within the group, however a single workspaces contained within a single file do not.
+                    for row in range(Nrows):
+                        wsName=thisGWS[row].name()
+    #                    wsFile=os.path.normpath(r'C:\Users\mid\Documents\Mantid\Wagman\autoreduce\\'+wsName+'.nxs')  #for now just hard code path name...will eventually need to dig this out of workspace
+                        wsFile=''
+                        addWStoTable(table,wsName,wsFile)
+                except:
+                    wsName=thisGWS.name()
                     wsFile=''
-                    addWStoTable(table,wsName,wsFile)
+                    addWStoTable(table,wsName,wsFile)                    
+
 
             except AttributeError:
                 #else a single workspace does not have a size attribute and here we're currently only working with group workspaces
@@ -138,7 +145,8 @@ class WorkspaceComposer(QtGui.QMainWindow):
             for row in range(Nrows):
                 locpath=os.path.normpath(locs[row])
                 if row < Nrows-1:
-                    loadstr=loadstr+locs[row]+operator
+                    if locs[row] != '':   #don't let an empty location be added to the list as the next line will add extraneous operators in that case
+                        loadstr=loadstr+locs[row]+operator
                 else:
                     loadstr=loadstr+locs[row]
                 
@@ -155,7 +163,18 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Loading Workspace: "+str(gwsName))
             self.parent.ui.progressBarStatusProgress.setValue(25) #update progress bar    
             Load(Filename=loadstr,OutputWorkspace=gwsName)  #using a string containing a list of files, create the workspace
-            
+            #surface all workspace names to the python working level
+            for row in range(Nrows):
+                #exec enables us to create the workspaces using their names
+                # %r rather than %s is needed in order for the mtd.retrieve() function to work
+                try:
+                    exec("%s = mtd.retrieve(%r)" % (names[row],names[row]))
+                except:
+                    #expect this case to occur when workspaces are summed via the Mantid Load() procedure
+                    pass
+      
+                            
+                                                    
             #FIXME - this would be the place to do a workspace compatibility check once the workspaces have been loaded in and can be tested
 #            if self.ui.checkBoxEnforceCompatibility.checkState():
                 
@@ -213,14 +232,6 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     #then add it to the group
                     thisGWS.add(names[row])
                     
-            #now that we have the correct set of workspaces in the group, check if they are to be summed
-            #get the Sum Workspaces flag
-            #FIXME - need to determine the correct mantid algorithm for summing workspaces
-            if self.ui.checkBoxSumWorkspaces.checkState():
-                operator='+'  #if checked, sum workspaces
-            else:
-                operator=','  #otherwise, keep workspaces separate
-                    
             #during development, display what we did...
             NGWSchk=thisGWS.size()  #number of workspaces within the existing group of workspaces
             print "*** check resulting group: ***"
@@ -231,7 +242,8 @@ class WorkspaceComposer(QtGui.QMainWindow):
         #when enforcing workspace consistency, this approach is reasonable
 #        gwsType=str(table.item(row,const.WGE_DataTransformCol).text())
 
-        ws=mtd.retrieve(names[0])
+        cws=mtd.getObjectNames() #current workspaces - if Load summation used, the actual workspaces will be different than the list in the table thus the need to get the first workspace here
+        ws=mtd.retrieve(cws[0])
         print "ws: ",ws
         print "wstype: ",type(ws)
         print "mtd.getObjectNames(): ",mtd.getObjectNames()
@@ -241,13 +253,138 @@ class WorkspaceComposer(QtGui.QMainWindow):
         
         #now let's determine the size of the group workspace
         thisGWS=mtd.retrieve(gwsName)
-        Nws=thisGWS.size()
-        gwsSize=0
-        for n in range(Nws):
-            gwsSize += thisGWS[n].getMemorySize()
-        gwsSize=int(float(gwsSize)/float(1024*1024))
-        gwsSize=str(gwsSize)+' MB'
+        #use try/except here in case the workspace is not a group workspace - should probably check the logic of why this try is needed...
+        try:
+            Nws=thisGWS.size()  #return the number of workspaces within the group
+            gwsSize=0
+            for n in range(Nws):
+                gwsSize += thisGWS[n].getMemorySize()
+            gwsSize=int(float(gwsSize)/float(1024*1024))
+            gwsSize=str(gwsSize)+' MB'
+        except:
+            gwsSize = thisGWS.getMemorySize()
+            gwsSize=int(float(gwsSize)/float(1024*1024))
+            gwsSize=str(gwsSize)+' MB'
+
         
+        #and bring the name of the new workspace to the python layer
+        exec ("%s = mtd.retrieve(%r)" % (gwsName,gwsName)) #now make the output workspace available to python
+        
+        #check if an equation is to be processed 
+        eqnstr=str(self.ui.lineEditEquation.text())
+        if eqnstr != '':
+            #case where there appears to be an equation entered
+            print "Calculating Equation"
+            #determine number of workspaces in equation - convert string to upper case to reduce naming ambiguity when using workspace indicies ws0, Ws0 or WS0 for instance
+            UpperEqnStr=eqnstr.upper()  #equation string to work with where case is not an issue when discovering the ws* Ws* wS* WS* ways of representation
+            RplEqnStr=eqnstr #the replacement equation string will start with the original equation string
+            strts=[m.start() for m in re.finditer('WS',UpperEqnStr)]
+            Nws=len(strts) #number of workspaces in the equation
+            Nchars=len(eqnstr) #numbers of characters in the equation
+            if Nws >0:
+                print "Case to parse equation"
+                wsinames=[] #list to contain the workspace index names
+                for indx in range(Nws):
+                    #for each workspace, determine how many numeric digits they have
+                    #single workspace equation would look like: (ws1-ws2)/ws3
+                    #not currently supporting a range of workspaces...would need to think more about how to implement this generally
+                    
+                    cntr=0
+                    flag=True #used to make sure we're only checking for one workspace at a time and not traversing the entire list
+                    for pos in range(Nchars-(strts[indx]+2)):
+                        posoff=pos+(strts[indx]+2)
+#                        print "     pos: ",pos,"  posoff: ",posoff," UpperEqnStr[posoff]: ",UpperEqnStr[posoff]
+                        #check if character is alphanumeric 
+                        if UpperEqnStr[posoff].isalnum() and flag:
+                            #then make sure we have a number and not a character
+                            if not(UpperEqnStr[posoff].isalpha()):
+                                cntr+=1
+                        else:
+                            flag=False
+                    key=UpperEqnStr[strts[indx]:strts[indx]+cntr+2]  #adding 2 to count for the 'ws' characters in the string
+                    wsinames.append(key) #update the list of workspace names
+                    print "*** Indx: ",indx,"   Key: ",key,"  pos: ",pos,"  posoff: ",posoff,"  strts[indx]: ",strts[indx],"  cntr: ",cntr #FIXME: currently seeing incorrect keys here...
+                print "wsinames: ",wsinames
+                #now that we have the workspace index names, let's find the corresponding workspace names in the table
+                Nrows=table.rowCount()
+                cnt=0
+                replcntr=0
+                for row in range(Nrows):
+                    print "*** Row: ",row
+                    #obtain workspace index for current row
+                    wsi=table.item(row,const.WGE_WSIndexCol).text()
+                    wsiStr=str(wsi)
+                    
+                    #now check if there is a match between the current index and any from the equation
+                    print " wsinames: ",str(wsinames),"  wsiStr: ",wsiStr.upper()
+                    if str(wsinames).upper().find(wsiStr.upper()) > 0:
+                        replcntr+=1
+                        #case we found a match - now replace the index with the actual workspace name in the equation
+                    
+                        wsname=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                        wsnameStr=str(wsname)
+                        RplEqnStr=RplEqnStr.replace(wsiStr,wsnameStr)
+                        #make sure that workspace is at python layer
+#                        wsnameStr=mtd.retrieve(wsnameStr)
+#                        print " Workspace existance check: ",mtd.doesExist(wsnameStr)
+#                        print " Seeing if the workspace has surfaced: "
+#                        print " wsnameStr: ",wsnameStr
+#                        print " End WS check"
+                print "  **** Equation: ",RplEqnStr
+                if replcntr != Nws:
+                    #case where the number of workspace name replacements does not match the number of workspace indicies in the equation
+                    print "Workspace name mismatch...returning"
+                    return
+                        
+                
+            elif Nchars>0:
+                #case where workspace names rather than workspace indicies are given
+                RplEqnStr=str(self.ui.lineEditEquation.text())
+                print "  **** Equation(elif): ",RplEqnStr
+            else:
+                print "No workspaces identified in the equation...returning"
+                return
+                
+            #make sure all workspaces are at the python working level
+            mtdws=mtd.getObjectNames()
+            mtdlst=[]
+            Nmtdws=len(mtdws)
+            print "Nmtdws: ",Nmtdws
+            for wsi in range(Nmtdws):
+                thismtdws=mtdws[wsi]
+                mtdlst.append(mtd.retrieve(thismtdws))
+                print " ----------> Retrieved workspace: ",mtdlst[wsi].name()
+                print "             End retrieve"
+                
+            #if we get here, we have an algorithm to run!
+            try:
+                print "performing equation: ",RplEqnStr
+                outname=str(self.ui.lineEditResultingWorkspace.text())
+                print " outname: ",type(outname)
+                print " RplEqnStr: ",type(RplEqnStr)
+                self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Executing equation: "+outname+"="+RplEqnStr)
+                exec ("%s = %s" % (outname,RplEqnStr))
+                exec ("%s = mtd.retrieve(%r)" % (outname,outname)) #now make the output workspace available to python
+                print "Result type of equation placed in workspace: ",outname
+                
+            except Exception, e:
+                print "Equation failed to execute...something is wrong, please check and try again"
+                print str(e)
+                print " Looking at variables in table: "
+                print " dir(): ",dir()
+                self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Equation failed to execute...please check and try again")
+                print "Workspaces in memory: ",mtd.getObjectNames()
+                return
+                
+            #if we get here, add the output workspace to the table
+            gwsName=outname
+            gwsType=gwsType
+            
+            OWS=mtd.retrieve(outname) # make sure output workspace is at the python layer
+            gwsSize = OWS.getMemorySize()
+            gwsSize=int(float(gwsSize)/float(1024*1024))
+            gwsSize=str(gwsSize)+' MB'
+            
         
         #remnants of passing stuff back and forth between parent and child apps
 #        print "self.parent.ui.someval: ",self.parent.ui.someval
@@ -315,11 +452,13 @@ class WorkspaceComposer(QtGui.QMainWindow):
         if self.ui.radioButtonChooseWorkspace.isChecked():
             #case to select workspaces
             print "Choose Workspace Selected"
-                
+            
             curdir=os.curdir
             filter='*.nxs'
             wsFiles = QtGui.QFileDialog.getOpenFileNames(self, 'Open Workspace(s)', curdir,filter)
-  		
+            if len(wsFiles) > 0:
+                self.parent.ui.WSMIndex=-1  #if workspaces are chosen, then enable those new workspaces to be loaded via the buttonBoxOK() procedure
+            
             for wsFile in wsFiles:
                 #eventually wsName will be read from the file but for now extract it from filename
                 #determine the common part from the filenames to use as the suggested workspace name
@@ -432,12 +571,13 @@ class WorkspaceComposer(QtGui.QMainWindow):
 
 class constants:
     def __init__(self):
-        self.WGE_WorkspaceCol=0
+        self.WGE_WSIndexCol=0
+        self.WGE_WorkspaceCol=1
 #        self.WGE_DataTransformCol=1
-        self.WGE_LocationCol=1
-        self.WGE_DateCol=2
-        self.WGE_SizeCol=3
-        self.WGE_SelectCol=4
+        self.WGE_LocationCol=2
+        self.WGE_DateCol=3
+        self.WGE_SizeCol=4
+        self.WGE_SelectCol=5
         
 
 def addWStoTable(table,workspaceName,workspaceLocation):
@@ -506,6 +646,8 @@ def addWStoTable(table,workspaceName,workspaceLocation):
         addCheckboxToWSTCell(table,userow,col,False)
 
     #now add the row		
+    wsindex='ws'+str(userow)
+    table.setItem(userow,const.WGE_WSIndexCol,QtGui.QTableWidgetItem(wsindex))
     table.setItem(userow,const.WGE_WorkspaceCol,QtGui.QTableWidgetItem(workspaceName)) #Workspace Name 
     table.setItem(userow,const.WGE_LocationCol,QtGui.QTableWidgetItem(workspaceLocation)) #Workspace Location (path+file) 
     table.item(userow,const.WGE_LocationCol).setFont(QtGui.QFont('Courier',10))

@@ -70,9 +70,6 @@ if os.sys.platform == 'win32':
     pylab=imp.load_source('pylab',r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\lib\site-packages\pylab.py')
     #now make life easier so we don't have to include the pylab prefix to things from this module
     from pylab import *
-    
-    
-    
 elif os.sys.platform == 'darwin':
     #psutil found on my mac
     from pylab import * 
@@ -82,13 +79,6 @@ elif os.sys.platform == 'linux2':
 else:
     #when in doubt, do it the easy way...
     from pylab import * 
-
-
-
-
-
-
-
 
 from MSliceHelpers import getReduceAlgFromWorkspace 
 #import h5py 
@@ -1266,15 +1256,20 @@ class MSlice(QtGui.QMainWindow):
                 MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)
                 sig=MDH.getSignalArray()
                 ne=MDH.getNumEventsArray()
-                dne=sig/ne
+#                dne=sig/ne
+                dne=sig
                 
                 
                 #Incorporate SliceViewer here
                 sv = SliceViewer()
                 label='Python Only SliceViewer'
                 #hard coded workspace for demo purpose - needs to be changed to dynamically pick up workspace
-                LoadMD(filename=r'C:\Users\mid\Documents\Mantid\Powder\CalcProj\zrh_1000_PCalcProj.nxs',OutputWorkspace='ws')
-                sv.LoadData('ws',label)
+#                LoadMD(filename=r'C:\Users\mid\Documents\Mantid\Powder\CalcProj\zrh_1000_PCalcProj.nxs',OutputWorkspace='ws')
+#                sv.LoadData('ws',label)
+                
+#                exec ("%s = mtd.retrieve(%r)" % (outname,outname))
+                
+                sv.LoadData(wsitem,label)
                 xydim=None
                 slicepoint=None
                 colormin=None
@@ -1288,9 +1283,11 @@ class MSlice(QtGui.QMainWindow):
 #                figure(1)
 #                imshow(flipud(sig))
                 
-                figure(2)
-                imshow(flipud(dne.T))
-                
+                figure(row)
+
+#                imshow(flipud(dne.T))
+                imshow(flipud(dne),cmap=get_cmap('spectral'))
+                                                
                 XD,YD=shape(sig)
                 
                 Ndx=5                  #label span per tick
@@ -1312,17 +1309,26 @@ class MSlice(QtGui.QMainWindow):
                 
                 xtick_locs=[j for j in arange(xbins)*dx]
                 xtick_lbls=[int(j+xmin) for j in arange(xbins)*Ndx] 
-                xtick_lbls.reverse()
+#                xtick_lbls.reverse()
                 
-                ytick_locs=[j for j in arange(ybins)*dy]
+                ytick_locs=[j-5 for j in arange(ybins)*dy] 
                 ytick_lbls=[int(j+ymin) for j in arange(ybins)*Ndy] 
+                ytick_lbls.reverse()
                 
-                xticks(ytick_locs,ytick_lbls)
-                yticks(xtick_locs,xtick_lbls)
+#                xticks(ytick_locs,ytick_lbls)
+#                yticks(xtick_locs,xtick_lbls)
+                
+#                suptitle('Powder Slice View',fontsize=20)
+#                xlabel(wsY.getName(),fontsize=18)
+#                ylabel(wsX.getName(),fontsize=18)
+                
+                yticks(ytick_locs,ytick_lbls)
+                xticks(xtick_locs,xtick_lbls)
                 
                 suptitle('Powder Slice View',fontsize=20)
-                xlabel(wsY.getName(),fontsize=18)
-                ylabel(wsX.getName(),fontsize=18)
+                ylabel(wsY.getName(),fontsize=18)
+                xlabel(wsX.getName(),fontsize=18)
+                
                 
         show()
         
