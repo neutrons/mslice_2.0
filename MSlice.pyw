@@ -36,50 +36,15 @@ from os.path import expanduser
 from PyQt4 import Qt, QtCore, QtGui
 from MSlice import *  # .py file created from the .ui file produced by PyQt corresponding to the .pyw file used to instantiate the GUI
 
-#FIXME ahead - need to sort out how to handle psutil
-# currently on python path for my mac
-# not currently on my python path for my PC
-# Linux status unknow...
-if os.sys.platform == 'win32':
-    #import psutil from a local installation of it on my computer - need to specify path to this module
-    import imp
-    sys.path.append(r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages')
-    psutil=imp.load_package('psutil',r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages\psutil')
-elif os.sys.platform == 'darwin':
-    #psutil found on my mac
-    import psutil
-elif os.sys.platform == 'linux2':    
-    #guessing psutil will be available on Linux, but not sure...
-    import psutil
-else:
-    #when in doubt, do it the easy way...
-    import psutil
-
+import psutil
 import numpy as np
+import matplotlib
+#need to make sure that the QT backend is being used for matplotlib else things won't work...
+if matplotlib.get_backend() != 'QT4Agg':
+    matplotlib.use('QT4Agg')
+from pylab import *
 
-#from pylab import *  #matplotlib
-if os.sys.platform == 'win32':
-    #import psutil from a local installation of it on my computer - need to specify path to this module
-    import imp, sys
-#    PyQt4=imp.load_package('PyQt4',r'C:\Python27\Lib\site-packages\PyQt4')
-    sys.path.append(r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages')
-    matplotlib=imp.load_package('matplotlib',r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\Lib\site-packages\matplotlib')
-    #check if the QT backend for matplotlib is being used, if not, make it so!
-    if matplotlib.get_backend() != 'QT4Agg':
-        matplotlib.use('QT4Agg')
-    pylab=imp.load_source('pylab',r'C:\Users\mid\AppData\Local\Enthought\Canopy\User\lib\site-packages\pylab.py')
-    #now make life easier so we don't have to include the pylab prefix to things from this module
-    from pylab import *
-elif os.sys.platform == 'darwin':
-    #psutil found on my mac
-    from pylab import * 
-elif os.sys.platform == 'linux2':    
-    #guessing psutil will be available on Linux, but not sure...
-    from pylab import * 
-else:
-    #when in doubt, do it the easy way...
-    from pylab import * 
-
+#import custom develped helpers
 from MSliceHelpers import getReduceAlgFromWorkspace 
 #import h5py 
 from WorkspaceComposerMain import *
@@ -91,9 +56,10 @@ from mantid.simpleapi import *
 #import SliceViewer (here it assumes local module as a Mantid produced module for this does not exist)
 from SliceViewer import *
 
+import config  #bring in configuration parameters and constants
+
 class MSlice(QtGui.QMainWindow):
     
-    mySignal = QtCore.pyqtSignal()  #establish signal for communicating with Workspace Composer
     
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -106,7 +72,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.activeWSVarsList=[]    #this is where these workspaces are loaded
         self.ui.activePowderCalcWS=[]  #list for holding projection data for powder sample
         self.ui.activeSCCalcWS=[]      #list for holding projection data for single crystal sample
-        
+                
         #set global font style by system type as point size seems different on different platforms.
         if os.sys.platform == 'win32':
             #set for windows
@@ -126,10 +92,6 @@ class MSlice(QtGui.QMainWindow):
         #define actions and callbacks
         self.connect(self.ui.actionLoad_Workspace_s, QtCore.SIGNAL('triggered()'), self.WorkspaceManagerPageSelect) #make workspace stack page available to user
         self.connect(self.ui.actionCreateWorkspace, QtCore.SIGNAL('triggered()'), self.CreateWorkspacePageSelect) #define function to call to select files
-        QtCore.QObject.connect(self.ui.pushButtonSelectFiles, QtCore.SIGNAL('clicked(bool)'),self.selectFiles) #define the function to call when button is clicked
-        QtCore.QObject.connect(self.ui.pushButtonCreateWorkspace, QtCore.SIGNAL('clicked(bool)'),self.CreateWorkspace) #define the function to call to create workspaces from file selection page
-        self.ui.pushButtonCreateWorkspace.setEnabled(False)  #since no data initially, set Create Workspace button to be disabled
-
         self.connect(self.ui.actionExit, QtCore.SIGNAL('triggered()'), self.confirmExit) #define function to confirm and perform exit
         self.connect(self.ui.actionDeleteSelected, QtCore.SIGNAL('triggered()'), self.deleteSelected) #define function to confirm and perform exit
         self.connect(self.ui.actionDeleteAll, QtCore.SIGNAL('triggered()'), self.deleteAll) #define function to confirm and perform exit
@@ -139,9 +101,7 @@ class MSlice(QtGui.QMainWindow):
 
         #For some reason GUI tool disables one of these headers so here we're forcing both sets to be enabled
         self.ui.tableWidgetWorkspaces.horizontalHeader().setVisible(True)
-        self.ui.tableWidget.horizontalHeader().setVisible(True)
         self.ui.tableWidgetWorkspaces.verticalHeader().setVisible(True)
-        self.ui.tableWidget.verticalHeader().setVisible(True)
 		
         #Save Log setup
         QtCore.QObject.connect(self.ui.pushButtonSaveLog, QtCore.SIGNAL('clicked(bool)'),self.SaveLogSelect) 
@@ -169,13 +129,8 @@ class MSlice(QtGui.QMainWindow):
 #        self.ui.labelSCUCbeta.setFont(QtGui.QFont('Symbol',10))
 #        self.ui.labelSCUCgamma.setFont(QtGui.QFont('Symbol',10))
 
-
-		
-        #setup callback for Quit Load Files button
-        QtCore.QObject.connect(self.ui.pushButtonWorkspaceManager, QtCore.SIGNAL('clicked(bool)'), self.pushButtonWorkspaceManagerSelect)
 		
         #setup workspaces table
-        self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(1) #ensure that Workspaces stack is the initial view
         NrowsWS=self.ui.tableWidgetWorkspaces.rowCount()
         print "NrowsWS: ",NrowsWS
 
@@ -194,7 +149,10 @@ class MSlice(QtGui.QMainWindow):
         self.etimer.minutecntr=0L
         QtCore.QObject.connect(self.etimer, QtCore.SIGNAL("timeout()"), self.elapsedUpdate)		
         
-		#setup progress bars to look nicer than defaults :-)
+        #select Workspace Manager as the default tab
+        self.ui.tabWidgetFilesWorkspaces.setCurrentIndex(0)
+        
+	#setup progress bars to look nicer than defaults :-)
         self.ui.progressBarStatusMemory.setStyleSheet("QProgressBar {width: 25px;border: 1px solid black; border-radius: 3px; background: white;text-align: center;padding: 0px;}" 
                                +"QProgressBar::chunk:horizontal {background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #00CCEE, stop: 0.3 #00DDEE, stop: 0.6 #00EEEE, stop:1 #00FFEE);}")
         self.ui.progressBarStatusCPU.setStyleSheet("QProgressBar {width: 25px;border: 1px solid black; border-radius: 3px; background: white;text-align: center;padding: 0px;}" 
@@ -290,9 +248,10 @@ class MSlice(QtGui.QMainWindow):
         self.ui.GWSSize=''
 
     #add slot for workspace group editor to connect to
-    @QtCore.pyqtSlot()
-    def on_button_clicked(self):       #signal for this function defined in WorkspaceComposerMain.py
-
+    @QtCore.pyqtSlot(int)
+    def on_button_clicked(self,val):       #signal for this function defined in WorkspaceComposerMain.py
+        #val can be used to let this methold know who called it should that be desired
+        print "on_button_clicked - val: ",val
         self.ui.pushButtonUpdate.setEnabled(True)
         #now add new group workspace to Workspace Manager table
         table=self.ui.tableWidgetWorkspaces
@@ -300,6 +259,13 @@ class MSlice(QtGui.QMainWindow):
         wstype=self.ui.GWSType
         wssize=self.ui.GWSSize
         wsindex=self.ui.WSMIndex
+        print "Slot WSMIndex: ",wsindex
+        if val == config.mySigNorm:
+            wsindex=self.ui.WSMIndex
+        elif val == config.mySigOverwrite:
+            if wsindex == -1:
+                #case to use row zero
+                wsindex=0
         addmemWStoTable(table,wsname,wstype,wssize,wsindex)
         #reset wsindex
         self.ui.WSMIndex=-1
@@ -387,7 +353,7 @@ class MSlice(QtGui.QMainWindow):
         #upon successful completion enable Powder Calc Proj button
         self.ui.pushButtonPowderCalcProj.setEnabled(True)      
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Calculate Projections Complete")	
-        print "Powder Calc Workspaces Processed: ",cnt	
+        print "Powder Calc Workspaces Processed: "
 		
     def SCCalcProjSelect(self):
 
@@ -471,26 +437,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.pushButtonSCSaveWorkspace.setEnabled(True) 
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Calculate Projections Complete")		
 		
-    def selectWorkspaces(self):
-        print "SelectWorkspaces"
-        curdir=os.curdir
-        filter='*.nxs'
-        wsFiles = QtGui.QFileDialog.getOpenFileNames(self, 'Open Workspace(s)', curdir,filter)
-        table=self.ui.tableWidgetWorkspaces
-		
-        for wsFile in wsFiles:
-            #eventually wsName will be read from the file but for now extract it from filename
-            #determine the common part from the filenames to use as the suggested workspace name
-            cp=os.path.basename(str(wsFile))
-            print "cp: ",cp
-            splt=os.path.split(str(cp))
-            print "splt: ",splt
-            basename=os.path.basename(splt[-1]).split('.')[0] 
-            print "basename: ",basename
-            wsName=basename
-            print "wsFile: ",wsFile
-            addWStoTable(table,wsName,wsFile)
-        table.resizeColumnsToContents();
+
         
     def Update(self):
         print "** Update "
@@ -606,6 +553,7 @@ class MSlice(QtGui.QMainWindow):
                 dialog=QtGui.QMessageBox(self)
                 dialog.setText("No workspaces selected to edit")
                 dialog.exec_()
+                return
             elif len(selrow) == 1:
                 #preferred case - just do it
                 row=selrow[0]
@@ -617,9 +565,10 @@ class MSlice(QtGui.QMainWindow):
             elif len(selrow) > 1:
                 #warn that too many rows selected - using first one
                 dialog=QtGui.QMessageBox(self)
-                dialog.setText("Too many workspaces selected - using the one with the lowest row value")
+                dialog.setText("Too many workspaces selected - please select one")
                 dialog.exec_()
-                pass
+                self.ui.tableWidgetWorkspaces.setEnabled(True)
+                return
             else:
                 print "this case not anticipated...doing nothing"
             
@@ -932,10 +881,6 @@ class MSlice(QtGui.QMainWindow):
 
     def CreateWorkspacePageSelect(self):
         self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(0) #Show create workspace from files stacked widget page 
-
-		
-    def pushButtonWorkspaceManagerSelect(self):
-        self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(1) #make Workspace View available after quitting files view
 		
     def elapsedUpdate(self):
         #update the elapsed time since the application has been running.
@@ -1503,89 +1448,7 @@ class MSlice(QtGui.QMainWindow):
         #once the workspace has been created, saved, and loaded in, take user to workspace manager
         self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(1)
 			
-    def selectFiles(self):
-        #files and workspaces share stacked widget - upon file open make files index active
-        const=constants()
-        self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(0)
-        #make sure that workspace name lineEdit is enabled
-        self.ui.lineEditWorkspaceName.setEnabled(True)
-        #open files using the File --> Open menu 
-        curdir=os.curdir
-        fnames = QtGui.QFileDialog.getOpenFileNames(self, 'Open file(s)', curdir)
-        self.ui.fnames = fnames
-        Nfiles = len(fnames)
-        self.ui.tableWidget.setRowCount(Nfiles)
-        #determine the common part from the filenames to use as the suggested workspace name
-        cp=os.path.commonprefix(fnames)
-        if cp != '':
-            print "cp: ",cp
-            splt=os.path.split(str(cp))
-            print "splt: ",splt
-            basename=os.path.basename(splt[-1]).split('.')[0] 
-            print "basename: ",basename
-        else:
-            basename='NewWorkspace'
-        self.ui.lineEditWorkspaceName.setText(basename)
-		
-        row=0
-        col=0
-        for fname in fnames:
-            print fname
-            print repr(fname)
-			#Add FILENAME to table
-            col=const.CWS_FilenameCol
-            item_fname=QtGui.QTableWidgetItem(fname)
-            self.ui.tableWidget.setItem(row,col, item_fname)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignLeft)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignVCenter)			
-            self.ui.tableWidget.item(row,col).setFont(QtGui.QFont('Courier',10))
-            self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)		
-			#Add CREATION TIME to table
-            col=const.CWS_DateCol
-            item_date=QtGui.QTableWidgetItem(time.ctime(os.path.getctime(fname)))
-            self.ui.tableWidget.setItem(row,col, item_date)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignLeft)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignVCenter)
-            self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)		
-			#Add file TYPE to table
-            col=const.CWS_TypeCol
-            wstype=os.path.basename(repr(fname)).split('.')[-1]  #take the extension part of the filename
-            wstype=os.path.basename(wstype).split("'")[0] #strip off extraneous stuff left behind from the repr command...
-            wstype.strip()			#remove any extra spaces left over...
-            print "type: ",wstype
-            item_type=QtGui.QTableWidgetItem(wstype)
-            self.ui.tableWidget.setItem(row,col, item_type)
-#            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignVCenter)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignCenter)
-            self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)		
-			#Add FILE SIZE to table
-            col=const.CWS_SizeCol
-            item_size=QtGui.QTableWidgetItem(str(int(round(float(os.stat(fname).st_size)/(1024*1024))))+' MB')
-            self.ui.tableWidget.setItem(row,col, item_size)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignRight)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignVCenter)
-            self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)		
-            #Add SCALE FACTOR
-            col=const.CWS_ScaleFactorCol
-            self.ui.tableWidget.setItem(row,col, QtGui.QTableWidgetItem('1'))
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignCenter)
-            self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled)
 
-            #Add STATUS
-            col=const.CWS_StatusCol
-            self.ui.tableWidget.setItem(row,col, QtGui.QTableWidgetItem('Selected'))
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignRight)
-            self.ui.tableWidget.item(row,col).setTextAlignment(QtCore.Qt.AlignVCenter)
-            self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)			
-            row+=1
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Selected Files")		
-			
-		
-        self.ui.tableWidget.resizeColumnsToContents();
-        self.ui.pushButtonCreateWorkspace.setEnabled(True)
-        Nrows=self.ui.tableWidget.rowCount()
-        nfilesStr="Number of Files: "+str(Nrows)
-        self.ui.LabelNfiles.setText(nfilesStr)
         
 #************* beginning of global functions and classes ****************
 
@@ -1619,15 +1482,13 @@ def constantUpdateActor(self):
     cpu_stats = psutil.cpu_times_percent(interval=1,percpu=False)
     percentcpubusy = 100.0 - cpu_stats.idle
     self.ui.progressBarStatusCPU.setValue(percentcpubusy)
-    mem_stats = psutil.phymem_usage()
-    percentmembusy=float(int((float(mem_stats.used) / float(mem_stats.total)) * 100 * 10))/10
+    percentmembusy=psutil.virtual_memory().percent
     self.ui.progressBarStatusMemory.setValue(percentmembusy)
     Ncpus=len(psutil.cpu_percent(percpu=True))
     totalcpustr='CPU Count: '+str(Ncpus)
 #        print "Total CPU str: ",totalcpustr
     self.ui.labelCPUCount.setText(totalcpustr)
-    mem=psutil.phymem_usage()
-    totalmem=int(round(float(mem.total)/(1024*1024*1024)))
+    totalmem=int(round(float(psutil.virtual_memory().total)/(1024*1024*1024)))
 #        print "Total Mem: ",totalmem
     totalmemstr='Max Mem: '+str(totalmem)+' GB'
 #        print "Total Mem str: ",totalmemstr
@@ -1693,11 +1554,23 @@ def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
         userow=int(emptyRows[0])
         if wsindex != -1:  #check for case where we will replace an existing row in the table
             userow=wsindex
+
     else:
         #case where a row needs to be added
         userow=Nrows #recall that row indexing starts at zero thus the row to add would be at position Nrows
         if wsindex != -1:  #check for case where we will replace an existing row in the table
             userow=wsindex
+            #special case where a single workspace added from workspace manager is becoming a group workspace in WS composer
+            if userow == Nrows == 1:
+                #case where a row needs to be added to the table 
+                print "Adding a row"
+                table.insertRow(userow)
+            #special case where a single workspace is added via the workspace composer
+            if userow == 1 and Nrows == 0:
+                #case where a row needs to be added to the table 
+                print "Adding a row b"
+                userow=0
+                table.insertRow(userow)                
         if wsindex == -1:  #check if we need to add a row or not
             #case to insert
             table.insertRow(Nrows)

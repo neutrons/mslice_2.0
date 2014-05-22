@@ -370,6 +370,7 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
     if stat:
         #case where it exists, now make sure that workspace is at python (rather than Mantid) layer
         wsr=mtd.retrieve(str(Workspace))  #retrieve seems to work OK if workspace is either at Mantid or already at the Python level
+        print "type(wsr): ",type(wsr)
         xdimName=wsr.getXDimension().getName()
         ydimName=wsr.getYDimension().getName()    
         Ndims=2

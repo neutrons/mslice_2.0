@@ -26,7 +26,11 @@ sys.path.append(os.environ['MANTIDPATH'])
 from mantid.simpleapi import *
 import re #regular expressions needed to work with equation parsing
 
+import config  #bring in configuration parameters and constants
+
 class WorkspaceComposer(QtGui.QMainWindow):
+
+    mySignal = QtCore.pyqtSignal(int)  #establish signal for communicating from Workspace Composer to MSlice - must be defined before the constructor
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -37,22 +41,48 @@ class WorkspaceComposer(QtGui.QMainWindow):
         print "parent: ",parent
         print "parent.ui: ",parent.ui
         print "QtGui.QMainWindow: ",QtGui.QMainWindow
-        QtCore.QObject.connect(self.ui.buttonBox, QtCore.SIGNAL('accepted()'), self.buttonBoxOK)
+        QtCore.QObject.connect(self.ui.pushButtonDone, QtCore.SIGNAL('clicked(bool)'), self.closeEvent)
         print "got here 2"
-        QtCore.QObject.connect(self.ui.buttonBox, QtCore.SIGNAL('accepted()'),parent.on_button_clicked) #use this signal - slot connect to enable the WorkspaceComposer to communicate with the calling widget
+        
+        #get constants
+        const=constants()        
+        
+#        QtCore.QObject.connect(self.ui.pushButtonCreateWorkspace, QtCore.SIGNAL('clicked(bool)'),parent.on_button_clicked) #use this signal - slot connect to enable the WorkspaceComposer to communicate with the calling widget
+        QtCore.QObject.connect(self.ui.pushButtonCreateWorkspace, QtCore.SIGNAL('clicked(bool)'), self.CreateWorkspace)
+
+# Two methods shown here for signaling the on_button_clicked slot - one more generic using clicked, and a second using a custom signal which has the potential to give more fine grained control
+#        QtCore.QObject.connect(self.ui.pushButtonCreateWorkspace, QtCore.SIGNAL('clicked(bool)'),parent.on_button_clicked) #use this signal - slot connect to enable the WorkspaceComposer to communicate with the calling widget
+        self.mySignal.connect(parent.on_button_clicked)
+
+
         QtCore.QObject.connect(self.ui.pushButtonUpdate, QtCore.SIGNAL('clicked(bool)'), self.Update)
-        QtCore.QObject.connect(self.ui.buttonBox, QtCore.SIGNAL('rejected()'), self.Exit)
+#        QtCore.QObject.connect(self.ui.pushButtonDone, QtCore.SIGNAL('clicked(bool)'), self.Exit)
         #get WorkSpaceManager table index
         WSMIndex=self.parent.ui.WSMIndex
+        print "--> WSMIndex: ",WSMIndex
         if WSMIndex == -1:
             #case to create a new workspace group
-            pass
+            #in this case, suggest a unique new workspace name
+            #first, get existing workspace names
+            BaseNameStr='NewWorkspace'
+            ewn=mtd.getObjectNames()  #get existing workspace names
+            cntr=0      #set workspace name check counter to 0
+            Ncntr=1000  #pick an upper number of unique names to select
+            while cntr < Ncntr:
+                NewNameStr=BaseNameStr+'_'+str(cntr)
+                if NewNameStr not in ewn:
+                    cntr=Ncntr  #terminate while loop
+                    self.ui.lineEditGroupName.setText(NewNameStr) #set unique name in the lineEdit field
+                else:
+                    cntr +=1  #increment loop counter and try again to find a unique name
         else:
             #case to edit an existing workspace group
             #will need to access the workspace manager table and extract workspace group name
             #upon Group Editor initialization will need to populate the table using info from the Workspace Group passed in
             table=self.ui.tableWidgetWGE
             gwsName=str(self.parent.ui.GWSName)
+            #also need to push this name to the resulting workspace name field
+            self.ui.lineEditGroupName.setText(gwsName)
             print "Group Workspace Name: ",gwsName
             #next need to parse the group workspace for individual workspaces for two things:
             #   1. workspace name
@@ -60,28 +90,52 @@ class WorkspaceComposer(QtGui.QMainWindow):
             
             thisGWS=mtd.retrieve(gwsName)
             try:
-                #case for a group workspace
-                try:
-                    Nrows=thisGWS.size()  #note that a group workspace as a size attribute to tell you the number of workspaces within the group, however a single workspaces contained within a single file do not.
-                    for row in range(Nrows):
-                        wsName=thisGWS[row].name()
-    #                    wsFile=os.path.normpath(r'C:\Users\mid\Documents\Mantid\Wagman\autoreduce\\'+wsName+'.nxs')  #for now just hard code path name...will eventually need to dig this out of workspace
-                        wsFile=''
-                        addWStoTable(table,wsName,wsFile)
-                except:
-                    wsName=thisGWS.name()
+                #if next statement works, case for group workspace
+                Nrows=thisGWS.size()
+                inMemCntr=0
+                for row in range(Nrows):
+                    wsName=thisGWS[row].name()
+#                    wsFile=os.path.normpath(r'C:\Users\mid\Documents\Mantid\Wagman\autoreduce\\'+wsName+'.nxs')  #for now just hard code path name...will eventually need to dig this out of workspace
                     wsFile=''
-                    addWStoTable(table,wsName,wsFile)                    
-
+                    addWStoTable(table,wsName,wsFile)
+                    print "row: ",row,"  wsName: ",wsName,"  Type: ",type(wsName)
+                    if mtd.doesExist(wsName):
+                        #if it exists, then it's in memory and say this
+                        table.item(row,const.WGE_InMemCol).setText("Yes")
+                        #also give the memory footprint size
+                        #first need to determine if workspace is a group workspace or single workspace
+                        tmpws = mtd.retrieve(wsName)
+                        inMemCntr +=1 #increment the in memory counter
+                sz=0
+                row=0
+                for ws in thisGWS:
+                    sz = ws.getMemorySize()       
+                    SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
+                    table.item(row,const.WGE_SizeCol).setText(SizeStr)
+                    row +=1
+                if inMemCntr == Nrows:
+                    #case where all workspaces are already in memory
+                    #this enables us to change Workspace Composer controls since data do not have to be loaded
+                    #Directly enable the Create Workspace button in this case
+#                    self.ui.pushButtonCreateWorkspace.setEnabled(True)
+                    
+                    self.ui.radioButtonLoadData.setChecked(True)
+                    self.Update()
 
             except AttributeError:
                 #else a single workspace does not have a size attribute and here we're currently only working with group workspaces
-                pass
-                
+                                    #case for a single row
+                wsName=thisGWS.name()
+                wsFile=''
+                addWStoTable(table,wsName,wsFile)                    
+                if mtd.doesExist(wsName):
+                    table.item(0,const.WGE_InMemCol).setText("Yes")
+                sz=thisGWS.getMemorySize()
+                szStr=str(int(float(sz)/float(1024*1024)))+' MB'
+                table.item(0,const.WGE_SizeCol).setText(szStr)
     
-    
-    def buttonBoxOK(self):
-        "OK button pressed"
+    def CreateWorkspace(self):
+        print "**** Create Workspace button pressed"
         self.parent.ui.progressBarStatusProgress.setValue(0)
         self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Creating Workspace(s)")
         #get info from the widget
@@ -92,6 +146,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
         
         #get constants
         const=constants()
+        sigVal=config.mySigNorm
         
         #first clean up empty rows
         table=self.ui.tableWidgetWGE  
@@ -99,20 +154,21 @@ class WorkspaceComposer(QtGui.QMainWindow):
         cnt=0
         delrowcntr=0
         statusMsg=''
-        for row in range(Nrows):
-            print "*** Row: ",row
-            
-            item=table.item(row,const.WGE_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
-            itemStr=str(item)
-            print "itemStr: ",itemStr
-            if itemStr != 'None':
-                print "row: ",row,"  chkTxt: ",itemStr
-                cnt +=1
-            else:
-                print "delete row: ",row
-                table.removeRow(row-delrowcntr)
-                delrowcntr += 1
-                print "Rows remaining: ",table.rowCount()             
+        if Nrows >0:
+            for row in range(Nrows):
+                print "*** Row: ",row
+                
+                item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                itemStr=str(item)
+                print "itemStr: ",itemStr
+                if itemStr != 'None':
+                    print "row: ",row,"  chkTxt: ",itemStr
+                    cnt +=1
+                else:
+                    print "delete row: ",row
+                    table.removeRow(row-delrowcntr)
+                    delrowcntr += 1
+                    print "Rows remaining: ",table.rowCount()             
         
         self.parent.ui.progressBarStatusProgress.setValue(10) #update progress bar
         #get workspace Group Edit table
@@ -129,275 +185,265 @@ class WorkspaceComposer(QtGui.QMainWindow):
         
         #get WorkSpaceManager table index
         WSMIndex=self.parent.ui.WSMIndex
+        print "WSMIndex: ",WSMIndex
         if WSMIndex == -1:
             #case to create a new workspace group
             #here we just take the workspace files listed in the workspace editor table and create a workspace
 
-            
-            #get the Sum Workspaces flag
-            if self.ui.checkBoxSumWorkspaces.checkState():
-                operator='+'  #if checked, sum workspaces
-            else:
-                operator=','  #otherwise, keep workspaces separate
-            
-            #load workspaces    
-            loadstr=''
-            for row in range(Nrows):
-                locpath=os.path.normpath(locs[row])
-                if row < Nrows-1:
-                    if locs[row] != '':   #don't let an empty location be added to the list as the next line will add extraneous operators in that case
-                        loadstr=loadstr+locs[row]+operator
-                else:
-                    loadstr=loadstr+locs[row]
-                
-    #        print "wsnames.id: ",wsnames.id
-                
-            #create a Group Workspace
+            #verify that the output workspace name 
             gwsName=str(self.ui.lineEditGroupName.text())
-            print "loadstr: ",loadstr
-            print "GWName: ",gwsName
-            print "Loading Workspaces to Group"
-            if self.ui.checkBoxSumWorkspaces.checkState():
-                self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Loading Summed Workspace: "+str(gwsName))
-            else:
-                self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Loading Workspace: "+str(gwsName))
-            self.parent.ui.progressBarStatusProgress.setValue(25) #update progress bar    
-            Load(Filename=loadstr,OutputWorkspace=gwsName)  #using a string containing a list of files, create the workspace
-            #surface all workspace names to the python working level
-            for row in range(Nrows):
-                #exec enables us to create the workspaces using their names
-                # %r rather than %s is needed in order for the mtd.retrieve() function to work
-                try:
-                    exec("%s = mtd.retrieve(%r)" % (names[row],names[row]))
-                except:
-                    #expect this case to occur when workspaces are summed via the Mantid Load() procedure
+            ewn=mtd.getObjectNames()  #get existing workspace names
+            if gwsName in ewn:
+                dialog=QtGui.QMessageBox.question(self,'Message','Non-unique workspace name - overwrite existing workspace?',QtGui.QMessageBox.Yes,QtGui.QMessageBox.No)
+#                dialog.exec_()
+                if dialog == QtGui.QMessageBox.Yes:
+                    #case to overwrite the current workspace name
+                    sigVal=config.mySigOverwrite
                     pass
-      
-                            
-                                                    
-            #FIXME - this would be the place to do a workspace compatibility check once the workspaces have been loaded in and can be tested
-#            if self.ui.checkBoxEnforceCompatibility.checkState():
-                
-            self.parent.ui.progressBarStatusProgress.setValue(75) #update progress bar
-            val=self.ui.lineEditGroupComment.text()
-            print "Group Comment: ",val            
+                else:
+                    #case to re-select a name
+                    dialog=QtGui.QMessageBox(self)
+                    dialog.setText("Then return and please enter a unique workspace name")
+                    dialog.exec_()
+                    return
+
             
             
         else:
-            #case to edit an existing workspace group
-            #The strategy here is to compare the list of names in the workspace versus the names in the workspace group edit table
-            #Then delete the workspaces not in table and add those in the table but not yet in the workspace group
-            
-            #will need to access the workspace manager table and extract workspace group name
+            #case to edit an existing workspace
             gwsName=str(self.parent.ui.GWSName)
-            print "Group Workspace Name: ",gwsName
-            thisGWS=mtd.retrieve(gwsName)
-            NGWS=thisGWS.size()  #number of workspaces within the existing group of workspaces
-            GWSNames=[]
-            for n in range(NGWS):
-                GWSNames.append(thisGWS[n].name())  #build a list of names
-                
-            #now that we have the names of the workspaces and table entries, compare and adjust the table
-            #add and remove workspaces by using the workspace names
-            #to add will also have to load the workspace so that it can be added to the group
+            #in this case, automatically enable Create Workspace button
+            self.ui.pushButtonCreateWorkspace.setEnabled(True) 
+            pass
             
-            #first do the removes
-            s2=set(names)
-            print "s2: ",s2
-            for n in range(NGWS):
-                s1=set([GWSNames[n]])
-                intersect=s1.intersection(s2)
-                print "n: ",n,"  s1: ",s1,"  removes intersect: ",intersect
-                if intersect == set([]):
-                    #case where workspace not found in the table, so remove it
-                    thisGWS.remove(GWSNames[n])
-                
-            #now do the adds
-            s2=set(GWSNames)
-            print "s2: ",s2
-            for row in range(Nrows):
-                s1=set([names[row]])
-                intersect=s1.intersection(s2)
-                print "row: ",row,"  s1:",s1,"  adds intersect: ",intersect
-                if intersect == set([]):
-                    #case where table workspace not found in group workspace - so add it
-                    #first load the workspace from file
-                    percentbusy=int(float(row+1)/float(Nrows))*100
-                    self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
-                    Load(Filename=locs[row],OutputWorkspace=names[row])
-                    
-                    #FIXME - place to consider incorporating a workspace compatibility check
-#                    if self.ui.checkBoxEnforceCompatibility.checkState():
-                    
-                    #then add it to the group
-                    thisGWS.add(names[row])
-                    
-            #during development, display what we did...
-            NGWSchk=thisGWS.size()  #number of workspaces within the existing group of workspaces
-            print "*** check resulting group: ***"
-            for n in range(NGWSchk):
-                print "n: ",n,"  workspace: ",thisGWS[n].name()         
-
-        #for now, get group workspace type from the workspace group edit table
-        #when enforcing workspace consistency, this approach is reasonable
-#        gwsType=str(table.item(row,const.WGE_DataTransformCol).text())
-
-        cws=mtd.getObjectNames() #current workspaces - if Load summation used, the actual workspaces will be different than the list in the table thus the need to get the first workspace here
-        ws=mtd.retrieve(cws[0])
-        print "ws: ",ws
-        print "wstype: ",type(ws)
-        print "mtd.getObjectNames(): ",mtd.getObjectNames()
-        gwsType=getReduceAlgFromWorkspace(ws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
-        print "gwsType: ",gwsType
-        
-        
-        #now let's determine the size of the group workspace
-        thisGWS=mtd.retrieve(gwsName)
-        #use try/except here in case the workspace is not a group workspace - should probably check the logic of why this try is needed...
-        try:
-            Nws=thisGWS.size()  #return the number of workspaces within the group
-            gwsSize=0
-            for n in range(Nws):
-                gwsSize += thisGWS[n].getMemorySize()
-            gwsSize=int(float(gwsSize)/float(1024*1024))
-            gwsSize=str(gwsSize)+' MB'
-        except:
-            gwsSize = thisGWS.getMemorySize()
-            gwsSize=int(float(gwsSize)/float(1024*1024))
-            gwsSize=str(gwsSize)+' MB'
-
-        
-        #and bring the name of the new workspace to the python layer
-        exec ("%s = mtd.retrieve(%r)" % (gwsName,gwsName)) #now make the output workspace available to python
-        
-        #check if an equation is to be processed 
-        eqnstr=str(self.ui.lineEditEquation.text())
-        if eqnstr != '':
-            #case where there appears to be an equation entered
-            print "Calculating Equation"
-            #determine number of workspaces in equation - convert string to upper case to reduce naming ambiguity when using workspace indicies ws0, Ws0 or WS0 for instance
-            UpperEqnStr=eqnstr.upper()  #equation string to work with where case is not an issue when discovering the ws* Ws* wS* WS* ways of representation
-            RplEqnStr=eqnstr #the replacement equation string will start with the original equation string
-            strts=[m.start() for m in re.finditer('WS',UpperEqnStr)]
-            Nws=len(strts) #number of workspaces in the equation
-            Nchars=len(eqnstr) #numbers of characters in the equation
-            if Nws >0:
-                print "Case to parse equation"
-                wsinames=[] #list to contain the workspace index names
-                for indx in range(Nws):
-                    #for each workspace, determine how many numeric digits they have
-                    #single workspace equation would look like: (ws1-ws2)/ws3
-                    #not currently supporting a range of workspaces...would need to think more about how to implement this generally
-                    
-                    cntr=0
-                    flag=True #used to make sure we're only checking for one workspace at a time and not traversing the entire list
-                    for pos in range(Nchars-(strts[indx]+2)):
-                        posoff=pos+(strts[indx]+2)
-#                        print "     pos: ",pos,"  posoff: ",posoff," UpperEqnStr[posoff]: ",UpperEqnStr[posoff]
-                        #check if character is alphanumeric 
-                        if UpperEqnStr[posoff].isalnum() and flag:
-                            #then make sure we have a number and not a character
-                            if not(UpperEqnStr[posoff].isalpha()):
-                                cntr+=1
-                        else:
-                            flag=False
-                    key=UpperEqnStr[strts[indx]:strts[indx]+cntr+2]  #adding 2 to count for the 'ws' characters in the string
-                    wsinames.append(key) #update the list of workspace names
-                    print "*** Indx: ",indx,"   Key: ",key,"  pos: ",pos,"  posoff: ",posoff,"  strts[indx]: ",strts[indx],"  cntr: ",cntr #FIXME: currently seeing incorrect keys here...
-                print "wsinames: ",wsinames
-                #now that we have the workspace index names, let's find the corresponding workspace names in the table
-                Nrows=table.rowCount()
-                cnt=0
-                replcntr=0
+        #check which Task has been selected
+        #Note that in the cases of grouping and summing that all workspaces in the table are used, not just those selected
+        table=self.ui.tableWidgetWGE  
+        Nrows=table.rowCount()
+        if Nrows >0:
+            if self.ui.radioButtonGroupWS.isChecked():
+                print "** Group Workspaces"
+                #case to group files into a workspace
+                #get the list of workspaces to group
+                grpLst=[]
+                gwsSize=0
+                                                    
                 for row in range(Nrows):
-                    print "*** Row: ",row
-                    #obtain workspace index for current row
-                    wsi=table.item(row,const.WGE_WSIndexCol).text()
-                    wsiStr=str(wsi)
-                    
-                    #now check if there is a match between the current index and any from the equation
-                    print " wsinames: ",str(wsinames),"  wsiStr: ",wsiStr.upper()
-                    if str(wsinames).upper().find(wsiStr.upper()) > 0:
-                        replcntr+=1
-                        #case we found a match - now replace the index with the actual workspace name in the equation
-                    
-                        wsname=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
-                        wsnameStr=str(wsname)
-                        RplEqnStr=RplEqnStr.replace(wsiStr,wsnameStr)
-                        #make sure that workspace is at python layer
-#                        wsnameStr=mtd.retrieve(wsnameStr)
-#                        print " Workspace existance check: ",mtd.doesExist(wsnameStr)
-#                        print " Seeing if the workspace has surfaced: "
-#                        print " wsnameStr: ",wsnameStr
-#                        print " End WS check"
-                print "  **** Equation: ",RplEqnStr
-                if replcntr != Nws:
-                    #case where the number of workspace name replacements does not match the number of workspace indicies in the equation
-                    print "Workspace name mismatch...returning"
-                    return
+                    percentbusy=int(100*(row+1)/Nrows)
+                    self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
+                    ws=str(table.item(row,const.WGE_WorkspaceCol).text())
+                    tmpws=mtd.retrieve(ws)
+                    #special case to account for - first time thru with a non-grouped single workspace
+                    #need to get the group name from the lineEditGroupName field else the new group gets put back into the
+                    #original workspace name making things very confusing as to what just happened.
+                    if Nrows ==1:
+                        if 'IEventWorkspace' in str(type(tmpws)):
+                            gwsName=str(self.ui.lineEditGroupName.text())
+                            sigVal=config.mySigNorm #usual case for 1 would otherwise be to overwrite
+                            self.parent.ui.WSMIndex=1 #need to bump up the Workspace Manager table index too
                         
+                    gwsSize += tmpws.getMemorySize()
+                    grpLst.append(ws)
+                    if row ==0:
+                        gwsType=getReduceAlgFromWorkspace(ws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
+                        print "gwsType: ",gwsType
+                gwsSizeStr=str(int(float(gwsSize)/float(1024*1024)))+' MB'
+                print "Group List: ",grpLst
+                exec("%s = GroupWorkspaces(%r)" % (gwsName,grpLst))    
+                print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not 
+                pass
+            elif self.ui.radioButtonSumWS.isChecked():
+                #case to sum workspaces
+                print "** Sum Workspaces"
+                #case to sum workspaces already in memory into a new workspace
+                #get the list of workspaces to sum
+
+                sumSize=0
+                for row in range(Nrows):
+                    percentbusy=int(100*(row+1)/Nrows)
+                    self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
+                    ws=str(table.item(row,const.WGE_WorkspaceCol).text())
+                    tmpws=mtd.retrieve(ws)
+                    if row ==0:
+                        sumws=tmpws
+                    else:
+                        try:
+                            sumws = sumws + tmpws
+                        except ValueError:
+                            dialog=QtGui.QMessageBox(self)
+                            dialog.setText("The workspaces are not compatible for summation")
+                            dialog.exec_()
+                            return    
+
+                    if row ==0:
+                        sumType=getReduceAlgFromWorkspace(ws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
+                        print "sumType: ",sumType
+                        
+                #now make workspace available at the python level
                 
-            elif Nchars>0:
-                #case where workspace names rather than workspace indicies are given
-                RplEqnStr=str(self.ui.lineEditEquation.text())
-                print "  **** Equation(elif): ",RplEqnStr
+#                exec ("%s = mtd.retrieve(%r)" % (gwsName,sumws)) #now make the output workspace available to python
+                print "gwsName: ",gwsName
+                print "mtd.getObjecNames(): ",mtd.getObjectNames()
+#                exec("%s = sumws" % (gwsName))
+
+                sumws=mtd.retrieve('sumws')
+                exec("sumws.rename(OutputWorkspace=%r)" % (gwsName))
+                print "mtd.getObjecNames(): ",mtd.getObjectNames()
+                exec ("%s = mtd.retrieve(%r)" % (gwsName,gwsName))
+                
+                #format data for output
+                sumSize=sumws.getMemorySize()
+                sumSizeStr=str(int(float(sumSize)/float(1024*1024)))+' MB'
+                gwsSizeStr=sumSizeStr
+                gwsType=sumType
+
+                print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not            
+            elif self.ui.radioButtonExecuteEqn.isChecked():
+                #case to execute an equation a user has entered
+                
+                #check if an equation is to be processed 
+                eqnstr=str(self.ui.lineEditEquation.text())
+                if eqnstr != '':
+                    #case where there appears to be an equation entered
+                    print "Calculating Equation"
+                    #determine number of workspaces in equation - convert string to upper case to reduce naming ambiguity when using workspace indicies ws0, Ws0 or WS0 for instance
+                    UpperEqnStr=eqnstr.upper()  #equation string to work with where case is not an issue when discovering the ws* Ws* wS* WS* ways of representation
+                    RplEqnStr=eqnstr #the replacement equation string will start with the original equation string
+                    strts=[m.start() for m in re.finditer('WS',UpperEqnStr)]
+                    Nws=len(strts) #number of workspaces in the equation
+                    Nchars=len(eqnstr) #numbers of characters in the equation
+                    if Nws >0:
+                        print "Case to parse equation"
+                        wsinames=[] #list to contain the workspace index names
+                        for indx in range(Nws):
+                            #for each workspace, determine how many numeric digits they have
+                            #single workspace equation would look like: (ws1-ws2)/ws3
+                            #not currently supporting a range of workspaces...would need to think more about how to implement this generally
+                            
+                            cntr=0
+                            flag=True #used to make sure we're only checking for one workspace at a time and not traversing the entire list
+                            for pos in range(Nchars-(strts[indx]+2)):
+                                posoff=pos+(strts[indx]+2)
+        #                        print "     pos: ",pos,"  posoff: ",posoff," UpperEqnStr[posoff]: ",UpperEqnStr[posoff]
+                                #check if character is alphanumeric 
+                                if UpperEqnStr[posoff].isalnum() and flag:
+                                    #then make sure we have a number and not a character
+                                    if not(UpperEqnStr[posoff].isalpha()):
+                                        cntr+=1
+                                else:
+                                    flag=False
+                            key=UpperEqnStr[strts[indx]:strts[indx]+cntr+2]  #adding 2 to count for the 'ws' characters in the string
+                            wsinames.append(key) #update the list of workspace names
+                            print "*** Indx: ",indx,"   Key: ",key,"  pos: ",pos,"  posoff: ",posoff,"  strts[indx]: ",strts[indx],"  cntr: ",cntr #FIXME: currently seeing incorrect keys here...
+                        print "wsinames: ",wsinames
+                        #now that we have the workspace index names, let's find the corresponding workspace names in the table
+                        Nrows=table.rowCount()
+                        cnt=0
+                        replcntr=0
+                        for row in range(Nrows):
+                            print "*** Row: ",row
+                            #obtain workspace index for current row
+                            wsi=table.item(row,const.WGE_WSIndexCol).text()
+                            wsiStr=str(wsi)
+                            
+                            #now check if there is a match between the current index and any from the equation
+                            print " wsinames: ",str(wsinames),"  wsiStr: ",wsiStr.upper()
+                            if str(wsinames).upper().find(wsiStr.upper()) > 0:
+                                replcntr+=1
+                                #case we found a match - now replace the index with the actual workspace name in the equation
+                            
+                                wsname=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                                wsnameStr=str(wsname)
+                                RplEqnStr=RplEqnStr.replace(wsiStr,wsnameStr)
+                                #make sure that workspace is at python layer
+        #                        wsnameStr=mtd.retrieve(wsnameStr)
+        #                        print " Workspace existance check: ",mtd.doesExist(wsnameStr)
+        #                        print " Seeing if the workspace has surfaced: "
+        #                        print " wsnameStr: ",wsnameStr
+        #                        print " End WS check"
+                        print "  **** Equation: ",RplEqnStr
+                        if replcntr != Nws:
+                            #case where the number of workspace name replacements does not match the number of workspace indicies in the equation
+                            print "Workspace name mismatch...returning"
+                            return
+                                
+                        
+                    elif Nchars>0:
+                        #case where workspace names rather than workspace indicies are given
+                        RplEqnStr=str(self.ui.lineEditEquation.text())
+                        print "  **** Equation(elif): ",RplEqnStr
+                    else:
+                        print "No workspaces identified in the equation...returning"
+                        return
+                        
+                    #make sure all workspaces are at the python working level
+                    mtdws=mtd.getObjectNames()
+                    mtdlst=[]
+                    Nmtdws=len(mtdws)
+                    print "Nmtdws: ",Nmtdws
+                    for wsi in range(Nmtdws):
+                        thismtdws=mtdws[wsi]
+                        mtdlst.append(mtd.retrieve(thismtdws))
+                        print " ----------> Retrieved workspace: ",mtdlst[wsi].name()
+                        print "             End retrieve"
+                        
+                    #if we get here, we have an algorithm to run!
+                    try:
+                        print "performing equation: ",RplEqnStr
+                        outname=str(self.ui.lineEditGroupName.text())
+                        print " outname: ", outname," type: ",type(outname)
+                        print " RplEqnStr: ",RplEqnStr," type:",type(RplEqnStr)
+                        self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Executing equation: "+outname+"="+RplEqnStr)
+                        mtd.importAll()
+                        exec ("%s = %s" % (outname,RplEqnStr))
+                        print "**mtd.getObjectNames(): ",mtd.getObjectNames()
+                        exec ("%s = mtd.retrieve(%r)" % (outname,outname)) #now make the output workspace available to python
+                        print "........"
+                        print "Result type of equation placed in workspace: ",outname
+                        
+                    except Exception, e:
+                        print "Equation failed to execute...something is wrong, please check and try again"
+                        print str(e)
+                        print " Looking at variables in table: "
+                        print " dir(): ",dir()
+                        self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Equation failed to execute...please check and try again")
+                        print "Workspaces in memory: ",mtd.getObjectNames()
+                        return
+                        
+                    #if we get here, add the output workspace to the table
+                    gwsName=outname
+                    gwsType=getReduceAlgFromWorkspace(outname)
+                    
+                    OWS=mtd.retrieve(outname) # make sure output workspace is at the python layer
+                    gwsSize = OWS.getMemorySize()
+                    gwsSize=int(float(gwsSize)/float(1024*1024))
+                    gwsSizeStr=str(gwsSize)+' MB'                
+                         
             else:
-                print "No workspaces identified in the equation...returning"
+                #should never get here...
+                print "Undefined case - returning"
                 return
-                
-            #make sure all workspaces are at the python working level
-            mtdws=mtd.getObjectNames()
-            mtdlst=[]
-            Nmtdws=len(mtdws)
-            print "Nmtdws: ",Nmtdws
-            for wsi in range(Nmtdws):
-                thismtdws=mtdws[wsi]
-                mtdlst.append(mtd.retrieve(thismtdws))
-                print " ----------> Retrieved workspace: ",mtdlst[wsi].name()
-                print "             End retrieve"
-                
-            #if we get here, we have an algorithm to run!
-            try:
-                print "performing equation: ",RplEqnStr
-                outname=str(self.ui.lineEditResultingWorkspace.text())
-                print " outname: ",type(outname)
-                print " RplEqnStr: ",type(RplEqnStr)
-                self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Executing equation: "+outname+"="+RplEqnStr)
-                exec ("%s = %s" % (outname,RplEqnStr))
-                exec ("%s = mtd.retrieve(%r)" % (outname,outname)) #now make the output workspace available to python
-                print "Result type of equation placed in workspace: ",outname
-                
-            except Exception, e:
-                print "Equation failed to execute...something is wrong, please check and try again"
-                print str(e)
-                print " Looking at variables in table: "
-                print " dir(): ",dir()
-                self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Equation failed to execute...please check and try again")
-                print "Workspaces in memory: ",mtd.getObjectNames()
-                return
-                
-            #if we get here, add the output workspace to the table
-            gwsName=outname
-            gwsType=gwsType
+             
+        
             
-            OWS=mtd.retrieve(outname) # make sure output workspace is at the python layer
-            gwsSize = OWS.getMemorySize()
-            gwsSize=int(float(gwsSize)/float(1024*1024))
-            gwsSize=str(gwsSize)+' MB'
-            
+
         
         #remnants of passing stuff back and forth between parent and child apps
 #        print "self.parent.ui.someval: ",self.parent.ui.someval
 #        self.parent.ui.someval=42
         self.parent.ui.progressBarStatusProgress.setValue(100) #update progress bar
         self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Workspace Create Complete")
-        print "gwsName: ",gwsName,"  gwsType: ",gwsType
+        print "gwsName: ",gwsName,"  gwsType: ",gwsType,"  gwsSizeStr: ",gwsSizeStr
         self.parent.ui.GWSName=gwsName
         self.parent.ui.GWSType=gwsType  #need to get workspace type from the newly created workspace
-        self.parent.ui.GWSSize=gwsSize
-        self.parent.mySignal.emit()
+        self.parent.ui.GWSSize=gwsSizeStr
+        print " mySignal:  sigval:",sigVal
+        self.mySignal.emit(sigVal)
+
+#        self.emit(QtCore.SIGNAL('mySignal'))
+        
         #now that we have the info we need, destroy the WorkspaceComposer
-        self.close()      
+#        self.close()      
         time.sleep(0.5)   
         self.parent.ui.progressBarStatusProgress.setValue(0) #update progress bar
         
@@ -415,20 +461,21 @@ class WorkspaceComposer(QtGui.QMainWindow):
         cnt=0
         delrowcntr=0
         statusMsg=''
-        for row in range(Nrows):
-            print "*** Row: ",row
-            
-            item=table.item(row,const.WGE_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
-            itemStr=str(item)
-            print "itemStr: ",itemStr
-            if itemStr != 'None':
-                print "row: ",row,"  chkTxt: ",itemStr
-                cnt +=1
-            else:
-                print "delete row: ",row
-                table.removeRow(row-delrowcntr)
-                delrowcntr += 1
-                print "Rows remaining: ",table.rowCount()      
+        if Nrows > 0:
+            for row in range(Nrows):
+                print "*** Row: ",row
+                try:
+                    #try will work if the table row,col has any data
+                    #in this case, do not delete the row in the table
+                    item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                    itemStr=str(item)
+                    print "itemStr: ",itemStr
+                except AttributeError:
+                    #in this case we have an empty row to delete
+                    print "delete row: ",row
+                    table.removeRow(row-delrowcntr)
+                    delrowcntr += 1
+                    print "Rows remaining: ",table.rowCount()      
                 
         #update the number of rows following clean-up
         Nrows=table.rowCount()        
@@ -473,72 +520,118 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 addWStoTable(table,wsName,wsFile)
 #            table.resizeColumnsToContents();
                     
-            self.ui.labelNumWorkspaces.setText('Number of Workspaces:  '+str(cnt))
-            if statusMsg == '':
-                statusMsg=' Workspace Select OK'
-            self.ui.labelStatusMsg.setText('Status Message: '+statusMsg)
+            #for user convenience, automatically select the Load Data radio button
+            self.ui.radioButtonLoadData.setChecked(True)
             
         elif self.ui.radioButtonSelectAll.isChecked():
             print "Select All Selected"
-            #first check if there are any rows to update selection
-            item=table.item(0,const.WGE_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
-            itemStr=str(item)
-            print "itemStr: ",itemStr
-            #then only update the rows if rows with content are discovered.
-            if itemStr != 'None':
-                Nrows=table.rowCount()
+            
+            Nrows=table.rowCount()
+            if Nrows >0:
                 for row in range(Nrows):
-                    addCheckboxToWSTCell(table,row,const.WGE_SelectCol,True)
+                    try:
+                        item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                        itemStr=str(item)
+                        addCheckboxToWSTCell(table,row,const.WGE_SelectCol,True)
+                    except AttributeError:
+                        #case where the row is empty - do nothing
+                        pass
             
             
         elif self.ui.radioButtonClearAll.isChecked():
             print "Clear All Selected"
-            #first check if there are any rows to update selection
-            item=table.item(0,const.WGE_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
-            itemStr=str(item)
-            print "itemStr: ",itemStr
-            #then only update the rows if rows with content are discovered.
-            if itemStr != 'None':
-                Nrows=table.rowCount()
+            Nrows=table.rowCount()
+            if Nrows >0:
                 for row in range(Nrows):
-                    addCheckboxToWSTCell(table,row,const.WGE_SelectCol,False)            
+                    try:
+                        item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                        itemStr=str(item)
+                        addCheckboxToWSTCell(table,row,const.WGE_SelectCol,False)
+                    except AttributeError:
+                        #case where the row is empty - do nothing
+                        pass     
             
         elif self.ui.radioButtonRemoveSelected.isChecked():
             print "Remove Selected Selected"
             #first check if there are any rows to update selection
-            item=table.item(0,const.WGE_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
-            itemStr=str(item)
-            print "itemStr: ",itemStr
-            #then only update the rows if rows with content are discovered.
-            if itemStr != 'None':
-                Nrows=table.rowCount()
+            Nrows=table.rowCount()
+            if Nrows >0:
                 roff=0
                 rcntr=0
                 for row in range(Nrows):
-                    #get checkbox status            
-                    cw=table.cellWidget(row-roff,const.WGE_SelectCol) 
                     try:
-                        cbstat=cw.isChecked()
-                        print "row: ",row," cbstat: ",cbstat
-                        if cbstat == True:
-                            #case to remove a row
-                            rcntr=row-roff
-                            if rcntr < 0:
-                                rcntr=0
-                            print "   rcntr: ",rcntr
-                            #need to check if workspace exists and if so, remove it - also need to think about the consequences of removing a workspace with regards to other workspaces it may be in...
-                            #for now, just removing the row from the table
-                            
-                            delws=str(table.item(row,const.WGE_WorkspaceCol).text())
-                            self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Removing: "+delws)
-                            table.removeRow(rcntr)
-                            roff += 1
-                    except AttributeError:
-                        #case where rows have been deleted and nothing do check or do
+                        item=table.item(rcntr,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                        itemStr=str(item)
+                        print "itemStr: ",itemStr
+                        #get checkbox status            
+                        cw=table.cellWidget(row-roff,const.WGE_SelectCol) 
+                        try:
+                            cbstat=cw.isChecked()
+                            print "row: ",row," cbstat: ",cbstat
+                            if cbstat == True:
+                                #case to remove a row
+                                rcntr=row-roff
+                                if rcntr < 0:
+                                    rcntr=0
+                                print "   rcntr: ",rcntr
+                                #need to check if workspace exists and if so, remove it - also need to think about the consequences of removing a workspace with regards to other workspaces it may be in...
+                                #for now, just removing the row from the table
+                                
+                                delws=str(table.item(rcntr,const.WGE_WorkspaceCol).text())
+                                self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Removing: "+delws)
+                                table.removeRow(rcntr)
+                                roff += 1
+                                #also remove this workspace from memory if it exists
+                                try:
+                                    mtd.remove(delws)
+                                except:
+                                    #placeholder in case the workspace had not yet been loaded to memory - need to do nothing in this case
+                                    pass
+                        except AttributeError:
+                            #case where rows have been deleted and nothing to check or do
+                            pass
+                    except:
+                        #case with an empty row
                         pass
-
+        elif self.ui.radioButtonLoadData.isChecked():
+            #case to load data
+            #Need to handle this by checking if workspaces exist and only load those that do not
+            Nrows=table.rowCount()
+            loadedWS=mtd.getObjectNames()
+            if Nrows >0:
+                for row in range(Nrows):
+                    percentbusy=int(100*(row+1)/Nrows)
+                    self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
+                    try:
+                        item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                        itemStr=str(item)
+                        print "itemStr: ",itemStr                
+    
+                        if itemStr in loadedWS:
+                            print "row: ",row,"  workspace: ",itemStr," is already in memory"
+                            #then make sure that 'In Memory' shows this
+                            table.item(row,const.WGE_InMemCol).setText("Yes")
+                        else:
+                            #Load this workspace into memory into the "Mantid Level"
+                            #first get the location of the workspace file
+                            WSFile=str(table.item(row,const.WGE_LocationCol).text())
+                            print "Loading file: ",WSFile
+                            Load(Filename=WSFile,OutputWorkspace=itemStr)
+                            #now make workspace available at the python level
+                            exec("%s = mtd.retrieve(%r)" % (itemStr,itemStr))     
+                            #then update the in-memory column
+                            table.item(row,const.WGE_InMemCol).setText("Yes")
+                    except AttributeError:
+                        #case where there is no row to use to load data
+                        pass
+            #once data have been loaded, then enable the Create Workspace button
+            self.ui.pushButtonCreateWorkspace.setEnabled(True) 
+                                                    
         else:
             print "No radio buttons selected - do nothing"
+        time.sleep(0.5)   
+        self.parent.ui.progressBarStatusProgress.setValue(0) #update progress bar
+        
         
     def resizeEvent(self,resizeEvent):
 
@@ -555,15 +648,31 @@ class WorkspaceComposer(QtGui.QMainWindow):
         self.ui.tableWidgetWGE.setGeometry(QtCore.QRect(geom.x()+10, geom.y()+20, 751, geom.height()-25))  #hard coded numbers from QTableWidget x,y,width,height defined via QT Designer - need a more automatic way to get this info
 
     def closeEvent(self,event):
-        #case when 'X' selected to destroy widget
+
+        #case when 'X' selected to destroy widget   
+        #Make sure that the table is empty before exiting
+        table=self.ui.tableWidgetWGE  
+        print "Removing rows"
+        Nrows=table.rowCount()
+        for row in range(Nrows):
+            table.removeRow(row)
+     
         print "Handling Workspace Group Edit GUI Close"
         self.parent.ui.pushButtonUpdate.setEnabled(True)
-        event.accept()
+        self.parent.ui.WSMIndex = -1 #clear the WSMIndex flag
+        self.close()
         
     def Exit(self):
-        #case when cancel button is clicked
-        print "Cancel Button clicked"
+
+        #Make sure that the table is empty before exiting
+        table=self.ui.tableWidgetWGE  
+        print ".Removing rows"
+        Nrows=table.rowCount()
+        for row in range(Nrows):
+            table.removeRow(row)
+
         self.parent.ui.pushButtonUpdate.setEnabled(True)
+        self.parent.ui.WSMIndex = -1
         self.close()
         
 
@@ -573,11 +682,11 @@ class constants:
     def __init__(self):
         self.WGE_WSIndexCol=0
         self.WGE_WorkspaceCol=1
-#        self.WGE_DataTransformCol=1
         self.WGE_LocationCol=2
         self.WGE_DateCol=3
         self.WGE_SizeCol=4
-        self.WGE_SelectCol=5
+        self.WGE_InMemCol=5
+        self.WGE_SelectCol=6
         
 
 def addWStoTable(table,workspaceName,workspaceLocation):
@@ -653,7 +762,8 @@ def addWStoTable(table,workspaceName,workspaceLocation):
     table.item(userow,const.WGE_LocationCol).setFont(QtGui.QFont('Courier',10))
     table.setItem(userow,const.WGE_DateCol,QtGui.QTableWidgetItem(ws_date)) 
     table.setItem(userow,const.WGE_SizeCol,QtGui.QTableWidgetItem(ws_size)) 
-    addCheckboxToWSTCell(table,userow,const.WGE_SelectCol,True)	
+    table.setItem(userow,const.WGE_InMemCol,QtGui.QTableWidgetItem("No")) 
+    addCheckboxToWSTCell(table,userow,const.WGE_SelectCol,False)	
 #    table.setItem(userow,const.WGE_DataTransformCol,QtGui.QTableWidgetItem(WSAlg))   
     
          
