@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'WorkspaceComposer.ui'
 #
-# Created: Mon May 19 16:19:39 2014
+# Created: Thu May 22 14:16:34 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -30,16 +30,16 @@ class Ui_WorkspaceComposer(object):
         self.centralwidget = QtGui.QWidget(WorkspaceComposer)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.groupBox = QtGui.QGroupBox(self.centralwidget)
-        self.groupBox.setGeometry(QtCore.QRect(690, 20, 211, 381))
+        self.groupBox.setGeometry(QtCore.QRect(690, 20, 211, 361))
         self.groupBox.setTitle(_fromUtf8(""))
         self.groupBox.setObjectName(_fromUtf8("groupBox"))
         self.line = QtGui.QFrame(self.groupBox)
-        self.line.setGeometry(QtCore.QRect(10, 200, 191, 16))
+        self.line.setGeometry(QtCore.QRect(10, 180, 191, 16))
         self.line.setFrameShape(QtGui.QFrame.HLine)
         self.line.setFrameShadow(QtGui.QFrame.Sunken)
         self.line.setObjectName(_fromUtf8("line"))
         self.groupBox_5 = QtGui.QGroupBox(self.groupBox)
-        self.groupBox_5.setGeometry(QtCore.QRect(10, 210, 191, 161))
+        self.groupBox_5.setGeometry(QtCore.QRect(10, 190, 191, 161))
         self.groupBox_5.setObjectName(_fromUtf8("groupBox_5"))
         self.label = QtGui.QLabel(self.groupBox_5)
         self.label.setGeometry(QtCore.QRect(10, 20, 171, 20))
@@ -62,10 +62,10 @@ class Ui_WorkspaceComposer(object):
         self.radioButtonExecuteEqn.setGeometry(QtCore.QRect(10, 100, 171, 17))
         self.radioButtonExecuteEqn.setObjectName(_fromUtf8("radioButtonExecuteEqn"))
         self.groupBox_6 = QtGui.QGroupBox(self.groupBox)
-        self.groupBox_6.setGeometry(QtCore.QRect(10, 10, 191, 181))
+        self.groupBox_6.setGeometry(QtCore.QRect(10, 10, 191, 161))
         self.groupBox_6.setObjectName(_fromUtf8("groupBox_6"))
         self.pushButtonUpdate = QtGui.QPushButton(self.groupBox_6)
-        self.pushButtonUpdate.setGeometry(QtCore.QRect(20, 140, 111, 23))
+        self.pushButtonUpdate.setGeometry(QtCore.QRect(20, 120, 111, 23))
         self.pushButtonUpdate.setObjectName(_fromUtf8("pushButtonUpdate"))
         self.radioButtonRemoveSelected = QtGui.QRadioButton(self.groupBox_6)
         self.radioButtonRemoveSelected.setGeometry(QtCore.QRect(10, 90, 151, 17))
@@ -77,12 +77,9 @@ class Ui_WorkspaceComposer(object):
         self.radioButtonSelectAll.setGeometry(QtCore.QRect(10, 50, 151, 17))
         self.radioButtonSelectAll.setObjectName(_fromUtf8("radioButtonSelectAll"))
         self.radioButtonLoadData = QtGui.QRadioButton(self.groupBox_6)
-        self.radioButtonLoadData.setGeometry(QtCore.QRect(10, 110, 151, 17))
+        self.radioButtonLoadData.setGeometry(QtCore.QRect(10, 30, 161, 17))
+        self.radioButtonLoadData.setChecked(True)
         self.radioButtonLoadData.setObjectName(_fromUtf8("radioButtonLoadData"))
-        self.radioButtonChooseWorkspace = QtGui.QRadioButton(self.groupBox_6)
-        self.radioButtonChooseWorkspace.setGeometry(QtCore.QRect(10, 30, 161, 17))
-        self.radioButtonChooseWorkspace.setChecked(True)
-        self.radioButtonChooseWorkspace.setObjectName(_fromUtf8("radioButtonChooseWorkspace"))
         self.groupBox_2 = QtGui.QGroupBox(self.centralwidget)
         self.groupBox_2.setGeometry(QtCore.QRect(10, 370, 661, 81))
         self.groupBox_2.setObjectName(_fromUtf8("groupBox_2"))
@@ -143,7 +140,7 @@ class Ui_WorkspaceComposer(object):
         self.retranslateUi(WorkspaceComposer)
         QtCore.QObject.connect(self.centralwidget, QtCore.SIGNAL(_fromUtf8("customContextMenuRequested(QPoint)")), self.centralwidget.show)
         QtCore.QObject.connect(self.pushButtonUpdate, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.pushButtonUpdate.show)
-        QtCore.QObject.connect(self.pushButtonCreateWorkspace, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.radioButtonChooseWorkspace.show)
+        QtCore.QObject.connect(self.pushButtonCreateWorkspace, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.radioButtonLoadData.show)
         QtCore.QObject.connect(self.pushButtonDone, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.pushButtonDone.show)
         QtCore.QMetaObject.connectSlotsByName(WorkspaceComposer)
 
@@ -162,7 +159,6 @@ class Ui_WorkspaceComposer(object):
         self.radioButtonClearAll.setText(_translate("WorkspaceComposer", "Clear All", None))
         self.radioButtonSelectAll.setText(_translate("WorkspaceComposer", "Select All", None))
         self.radioButtonLoadData.setText(_translate("WorkspaceComposer", "Load Data", None))
-        self.radioButtonChooseWorkspace.setText(_translate("WorkspaceComposer", "Choose File(s)", None))
         self.groupBox_2.setTitle(_translate("WorkspaceComposer", "Workspace Algebra Section", None))
         self.lineEditEquation.setToolTip(_translate("WorkspaceComposer", "Enter an equation using the workspace indicies listed in the Workspace List above.  The shorter Index names are used for convenience.", None))
         self.label_5.setText(_translate("WorkspaceComposer", "Enter Equation - use workspace names or indicies from the table above, for example:  (ws0-ws1)/ws2", None))

@@ -496,7 +496,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
             thisGWS=mtd.retrieve(gwsName)
         
         #first, determinw which is selected
-        if self.ui.radioButtonChooseWorkspace.isChecked():
+        if self.ui.radioButtonLoadData.isChecked():
             #case to select workspaces
             print "Choose Workspace Selected"
             
@@ -518,10 +518,42 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 wsName=basename
                 print "wsFile: ",wsFile
                 addWStoTable(table,wsName,wsFile)
-#            table.resizeColumnsToContents();
+
                     
+            Nrows=table.rowCount()
+            loadedWS=mtd.getObjectNames()
+            if Nrows >0:
+                for row in range(Nrows):
+                    percentbusy=int(100*(row+1)/Nrows)
+                    self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
+                    try:
+                        item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                        itemStr=str(item)
+                        print "itemStr: ",itemStr                
+    
+                        if itemStr in loadedWS:
+                            print "row: ",row,"  workspace: ",itemStr," is already in memory"
+                            #then make sure that 'In Memory' shows this
+                            table.item(row,const.WGE_InMemCol).setText("Yes")
+                        else:
+                            #Load this workspace into memory into the "Mantid Level"
+                            #first get the location of the workspace file
+                            WSFile=str(table.item(row,const.WGE_LocationCol).text())
+                            print "Loading file: ",WSFile
+                            Load(Filename=WSFile,OutputWorkspace=itemStr)
+                            #now make workspace available at the python level
+                            exec("%s = mtd.retrieve(%r)" % (itemStr,itemStr))     
+                            #then update the in-memory column
+                            table.item(row,const.WGE_InMemCol).setText("Yes")
+                    except AttributeError:
+                        #case where there is no row to use to load data
+                        pass
+            #once data have been loaded, then enable the Create Workspace button
+            self.ui.pushButtonCreateWorkspace.setEnabled(True)                     
+                    
+#            table.resizeColumnsToContents();                    
             #for user convenience, automatically select the Load Data radio button
-            self.ui.radioButtonLoadData.setChecked(True)
+
             
         elif self.ui.radioButtonSelectAll.isChecked():
             print "Select All Selected"
@@ -593,39 +625,6 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     except:
                         #case with an empty row
                         pass
-        elif self.ui.radioButtonLoadData.isChecked():
-            #case to load data
-            #Need to handle this by checking if workspaces exist and only load those that do not
-            Nrows=table.rowCount()
-            loadedWS=mtd.getObjectNames()
-            if Nrows >0:
-                for row in range(Nrows):
-                    percentbusy=int(100*(row+1)/Nrows)
-                    self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
-                    try:
-                        item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
-                        itemStr=str(item)
-                        print "itemStr: ",itemStr                
-    
-                        if itemStr in loadedWS:
-                            print "row: ",row,"  workspace: ",itemStr," is already in memory"
-                            #then make sure that 'In Memory' shows this
-                            table.item(row,const.WGE_InMemCol).setText("Yes")
-                        else:
-                            #Load this workspace into memory into the "Mantid Level"
-                            #first get the location of the workspace file
-                            WSFile=str(table.item(row,const.WGE_LocationCol).text())
-                            print "Loading file: ",WSFile
-                            Load(Filename=WSFile,OutputWorkspace=itemStr)
-                            #now make workspace available at the python level
-                            exec("%s = mtd.retrieve(%r)" % (itemStr,itemStr))     
-                            #then update the in-memory column
-                            table.item(row,const.WGE_InMemCol).setText("Yes")
-                    except AttributeError:
-                        #case where there is no row to use to load data
-                        pass
-            #once data have been loaded, then enable the Create Workspace button
-            self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                                                     
         else:
             print "No radio buttons selected - do nothing"

@@ -20,7 +20,7 @@
       <x>690</x>
       <y>20</y>
       <width>211</width>
-      <height>381</height>
+      <height>361</height>
      </rect>
     </property>
     <property name="title">
@@ -30,7 +30,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>200</y>
+       <y>180</y>
        <width>191</width>
        <height>16</height>
       </rect>
@@ -43,7 +43,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>210</y>
+       <y>190</y>
        <width>191</width>
        <height>161</height>
       </rect>
@@ -149,7 +149,7 @@
        <x>10</x>
        <y>10</y>
        <width>191</width>
-       <height>181</height>
+       <height>161</height>
       </rect>
      </property>
      <property name="title">
@@ -159,7 +159,7 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>140</y>
+        <y>120</y>
         <width>111</width>
         <height>23</height>
        </rect>
@@ -211,26 +211,13 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>110</y>
-        <width>151</width>
-        <height>17</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Load Data</string>
-      </property>
-     </widget>
-     <widget class="QRadioButton" name="radioButtonChooseWorkspace">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
         <y>30</y>
         <width>161</width>
         <height>17</height>
        </rect>
       </property>
       <property name="text">
-       <string>Choose File(s)</string>
+       <string>Load Data</string>
       </property>
       <property name="checked">
        <bool>true</bool>
@@ -461,7 +448,7 @@
   <connection>
    <sender>pushButtonCreateWorkspace</sender>
    <signal>clicked(bool)</signal>
-   <receiver>radioButtonChooseWorkspace</receiver>
+   <receiver>radioButtonLoadData</receiver>
    <slot>show()</slot>
    <hints>
     <hint type="sourcelabel">
