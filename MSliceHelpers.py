@@ -13,6 +13,10 @@
 # getLastAlgFromH5Workspace
 #
 ################################################################################
+import sys, os
+#import Mantid computatinal modules
+sys.path.append(os.environ['MANTIDPATH'])
+from mantid.simpleapi import *
 
 
 def getLastAlgFromH5Workspace(H5Workspace,**kwargs):
@@ -371,9 +375,39 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
         #case where it exists, now make sure that workspace is at python (rather than Mantid) layer
         wsr=mtd.retrieve(str(Workspace))  #retrieve seems to work OK if workspace is either at Mantid or already at the Python level
         print "type(wsr): ",type(wsr)
-        xdimName=wsr.getXDimension().getName()
-        ydimName=wsr.getYDimension().getName()    
-        Ndims=2
+        
+        #now check if the workspace is a group workspace or single workspace
+        if 'Group' in str(type(wsr)):
+            #case where the workspace is a group workspace
+            cntr=0
+            xdchk=''
+            ydchk=''
+            for ws in wsr:
+                xdimName=ws.getXDimension().getName()
+                ydimName=ws.getYDimension().getName() 
+                if cntr ==0:
+                    #case to set first occurance of dimensions
+                    xdchk=xdimName
+                    ydchk=ydimName
+                else:
+                    if (xdchk != xdimName) or (ydchk != ydimName):
+                        #case where the workspaces do not have the same dimensionality
+                        print "--------> Dimensionality mismatch!"
+                        #deal with what to do here later...
+                cntr +=1
+                
+            Ndims=2
+        else:
+            #case for a single workspace
+            xdimName=wsr.getXDimension().getName()
+            ydimName=wsr.getYDimension().getName()    
+            Ndims=2
+            pass
+        
+        
+        """
+        #leave this check for another time - will need to consider the case for group workspaces
+        #may not need this check as the x and y dim check may be sufficient.
         try:
             zdimName=wsr.getZDimension().getName()
             Ndims=3
@@ -382,11 +416,12 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
         except RuntimeError:
             #expect this case for powder 2D workspaces
             pass
+        """
     else:
         if vstat:
             print "getReduceAlgFromWorkspace: Workspace does not exist...returning"
         return ''
-
+#FIXME - these dimension names should be brough out to config.py
     if ((xdimName=='Energy transfer') & (ydimName=='')):
         #case where we have energy spectra (by pixel but not by any particular units
         AlgName='DgsReduction'
@@ -401,13 +436,35 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
     return AlgName
     
 
+###################################################################################
+#
+# getWorkspaceMemSize
+#
+###################################################################################
+#
+# Provide a Mantid workspace and this function will return it's memory footprint size
+#
+# workspaceName is a string variable with the name of the Mantid workspace
 
+def getWorkspaceMemSize(workspaceName):
 
-
-
-
-
-
+    ws=mtd.retrieve(workspaceName)
+    if 'Group' in str(type(ws)):
+        #case where the workspace is a group workspace
+        #iterate through the workspaces in the group to get the total size
+        #of the group
+        sz=0
+        row=0
+        for ws in ws:
+            sz += ws.getMemorySize()       
+            row +=1
+        SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
+    else:
+        #case where it's an individual workspace - get it's size
+        sz=ws.getMemorySize()
+        SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
+    
+    return SizeStr
 
 
 

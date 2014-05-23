@@ -25,7 +25,7 @@ from MSliceHelpers import getReduceAlgFromWorkspace
 sys.path.append(os.environ['MANTIDPATH'])
 from mantid.simpleapi import *
 import re #regular expressions needed to work with equation parsing
-
+from numpy import *
 import config  #bring in configuration parameters and constants
 
 class WorkspaceComposer(QtGui.QMainWindow):
@@ -60,7 +60,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
         #get WorkSpaceManager table index
         WSMIndex=self.parent.ui.WSMIndex
         print "--> WSMIndex: ",WSMIndex
-        if WSMIndex == -1:
+        if WSMIndex == []:
             #case to create a new workspace group
             #in this case, suggest a unique new workspace name
             #first, get existing workspace names
@@ -80,59 +80,78 @@ class WorkspaceComposer(QtGui.QMainWindow):
             #will need to access the workspace manager table and extract workspace group name
             #upon Group Editor initialization will need to populate the table using info from the Workspace Group passed in
             table=self.ui.tableWidgetWGE
-            gwsName=str(self.parent.ui.GWSName)
-            #also need to push this name to the resulting workspace name field
-            self.ui.lineEditGroupName.setText(gwsName)
-            print "Group Workspace Name: ",gwsName
-            #next need to parse the group workspace for individual workspaces for two things:
-            #   1. workspace name
-            #   2. workspace file location
-            
-            thisGWS=mtd.retrieve(gwsName)
-            try:
-                #if next statement works, case for group workspace
-                Nrows=thisGWS.size()
-                inMemCntr=0
-                for row in range(Nrows):
-                    wsName=thisGWS[row].name()
-#                    wsFile=os.path.normpath(r'C:\Users\mid\Documents\Mantid\Wagman\autoreduce\\'+wsName+'.nxs')  #for now just hard code path name...will eventually need to dig this out of workspace
+            if len(self.parent.ui.GWSName) == 1:
+                #in this case, we have a single workspace name.
+                #this could be a single workspace or a grouped workspace
+                #if single, just display it
+                #if group, display group contents
+                gwsName=self.parent.ui.GWSName[0]
+                print "gwsName: ",gwsName," type: ",type(gwsName)
+                thisGWS=mtd.retrieve(gwsName)
+                if 'Group' in str(type(thisGWS)):
+                    #case where the workspace is a group workspace
+                    #then list each file in the workspace
+                    Nrows=thisGWS.size()
+                    inMemCntr=0
+                    for row in range(Nrows):
+                        wsName=thisGWS[row].name()
+    #                    wsFile=os.path.normpath(r'C:\Users\mid\Documents\Mantid\Wagman\autoreduce\\'+wsName+'.nxs')  #for now just hard code path name...will eventually need to dig this out of workspace
+                        wsFile=''
+                        addWStoTable(table,wsName,wsFile)
+                        print "row: ",row,"  wsName: ",wsName,"  Type: ",type(wsName)
+                        if mtd.doesExist(wsName):
+                            #if it exists, then it's in memory and say this
+                            table.item(row,const.WGE_InMemCol).setText("Yes")
+                            #also give the memory footprint size
+                            #first need to determine if workspace is a group workspace or single workspace
+                            tmpws = mtd.retrieve(wsName)
+                            inMemCntr +=1 #increment the in memory counter
+                    sz=0
+                    row=0
+                    for ws in thisGWS:
+                        sz = ws.getMemorySize()       
+                        SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
+                        table.item(row,const.WGE_SizeCol).setText(SizeStr)
+                        row +=1
+                    
+                else:
+                    #case where it's an individual workspace - just list the one workspace
+                    wsName=thisGWS.name()
+                    wsFile=''
+                    addWStoTable(table,wsName,wsFile)                    
+                    if mtd.doesExist(wsName):
+                        table.item(0,const.WGE_InMemCol).setText("Yes")
+                    sz=thisGWS.getMemorySize()
+                    szStr=str(int(float(sz)/float(1024*1024)))+' MB'
+                    table.item(0,const.WGE_SizeCol).setText(szStr)                    
+                    
+                #also need to push this name to the resulting workspace name field
+                self.ui.lineEditGroupName.setText(gwsName)
+                print "Group Workspace Name: ",gwsName
+                #since workspace exists, enable Create Workspace button
+                self.ui.pushButtonCreateWorkspace.setEnabled(True) 
+            elif len(self.parent.ui.GWSName) > 1:
+                #in this case we have more than one workspace name.
+                #these workspaces have the potential to be of any type
+                #here the workspaces are listed as they are named and groups are
+                #not expanded for fear of losing track of which files are in which group
+                Nws=len(WSMIndex)
+                gwsName=self.parent.ui.GWSName
+                print "--> gwsName: ",gwsName
+                for row in range(Nws):
+                    ws=mtd.retrieve(gwsName[row])
+                    wsName=gwsName[row]
                     wsFile=''
                     addWStoTable(table,wsName,wsFile)
                     print "row: ",row,"  wsName: ",wsName,"  Type: ",type(wsName)
                     if mtd.doesExist(wsName):
                         #if it exists, then it's in memory and say this
                         table.item(row,const.WGE_InMemCol).setText("Yes")
-                        #also give the memory footprint size
-                        #first need to determine if workspace is a group workspace or single workspace
-                        tmpws = mtd.retrieve(wsName)
-                        inMemCntr +=1 #increment the in memory counter
-                sz=0
-                row=0
-                for ws in thisGWS:
                     sz = ws.getMemorySize()       
                     SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
-                    table.item(row,const.WGE_SizeCol).setText(SizeStr)
-                    row +=1
-                if inMemCntr == Nrows:
-                    #case where all workspaces are already in memory
-                    #this enables us to change Workspace Composer controls since data do not have to be loaded
-                    #Directly enable the Create Workspace button in this case
-#                    self.ui.pushButtonCreateWorkspace.setEnabled(True)
-                    
-                    self.ui.radioButtonLoadData.setChecked(True)
-                    self.Update()
-
-            except AttributeError:
-                #else a single workspace does not have a size attribute and here we're currently only working with group workspaces
-                                    #case for a single row
-                wsName=thisGWS.name()
-                wsFile=''
-                addWStoTable(table,wsName,wsFile)                    
-                if mtd.doesExist(wsName):
-                    table.item(0,const.WGE_InMemCol).setText("Yes")
-                sz=thisGWS.getMemorySize()
-                szStr=str(int(float(sz)/float(1024*1024)))+' MB'
-                table.item(0,const.WGE_SizeCol).setText(szStr)
+                    table.item(row,const.WGE_SizeCol).setText(SizeStr)                    
+                #since workspace exists, enable Create Workspace button
+                self.ui.pushButtonCreateWorkspace.setEnabled(True) 
     
     def CreateWorkspace(self):
         print "**** Create Workspace button pressed"
@@ -147,33 +166,35 @@ class WorkspaceComposer(QtGui.QMainWindow):
         #get constants
         const=constants()
         sigVal=config.mySigNorm
-        
+
+        #get WorkSpaceManager table index
+        WSMIndex=self.parent.ui.WSMIndex
+        print "WSMIndex: ",WSMIndex     
+                        
         #first clean up empty rows
         table=self.ui.tableWidgetWGE  
         Nrows=table.rowCount()
+        print "Nrows before cleaning table: ",Nrows
         cnt=0
         delrowcntr=0
         statusMsg=''
         if Nrows >0:
-            for row in range(Nrows):
-                print "*** Row: ",row
-                
-                item=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
-                itemStr=str(item)
-                print "itemStr: ",itemStr
-                if itemStr != 'None':
-                    print "row: ",row,"  chkTxt: ",itemStr
-                    cnt +=1
-                else:
-                    print "delete row: ",row
-                    table.removeRow(row-delrowcntr)
-                    delrowcntr += 1
-                    print "Rows remaining: ",table.rowCount()             
+            
+            for row in Nrows-arange(Nrows)-1:
+                item=str(table.item(row,0))
+                print "row: ",row," item: ",item,"  str(item): ",str(item)
+                if item == 'None':
+                    print "...Deleting row: ",row
+                    table.removeRow(row)
+        
+        #now that the table has been cleaned up, redefine Nrows
+        Nrows=table.rowCount()
         
         self.parent.ui.progressBarStatusProgress.setValue(10) #update progress bar
         #get workspace Group Edit table
-        table=self.ui.tableWidgetWGE  
+#        table=self.ui.tableWidgetWGE  
         Nrows=table.rowCount()
+        print "Nrows after cleaning table: ",Nrows
         names=[]
         locs=[]
         #build the filename and locations lists
@@ -183,10 +204,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
             str2=str(table.item(row,const.WGE_LocationCol).text())
             locs.append(str2)
         
-        #get WorkSpaceManager table index
-        WSMIndex=self.parent.ui.WSMIndex
-        print "WSMIndex: ",WSMIndex
-        if WSMIndex == -1:
+        if WSMIndex == []:
             #case to create a new workspace group
             #here we just take the workspace files listed in the workspace editor table and create a workspace
 
@@ -227,7 +245,14 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 #get the list of workspaces to group
                 grpLst=[]
                 gwsSize=0
-                                                    
+                gwsName=str(self.ui.lineEditGroupName.text()) 
+                print "check for overwrite"
+                print "  gwsName: ",gwsName
+                print "  GWSName: ",self.parent.ui.GWSName
+                if gwsName in self.parent.ui.GWSName:
+                    print "Overwrite Case"
+                    sigVal=config.mySigOverwrite
+                
                 for row in range(Nrows):
                     percentbusy=int(100*(row+1)/Nrows)
                     self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
@@ -238,9 +263,10 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     #original workspace name making things very confusing as to what just happened.
                     if Nrows ==1:
                         if 'IEventWorkspace' in str(type(tmpws)):
-                            gwsName=str(self.ui.lineEditGroupName.text())
+                            
                             sigVal=config.mySigNorm #usual case for 1 would otherwise be to overwrite
-                            self.parent.ui.WSMIndex=1 #need to bump up the Workspace Manager table index too
+                            #need to figure out what to do here for case of moving to list from integers
+                            self.parent.ui.WSMIndex=[1] #need to bump up the Workspace Manager table index too
                         
                     gwsSize += tmpws.getMemorySize()
                     grpLst.append(ws)
@@ -248,10 +274,10 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         gwsType=getReduceAlgFromWorkspace(ws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
                         print "gwsType: ",gwsType
                 gwsSizeStr=str(int(float(gwsSize)/float(1024*1024)))+' MB'
+                print "Group Name: ",gwsName
                 print "Group List: ",grpLst
                 exec("%s = GroupWorkspaces(%r)" % (gwsName,grpLst))    
                 print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not 
-                pass
             elif self.ui.radioButtonSumWS.isChecked():
                 #case to sum workspaces
                 print "** Sum Workspaces"
@@ -434,9 +460,9 @@ class WorkspaceComposer(QtGui.QMainWindow):
         self.parent.ui.progressBarStatusProgress.setValue(100) #update progress bar
         self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Workspace Create Complete")
         print "gwsName: ",gwsName,"  gwsType: ",gwsType,"  gwsSizeStr: ",gwsSizeStr
-        self.parent.ui.GWSName=gwsName
-        self.parent.ui.GWSType=gwsType  #need to get workspace type from the newly created workspace
-        self.parent.ui.GWSSize=gwsSizeStr
+        self.parent.ui.returnType=gwsType  #need to get workspace type from the newly created workspace
+        self.parent.ui.returnSize=gwsSizeStr
+        self.parent.ui.returnName=str(self.ui.lineEditGroupName.text())
         print " mySignal:  sigval:",sigVal
         self.mySignal.emit(sigVal)
 
@@ -484,16 +510,16 @@ class WorkspaceComposer(QtGui.QMainWindow):
         WSMIndex=self.parent.ui.WSMIndex
         print "WSMIndex: ",WSMIndex
         
-        if WSMIndex == -1:
+        if WSMIndex == []:
             #case to create a new workspace group
             WSGroup='LocalGroup'
             pass
         else:
             #case to edit an existing workspace group
             #will need to access the workspace manager table and extract workspace group name
-            gwsName=str(self.parent.ui.GWSName)
+            gwsName=self.parent.ui.GWSName
             print "Group Workspace Name: ",gwsName
-            thisGWS=mtd.retrieve(gwsName)
+#            thisGWS=mtd.retrieve(gwsName)  
         
         #first, determinw which is selected
         if self.ui.radioButtonLoadData.isChecked():
@@ -504,7 +530,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
             filter='*.nxs'
             wsFiles = QtGui.QFileDialog.getOpenFileNames(self, 'Open Workspace(s)', curdir,filter)
             if len(wsFiles) > 0:
-                self.parent.ui.WSMIndex=-1  #if workspaces are chosen, then enable those new workspaces to be loaded via the buttonBoxOK() procedure
+                self.parent.ui.WSMIndex=[]  #if workspaces are chosen, then enable those new workspaces to be loaded via the buttonBoxOK() procedure
             
             for wsFile in wsFiles:
                 #eventually wsName will be read from the file but for now extract it from filename
@@ -658,7 +684,10 @@ class WorkspaceComposer(QtGui.QMainWindow):
      
         print "Handling Workspace Group Edit GUI Close"
         self.parent.ui.pushButtonUpdate.setEnabled(True)
-        self.parent.ui.WSMIndex = -1 #clear the WSMIndex flag
+        self.parent.ui.WSMIndex = [] #clear the WSMIndex flag
+        self.parent.ui.GWSName=[]
+        self.parent.ui.GWSType=[]
+        self.parent.ui.GWSSize=[]    
         self.close()
         
     def Exit(self):
@@ -671,7 +700,10 @@ class WorkspaceComposer(QtGui.QMainWindow):
             table.removeRow(row)
 
         self.parent.ui.pushButtonUpdate.setEnabled(True)
-        self.parent.ui.WSMIndex = -1
+        self.parent.ui.WSMIndex = []
+        self.parent.ui.GWSName=[]
+        self.parent.ui.GWSType=[]
+        self.parent.ui.GWSSize=[]        
         self.close()
         
 
@@ -762,7 +794,7 @@ def addWStoTable(table,workspaceName,workspaceLocation):
     table.setItem(userow,const.WGE_DateCol,QtGui.QTableWidgetItem(ws_date)) 
     table.setItem(userow,const.WGE_SizeCol,QtGui.QTableWidgetItem(ws_size)) 
     table.setItem(userow,const.WGE_InMemCol,QtGui.QTableWidgetItem("No")) 
-    addCheckboxToWSTCell(table,userow,const.WGE_SelectCol,False)	
+    addCheckboxToWSTCell(table,userow,const.WGE_SelectCol,True)	
 #    table.setItem(userow,const.WGE_DataTransformCol,QtGui.QTableWidgetItem(WSAlg))   
     
          

@@ -45,7 +45,7 @@ if matplotlib.get_backend() != 'QT4Agg':
 from pylab import *
 
 #import custom develped helpers
-from MSliceHelpers import getReduceAlgFromWorkspace 
+from MSliceHelpers import getReduceAlgFromWorkspace, getWorkspaceMemSize
 #import h5py 
 from WorkspaceComposerMain import *
 
@@ -242,34 +242,51 @@ class MSlice(QtGui.QMainWindow):
         self.ui.StatusText.append(datetimestr)
 
         #setup for integrating with workspace group editor
-        self.ui.WSMIndex=-1   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
-        self.ui.GWSName=''
-        self.ui.GWSType=''
-        self.ui.GWSSize=''
+        self.ui.WSMIndex=[]   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
+        self.ui.GWSName=[]
+        self.ui.GWSType=[]
+        self.ui.GWSSize=[]
+        self.ui.returnName=''
+        self.ui.returnType=''
+        self.ui.returnSize=''
 
     #add slot for workspace group editor to connect to
     @QtCore.pyqtSlot(int)
     def on_button_clicked(self,val):       #signal for this function defined in WorkspaceComposerMain.py
         #val can be used to let this methold know who called it should that be desired
+        
+        #get constants
+	const=constants()
+        
         print "on_button_clicked - val: ",val
         self.ui.pushButtonUpdate.setEnabled(True)
         #now add new group workspace to Workspace Manager table
         table=self.ui.tableWidgetWorkspaces
-        wsname=self.ui.GWSName
-        wstype=self.ui.GWSType
-        wssize=self.ui.GWSSize
-        wsindex=self.ui.WSMIndex
-        print "Slot WSMIndex: ",wsindex
+        GWSName=self.ui.GWSName
+        wsname=self.ui.returnName
+        wstype=self.ui.returnType
+        wssize=self.ui.returnSize
+        Nrows=table.rowCount()
         if val == config.mySigNorm:
-            wsindex=self.ui.WSMIndex
+            wsindex=Nrows
+            #in case that the workspace name was originally created by the workspace composer, need to add this new name to the GWSName list
+            if wsname not in GWSName:
+                self.ui.GWSName.append(wsname)
+                
         elif val == config.mySigOverwrite:
-            if wsindex == -1:
-                #case to use row zero
-                wsindex=0
+            #case where we have one workspace with same name in Workspace Mgr and Workspace Composer - overwrite in this case
+            for row in range(Nrows):
+                #find which row to overwrite
+                if wsname == str(table.item(row,const.WSM_WorkspaceCol).text()):
+                    wsindex=row
+        print "Slot WSMIndex: ",wsindex
         addmemWStoTable(table,wsname,wstype,wssize,wsindex)
-        #reset wsindex
-        self.ui.WSMIndex=-1
-
+        #reset WSM info
+#        self.ui.WSMIndex=[]  #learned that clearing this fails re-running an open Workspace Composer
+#        self.ui.GWSName=[]
+        self.ui.GWSType=[]
+        self.ui.GWSSize=[]
+        
     def SaveLogSelect(self):
         #save content in the log window to file
         filter='*.txt'
@@ -484,6 +501,9 @@ class MSlice(QtGui.QMainWindow):
                 fileparts=os.path.splitext(basename)
                 wsName=fileparts[0]
                 Load(Filename=str(wsfile),OutputWorkspace=wsName)
+                #make sure workspaces are available at the python level
+                
+                
                 percentbusy=int(float(cntr)/float(Nfiles)*100)
                 self.ui.progressBarStatusProgress.setValue(percentbusy) #adjust progress bar according to % busy
                 time.sleep(0.01)  #seem to need a small delay to ensure that status updates
@@ -491,6 +511,10 @@ class MSlice(QtGui.QMainWindow):
                 #now populate table
                 self.ui.StatusText.append("  Loading workspace:"+str(wsName))
                 addWStoTable(table,wsName,wsfile)
+                #update table with memory size rather than file size in the Size column of the Workspace Manager
+                
+                
+                
             table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy
             
@@ -534,7 +558,7 @@ class MSlice(QtGui.QMainWindow):
             selrow=[]
             for row in range(Nrows):
                 #get checkbox status            
-                cw=table.cellWidget(row-roff,const.WSM_SelectCol) 
+                cw=table.cellWidget(row,const.WSM_SelectCol) 
                 try:
                     cbstat=cw.isChecked()
                     print "row: ",row," cbstat: ",cbstat
@@ -554,21 +578,15 @@ class MSlice(QtGui.QMainWindow):
                 dialog.setText("No workspaces selected to edit")
                 dialog.exec_()
                 return
-            elif len(selrow) == 1:
+            elif len(selrow) > 0:
                 #preferred case - just do it
-                row=selrow[0]
-                if row != -1:
-                    self.ui.WSMIndex=row   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
-                    self.ui.GWSName=str(table.item(row,const.WSM_WorkspaceCol).text())
-                    self.child_win = WorkspaceComposer(self)
-                    self.child_win.show()
-            elif len(selrow) > 1:
-                #warn that too many rows selected - using first one
-                dialog=QtGui.QMessageBox(self)
-                dialog.setText("Too many workspaces selected - please select one")
-                dialog.exec_()
-                self.ui.tableWidgetWorkspaces.setEnabled(True)
-                return
+                print "type WSMIndex: ",type(self.ui.WSMIndex)
+                for row in selrow:
+                    self.ui.WSMIndex.append(row)   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
+                    self.ui.GWSName.append(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                self.child_win = WorkspaceComposer(self)
+                self.child_win.show()                    
+                
             else:
                 print "this case not anticipated...doing nothing"
             
@@ -1538,47 +1556,19 @@ def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
     #need to determine the available row number in the workspace table
     
     Nrows=table.rowCount()
-    print "Nrows: ",Nrows
+    print "Nrows: ",Nrows,"  wsindex: ",wsindex
 
-    emptyRowCnt=0
-    emptyRows = []
-	
-    for row in range(Nrows):
-        item=str(table.item(row,0)) 
-        if item == 'None':
-            emptyRowCnt +=1
-            emptyRows.append(row)
-    print "emptyRows: ",emptyRows,"  emptyRowCnt: ",emptyRowCnt
-    if emptyRowCnt != 0:
-        #case where there is an empty row to use
-        userow=int(emptyRows[0])
-        if wsindex != -1:  #check for case where we will replace an existing row in the table
-            userow=wsindex
-
-    else:
-        #case where a row needs to be added
-        userow=Nrows #recall that row indexing starts at zero thus the row to add would be at position Nrows
-        if wsindex != -1:  #check for case where we will replace an existing row in the table
-            userow=wsindex
-            #special case where a single workspace added from workspace manager is becoming a group workspace in WS composer
-            if userow == Nrows == 1:
-                #case where a row needs to be added to the table 
-                print "Adding a row"
-                table.insertRow(userow)
-            #special case where a single workspace is added via the workspace composer
-            if userow == 1 and Nrows == 0:
-                #case where a row needs to be added to the table 
-                print "Adding a row b"
-                userow=0
-                table.insertRow(userow)                
-        if wsindex == -1:  #check if we need to add a row or not
-            #case to insert
-            table.insertRow(Nrows)
-        col=const.WSM_SelectCol
+    #check if the row index supplied is >= to the number of rows
+    #if so, add a row
+    if wsindex >= Nrows:  #check if we need to add a row or not
+        #case to insert
+        table.insertRow(Nrows)
+    col=const.WSM_SelectCol
 #        addComboboxToWSTCell(table,userow,col)
-        addCheckboxToWSTCell(table,userow,col,True)
+    addCheckboxToWSTCell(table,wsindex,col,True)
     
-    #now add the row		
+    #now add the row
+    userow=wsindex		
     print "userow: ",userow
     table.setItem(userow,const.WSM_WorkspaceCol,QtGui.QTableWidgetItem(wsname)) #Workspace Name 
     table.setItem(userow,const.WSM_TypeCol,QtGui.QTableWidgetItem(wstype)) #Workspace Type
@@ -1599,7 +1589,8 @@ def addWStoTable(table,workspaceName,workspaceLocation):
 
     #then get info about the workspace file
 #    ws_date=str(time.ctime(os.path.getctime(workspaceLocation)))
-    ws_size=str(int(round(float(os.stat(workspaceLocation).st_size)/(1024*1024))))+' MB'
+#    ws_size=str(int(round(float(os.stat(workspaceLocation).st_size)/(1024*1024))))+' MB'
+    ws_size=getWorkspaceMemSize(workspaceName)
     
     #also need the Mantid Algorithm used to create the workspace
     #for now, this will be obtained by reading the workspace as an HDF file and

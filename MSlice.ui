@@ -78,7 +78,7 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tabWidgetFilesWorkspacesPage2" native="true">
+     <widget class="QWidget" name="tabWidgetFilesWorkspacesPage2">
       <attribute name="title">
        <string>Workspace Manager</string>
       </attribute>
@@ -286,7 +286,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>Edit Selected</string>
+        <string>Compose Selected</string>
        </property>
       </widget>
       <widget class="QRadioButton" name="radioButtonCreateWSG">
@@ -343,7 +343,7 @@
        </property>
       </widget>
      </widget>
-     <widget class="QWidget" name="tabWidgetFilesWorkspacesPage1" native="true">
+     <widget class="QWidget" name="tabWidgetFilesWorkspacesPage1">
       <attribute name="title">
        <string>Status</string>
       </attribute>
@@ -551,16 +551,6 @@
         <string>Save Log</string>
        </property>
       </widget>
-      <zorder>labelStatus</zorder>
-      <zorder>StatusText</zorder>
-      <zorder>groupBox_6</zorder>
-      <zorder>groupBox_5</zorder>
-      <zorder>pushButtonSaveLog</zorder>
-      <zorder>labelStatus</zorder>
-      <zorder>StatusText</zorder>
-      <zorder>groupBox_6</zorder>
-      <zorder>groupBox_5</zorder>
-      <zorder>pushButtonSaveLog</zorder>
      </widget>
     </widget>
    </widget>
