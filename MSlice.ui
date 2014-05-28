@@ -215,7 +215,7 @@
        <property name="geometry">
         <rect>
          <x>560</x>
-         <y>180</y>
+         <y>160</y>
          <width>131</width>
          <height>23</height>
         </rect>
@@ -254,7 +254,7 @@
        <property name="geometry">
         <rect>
          <x>560</x>
-         <y>110</y>
+         <y>90</y>
          <width>151</width>
          <height>17</height>
         </rect>
@@ -267,7 +267,7 @@
        <property name="geometry">
         <rect>
          <x>560</x>
-         <y>130</y>
+         <y>110</y>
          <width>171</width>
          <height>17</height>
         </rect>
@@ -276,35 +276,17 @@
         <string>Remove Selected</string>
        </property>
       </widget>
-      <widget class="QRadioButton" name="radioButtonEditSelected">
+      <widget class="QRadioButton" name="radioButtonComposeSelected">
        <property name="geometry">
         <rect>
          <x>560</x>
-         <y>90</y>
+         <y>30</y>
          <width>141</width>
          <height>17</height>
         </rect>
        </property>
        <property name="text">
-        <string>Compose Selected</string>
-       </property>
-      </widget>
-      <widget class="QRadioButton" name="radioButtonCreateWSG">
-       <property name="geometry">
-        <rect>
-         <x>560</x>
-         <y>30</y>
-         <width>191</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="font">
-        <font>
-         <family>MS Shell Dlg 2</family>
-        </font>
-       </property>
-       <property name="text">
-        <string>Create Workspace Group</string>
+        <string>Compose Workspace</string>
        </property>
       </widget>
       <widget class="QRadioButton" name="radioButtonLoadSingleWorkspace">
@@ -333,7 +315,7 @@
        <property name="geometry">
         <rect>
          <x>560</x>
-         <y>150</y>
+         <y>130</y>
          <width>181</width>
          <height>17</height>
         </rect>

@@ -76,7 +76,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 else:
                     cntr +=1  #increment loop counter and try again to find a unique name
         else:
-            #case to edit an existing workspace group
+            #case to edit an existing workspace or set of workspaces
             #will need to access the workspace manager table and extract workspace group name
             #upon Group Editor initialization will need to populate the table using info from the Workspace Group passed in
             table=self.ui.tableWidgetWGE
@@ -148,7 +148,15 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         #if it exists, then it's in memory and say this
                         table.item(row,const.WGE_InMemCol).setText("Yes")
                     sz = ws.getMemorySize()       
-                    SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
+                    if int(sz) == 0:
+						#then check if this is a group workspace and get it's size accordingly
+                        try:
+                            sz=0
+                            for wsr in ws:
+                                sz += wsr.getMemorySize()
+                        except:
+                            pass
+                    SizeStr=str(float(int(float(sz)/float(1024*1024)*10))/10)+' MB' #use *10 then /10 to show down to .1 MB
                     table.item(row,const.WGE_SizeCol).setText(SizeStr)                    
                 #since workspace exists, enable Create Workspace button
                 self.ui.pushButtonCreateWorkspace.setEnabled(True) 
@@ -166,6 +174,9 @@ class WorkspaceComposer(QtGui.QMainWindow):
         #get constants
         const=constants()
         sigVal=config.mySigNorm
+        
+        #make sure all workspaces are available at the python level
+#        mtd.importAll()
 
         #get WorkSpaceManager table index
         WSMIndex=self.parent.ui.WSMIndex
@@ -243,6 +254,20 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 print "** Group Workspaces"
                 #case to group files into a workspace
                 #get the list of workspaces to group
+                
+                #check if there are any table rows selected, if not, just return
+                NwsSel=0
+                for row in range(Nrows):
+                    cw=table.cellWidget(row,const.WGE_SelectCol) 
+                    if cw.isChecked():
+                        NwsSel += 1
+                        
+                if NwsSel == 0:
+                    #case with no workspaces to operate with - just return
+                    return
+                
+                
+                
                 grpLst=[]
                 gwsSize=0
                 gwsName=str(self.ui.lineEditGroupName.text()) 
@@ -267,62 +292,73 @@ class WorkspaceComposer(QtGui.QMainWindow):
                             sigVal=config.mySigNorm #usual case for 1 would otherwise be to overwrite
                             #need to figure out what to do here for case of moving to list from integers
                             self.parent.ui.WSMIndex=[1] #need to bump up the Workspace Manager table index too
-                        
-                    gwsSize += tmpws.getMemorySize()
-                    grpLst.append(ws)
+                    cw=table.cellWidget(row,const.WGE_SelectCol) 
+                    if cw.isChecked():
+                        #only group those workspaces that are selected in the composer table
+                        grpLst.append(ws)
                     if row ==0:
                         gwsType=getReduceAlgFromWorkspace(ws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
                         print "gwsType: ",gwsType
-                gwsSizeStr=str(int(float(gwsSize)/float(1024*1024)))+' MB'
                 print "Group Name: ",gwsName
                 print "Group List: ",grpLst
-                exec("%s = GroupWorkspaces(%r)" % (gwsName,grpLst))    
+                exec("%s = GroupWorkspaces(%r)" % (gwsName,grpLst))
+                tmpgws=mtd.retrieve(gwsName)
+                gwsSize=0
+                for gws in tmpgws:
+                    gwsSize += gws.getMemorySize()
+                gwsSizeStr=str(int(float(gwsSize)/float(1024*1024)))+' MB'
                 print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not 
             elif self.ui.radioButtonSumWS.isChecked():
+                gwsName=str(self.ui.lineEditGroupName.text()) 
                 #case to sum workspaces
                 print "** Sum Workspaces"
                 #case to sum workspaces already in memory into a new workspace
                 #get the list of workspaces to sum
-
+                
+                #check if there are any table rows selected, if not, just return
+                NwsSel=0
+                for row in range(Nrows):
+                    cw=table.cellWidget(row,const.WGE_SelectCol) 
+                    if cw.isChecked():
+                        NwsSel += 1
+                        
+                if NwsSel == 0:
+                    #case with no workspaces to operate with - just return
+                    return
+                
                 sumSize=0
+                first=0
                 for row in range(Nrows):
                     percentbusy=int(100*(row+1)/Nrows)
                     self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
-                    ws=str(table.item(row,const.WGE_WorkspaceCol).text())
-                    tmpws=mtd.retrieve(ws)
-                    if row ==0:
-                        sumws=tmpws
-                    else:
-                        try:
-                            sumws = sumws + tmpws
-                        except ValueError:
-                            dialog=QtGui.QMessageBox(self)
-                            dialog.setText("The workspaces are not compatible for summation")
-                            dialog.exec_()
-                            return    
+                    try:
+                        cw=table.cellWidget(row,const.WGE_SelectCol) 
+                        if cw.isChecked():
+                            ws=str(table.item(row,const.WGE_WorkspaceCol).text())
+                            if first == 0:
+                                sumws=CloneWorkspace(ws)
+                                #in case there is only one workspace, sumws won't be visible at the Mantid level, so add it
+                                print "--sumws size: ",sumws.getMemorySize()/(1024*1024), "row: ",row," ws: ",ws, "sumws: ",sumws
+                                sumType=getReduceAlgFromWorkspace(sumws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
+                                first +=1
+                            #only sum selected workspaces
+                            else:
+                                print "**Performing Sum  row: ",row
+                                sumws += mtd.retrieve(ws)
+                            
+                    except ValueError:
+                        dialog=QtGui.QMessageBox(self)
+                        dialog.setText("The workspaces are not compatible for summation")
+                        dialog.exec_()
+                        return    
+     
+                exec("%s = sumws" % (gwsName))
+                eval("mtd.addOrReplace(%r,%s,)" % (gwsName,gwsName))       
 
-                    if row ==0:
-                        sumType=getReduceAlgFromWorkspace(ws)  #FIXME - for now, just use the type from the first workspace, eventually ws type consistency needs to be checked.
-                        print "sumType: ",sumType
-                        
-                #now make workspace available at the python level
-                
-#                exec ("%s = mtd.retrieve(%r)" % (gwsName,sumws)) #now make the output workspace available to python
-                print "gwsName: ",gwsName
-                print "mtd.getObjecNames(): ",mtd.getObjectNames()
-#                exec("%s = sumws" % (gwsName))
-
-                sumws=mtd.retrieve('sumws')
-                exec("sumws.rename(OutputWorkspace=%r)" % (gwsName))
-                print "mtd.getObjecNames(): ",mtd.getObjectNames()
-                exec ("%s = mtd.retrieve(%r)" % (gwsName,gwsName))
-                
-                #format data for output
-                sumSize=sumws.getMemorySize()
+                exec("sumSize=%s.getMemorySize()" % gwsName)  #get size of the output workspace
                 sumSizeStr=str(int(float(sumSize)/float(1024*1024)))+' MB'
                 gwsSizeStr=sumSizeStr
                 gwsType=sumType
-
                 print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not            
             elif self.ui.radioButtonExecuteEqn.isChecked():
                 #case to execute an equation a user has entered
@@ -379,6 +415,9 @@ class WorkspaceComposer(QtGui.QMainWindow):
                                 #case we found a match - now replace the index with the actual workspace name in the equation
                             
                                 wsname=table.item(row,const.WGE_WorkspaceCol).text() #need to convert item from Qstring to string for comparison to work
+                                if row == 0:
+                                    #case to identify the first workspace and clone it for use as the container used by the output workspace
+                                    clonews=CloneWorkspace(str(wsname))
                                 wsnameStr=str(wsname)
                                 RplEqnStr=RplEqnStr.replace(wsiStr,wsnameStr)
                                 #make sure that workspace is at python layer
@@ -421,7 +460,8 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         print " RplEqnStr: ",RplEqnStr," type:",type(RplEqnStr)
                         self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Executing equation: "+outname+"="+RplEqnStr)
                         mtd.importAll()
-                        exec ("%s = %s" % (outname,RplEqnStr))
+                        exec ("%s = clonews" % outname)  #first equate a cloned workspace to outname
+                        exec ("%s = %s" % (outname,RplEqnStr)) #now let the equation results be put into the cloned outname workspace 
                         print "**mtd.getObjectNames(): ",mtd.getObjectNames()
                         exec ("%s = mtd.retrieve(%r)" % (outname,outname)) #now make the output workspace available to python
                         print "........"
@@ -543,7 +583,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 print "basename: ",basename
                 wsName=basename
                 print "wsFile: ",wsFile
-                addWStoTable(table,wsName,wsFile)
+                addWStoTable(table,wsName,wsFile)  #adds a workspace to table from file
 
                     
             Nrows=table.rowCount()
@@ -571,6 +611,17 @@ class WorkspaceComposer(QtGui.QMainWindow):
                             exec("%s = mtd.retrieve(%r)" % (itemStr,itemStr))     
                             #then update the in-memory column
                             table.item(row,const.WGE_InMemCol).setText("Yes")
+							#case to generate the in-memory size of the workspace and replace the file size listed in the table
+                        tmpws=mtd.retrieve(itemStr)
+                        if 'Group' in str(type(tmpws)):
+                        #case to get cumulative size for each member of the group in memory
+                            sz=0
+                            for ws in tmpws:
+                                sz += ws.getMemorySize()
+                        else:
+                            sz=tmpws.getMemorySize()
+                        ws_size=str(int(round(float(sz)/(1024*1024))))+' MB'
+                        table.item(row,const.WGE_SizeCol).setText(ws_size)
                     except AttributeError:
                         #case where there is no row to use to load data
                         pass
@@ -641,6 +692,12 @@ class WorkspaceComposer(QtGui.QMainWindow):
                                 roff += 1
                                 #also remove this workspace from memory if it exists
                                 try:
+                                    #might want to rethink deleting the workspace at this point.
+                                    #as deleting a workspace from memory also removes it from 
+                                    #any other groups in memory that it may also be a member of
+                                    #a possible alternative would be to delist the workspace leaving deletion for the Workspace Mgr
+                                    #however in so doing, via the Workspace Mgr, there would be unreachable workspaces to delete within groups
+                                    #so for now, this delete capability remains included within the workspace composer
                                     mtd.remove(delws)
                                 except:
                                     #placeholder in case the workspace had not yet been loaded to memory - need to do nothing in this case
@@ -735,7 +792,11 @@ def addWStoTable(table,workspaceName,workspaceLocation):
     
         #then get info about the workspace file
         ws_date=str(time.ctime(os.path.getctime(workspaceLocation)))
+		
+
+
         ws_size=str(int(round(float(os.stat(workspaceLocation).st_size)/(1024*1024))))+' MB'
+
         
         #also need the Mantid Algorithm used to create the workspace
         #for now, this will be obtained by reading the workspace as an HDF file and

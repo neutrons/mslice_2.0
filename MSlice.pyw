@@ -266,6 +266,13 @@ class MSlice(QtGui.QMainWindow):
         wsname=self.ui.returnName
         wstype=self.ui.returnType
         wssize=self.ui.returnSize
+        
+        if wsname in GWSName:
+            print "** name within the list of names - case to overwrite workspace"
+            #case where the resultant workspace already existed
+            #overwrite the existing workspace in this case
+            val=config.mySigOverwrite
+        
         Nrows=table.rowCount()
         if val == config.mySigNorm:
             wsindex=Nrows
@@ -518,12 +525,42 @@ class MSlice(QtGui.QMainWindow):
             table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy
             
-        elif self.ui.radioButtonCreateWSG.isChecked():  
-            #envoke the workspace group editor to create a group
-            print "*** Launching Workspace Group Editor ***"
-            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Calling Workspace Composer Create Workspace")
-            self.child_win = WorkspaceComposer(self)
-            self.child_win.show()
+        elif self.ui.radioButtonComposeSelected.isChecked():  
+            #edit existing workspace group using the workspace group editor
+            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Calling Workspace Composer Edit Workspace")
+            #first need to determine which workspace selected in the workspace manager
+            table=self.ui.tableWidgetWorkspaces
+            #first let's clean up empty rows
+            Nrows=table.rowCount()
+            selrow=[]
+            for row in range(Nrows):
+                #get checkbox status            
+                cw=table.cellWidget(row,const.WSM_SelectCol) 
+                try:
+                    cbstat=cw.isChecked()
+                    print "row: ",row," cbstat: ",cbstat
+                    if cbstat == True:
+                        #case to identify selected row number
+                        selrow.append(row)
+                except AttributeError:
+                    #case where rows have been deleted and nothing do check or do
+					print "unexpected case"
+
+            #once done checking selects, determine:
+            # if none were selected
+            # if more than one were selected
+            # or just one was selected
+            if len(selrow) >= 0:
+                #preferred case - just do it
+                print "type WSMIndex: ",type(self.ui.WSMIndex)
+                for row in selrow:
+                    self.ui.WSMIndex.append(row)   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
+                    self.ui.GWSName.append(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                self.child_win = WorkspaceComposer(self)
+                self.child_win.show()                    
+                
+            else:
+                print "this case not anticipated...doing nothing"        
             
         elif self.ui.radioButtonSelectAll.isChecked():  
             #set all checkboxes in the workspace manager table
@@ -548,47 +585,6 @@ class MSlice(QtGui.QMainWindow):
                 Nrows=table.rowCount()
                 for row in range(Nrows):
                     addCheckboxToWSTCell(table,row,const.WSM_SelectCol,False)          
-        elif self.ui.radioButtonEditSelected.isChecked():  
-            #edit existing workspace group using the workspace group editor
-            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Calling Workspace Composer Edit Workspace")
-            #first need to determine which workspace selected in the workspace manager
-            table=self.ui.tableWidgetWorkspaces
-            #first let's clean up empty rows
-            Nrows=table.rowCount()
-            selrow=[]
-            for row in range(Nrows):
-                #get checkbox status            
-                cw=table.cellWidget(row,const.WSM_SelectCol) 
-                try:
-                    cbstat=cw.isChecked()
-                    print "row: ",row," cbstat: ",cbstat
-                    if cbstat == True:
-                        #case to identify selected row number
-                        selrow.append(row)
-                except AttributeError:
-                    #case where rows have been deleted and nothing do check or do
-                    pass
-            #once done checking selects, determine:
-            # if none were selected
-            # if more than one were selected
-            # or just one was selected
-            if len(selrow) == 0:
-                #warn that no rows were selected
-                dialog=QtGui.QMessageBox(self)
-                dialog.setText("No workspaces selected to edit")
-                dialog.exec_()
-                return
-            elif len(selrow) > 0:
-                #preferred case - just do it
-                print "type WSMIndex: ",type(self.ui.WSMIndex)
-                for row in selrow:
-                    self.ui.WSMIndex.append(row)   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
-                    self.ui.GWSName.append(str(table.item(row,const.WSM_WorkspaceCol).text()))
-                self.child_win = WorkspaceComposer(self)
-                self.child_win.show()                    
-                
-            else:
-                print "this case not anticipated...doing nothing"
             
         elif self.ui.radioButtonSaveSelected.isChecked():  
             #save selected workspaces
