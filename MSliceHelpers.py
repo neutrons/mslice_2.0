@@ -455,16 +455,60 @@ def getWorkspaceMemSize(workspaceName):
         #of the group
         sz=0
         row=0
-        for ws in ws:
-            sz += ws.getMemorySize()       
+        for thisws in ws:
+            sz += thisws.getMemorySize()       
             row +=1
-        SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
     else:
         #case where it's an individual workspace - get it's size
         sz=ws.getMemorySize()
-        SizeStr=str(int(float(sz)/float(1024*1024)))+' MB'
-    
+    SizeStr=str(float(int(float(sz)/float(1024*1024)*10))/10)+' MB' #use *10 then /10 to show down to .1 MB
     return SizeStr
+
+###################################################################################
+#
+# ListWorkspaces
+#
+###################################################################################
+#
+# Provide a Mantid workspace and this function will return the list of names
+# within a group workspace or just return the single name if it's a single
+# workspace
+
+def ListWorkspaces(workspace):
+    
+    ws=mtd.retrieve(workspaceName)
+    wsList=[]
+    if 'Group' in str(type(ws)):
+        #case where the workspace is a group workspace
+        #iterate through the workspaces to get the list of names
+
+        for thisws in ws:
+            wsList.append(thisws)
+    else:
+        wsList.append(workspace)
+    return wsList
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

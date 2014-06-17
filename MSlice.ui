@@ -215,7 +215,7 @@
        <property name="geometry">
         <rect>
          <x>560</x>
-         <y>160</y>
+         <y>150</y>
          <width>131</width>
          <height>23</height>
         </rect>
@@ -309,19 +309,6 @@
        </property>
        <property name="checked">
         <bool>true</bool>
-       </property>
-      </widget>
-      <widget class="QRadioButton" name="radioButtonProcessSelected">
-       <property name="geometry">
-        <rect>
-         <x>560</x>
-         <y>130</y>
-         <width>181</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Process Selected</string>
        </property>
       </widget>
      </widget>
@@ -563,7 +550,7 @@
     </property>
     <widget class="QTabWidget" name="SampleTabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="PowderTab">
       <attribute name="title">
@@ -1714,7 +1701,7 @@
       <bool>true</bool>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="LabelsTab">
       <attribute name="title">
@@ -1846,12 +1833,7 @@
          </item>
          <item>
           <property name="text">
-           <string>Det Group Number</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Time Channel</string>
+           <string>Det Pixels</string>
           </property>
          </item>
         </widget>
@@ -1881,12 +1863,7 @@
          </item>
          <item>
           <property name="text">
-           <string>Det Group Number</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Time Channel</string>
+           <string>Det Pixels</string>
           </property>
          </item>
         </widget>
@@ -2122,19 +2099,6 @@
         <widget class="QPushButton" name="pushButtonPowderSlicePlotSlice">
          <property name="geometry">
           <rect>
-           <x>340</x>
-           <y>140</y>
-           <width>121</width>
-           <height>23</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Plot Slice</string>
-         </property>
-        </widget>
-        <widget class="QPushButton" name="pushButtonPowderSliceOplotSlice">
-         <property name="geometry">
-          <rect>
            <x>470</x>
            <y>140</y>
            <width>121</width>
@@ -2142,7 +2106,7 @@
           </rect>
          </property>
          <property name="text">
-          <string>Oplot Slice</string>
+          <string>Plot Slice</string>
          </property>
         </widget>
         <widget class="QPushButton" name="pushButtonPowderSliceSurfaceSlice">
@@ -2796,12 +2760,7 @@
          </item>
          <item>
           <property name="text">
-           <string>Det Group Number</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Time Channel</string>
+           <string>Det Pixels</string>
           </property>
          </item>
         </widget>
@@ -2826,19 +2785,6 @@
            <width>113</width>
            <height>20</height>
           </rect>
-         </property>
-        </widget>
-        <widget class="QPushButton" name="pushButtonPowderCutOplot">
-         <property name="geometry">
-          <rect>
-           <x>460</x>
-           <y>140</y>
-           <width>101</width>
-           <height>23</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Oplot Cut</string>
          </property>
         </widget>
         <widget class="QLabel" name="label_63">
@@ -2896,9 +2842,9 @@
         <widget class="QPushButton" name="pushButtonPowderCutPlot">
          <property name="geometry">
           <rect>
-           <x>340</x>
+           <x>470</x>
            <y>140</y>
-           <width>111</width>
+           <width>121</width>
            <height>23</height>
           </rect>
          </property>
@@ -2965,12 +2911,7 @@
          </item>
          <item>
           <property name="text">
-           <string>Det Group Number</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Time Channel</string>
+           <string>Det Pixels</string>
           </property>
          </item>
         </widget>
@@ -3041,12 +2982,7 @@
          </item>
          <item>
           <property name="text">
-           <string>Det Group Number</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Time Channel</string>
+           <string>Det Pixels</string>
           </property>
          </item>
         </widget>
@@ -3558,7 +3494,7 @@
         </rect>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="page_5">
         <widget class="QLabel" name="label_33">
@@ -4403,7 +4339,6 @@
   <tabstop>lineEditPowderSliceIntensityTo</tabstop>
   <tabstop>lineEditPowderSliceSmoothing</tabstop>
   <tabstop>pushButtonPowderSlicePlotSlice</tabstop>
-  <tabstop>pushButtonPowderSliceOplotSlice</tabstop>
   <tabstop>pushButtonPowderSliceSurfaceSlice</tabstop>
   <tabstop>comboBoxPowderCutAlong</tabstop>
   <tabstop>lineEditPowderCutAlongFrom</tabstop>
@@ -4416,7 +4351,6 @@
   <tabstop>lineEditPowderCutYFrom</tabstop>
   <tabstop>lineEditPowderCutYTo</tabstop>
   <tabstop>pushButtonPowderCutPlot</tabstop>
-  <tabstop>pushButtonPowderCutOplot</tabstop>
   <tabstop>lineEditUCa</tabstop>
   <tabstop>lineEditUCb</tabstop>
   <tabstop>lineEditUCc</tabstop>
@@ -4660,22 +4594,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>pushButtonPowderSliceOplotSlice</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>pushButtonPowderSliceOplotSlice</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>483</x>
-     <y>683</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>483</x>
-     <y>683</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>pushButtonPowderSliceSurfaceSlice</sender>
    <signal>clicked(bool)</signal>
    <receiver>pushButtonPowderSliceSurfaceSlice</receiver>
@@ -4751,22 +4669,6 @@
     </hint>
     <hint type="destinationlabel">
      <x>391</x>
-     <y>683</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>pushButtonPowderCutOplot</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>pushButtonPowderCutOplot</receiver>
-   <slot>show()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>481</x>
-     <y>683</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>481</x>
      <y>683</y>
     </hint>
    </hints>

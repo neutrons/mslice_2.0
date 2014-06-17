@@ -48,6 +48,7 @@ from pylab import *
 from MSliceHelpers import getReduceAlgFromWorkspace, getWorkspaceMemSize
 #import h5py 
 from WorkspaceComposerMain import *
+from MPLPowderCutMain import *
 
 #import Mantid computatinal modules
 sys.path.append(os.environ['MANTIDPATH'])
@@ -90,8 +91,8 @@ class MSlice(QtGui.QMainWindow):
         const=constants()
 		
         #define actions and callbacks
-        self.connect(self.ui.actionLoad_Workspace_s, QtCore.SIGNAL('triggered()'), self.WorkspaceManagerPageSelect) #make workspace stack page available to user
-        self.connect(self.ui.actionCreateWorkspace, QtCore.SIGNAL('triggered()'), self.CreateWorkspacePageSelect) #define function to call to select files
+#        self.connect(self.ui.actionLoad_Workspace_s, QtCore.SIGNAL('triggered()'), self.WorkspaceManagerPageSelect) #make workspace stack page available to user
+#        self.connect(self.ui.actionCreateWorkspace, QtCore.SIGNAL('triggered()'), self.CreateWorkspacePageSelect) #define function to call to select files
         self.connect(self.ui.actionExit, QtCore.SIGNAL('triggered()'), self.confirmExit) #define function to confirm and perform exit
         self.connect(self.ui.actionDeleteSelected, QtCore.SIGNAL('triggered()'), self.deleteSelected) #define function to confirm and perform exit
         self.connect(self.ui.actionDeleteAll, QtCore.SIGNAL('triggered()'), self.deleteAll) #define function to confirm and perform exit
@@ -197,7 +198,6 @@ class MSlice(QtGui.QMainWindow):
 		
         #setup callbacks for Powder Cut push buttons - Plot and Oplot 
         QtCore.QObject.connect(self.ui.pushButtonPowderCutPlot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderCutPlotSelect)
-        QtCore.QObject.connect(self.ui.pushButtonPowderCutOplot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderCutOplotSelect)
 
         #setup Powder Cut comboBox initial values
         self.ui.comboBoxPowderCutAlong.setCurrentIndex(1)
@@ -221,7 +221,6 @@ class MSlice(QtGui.QMainWindow):
 		
         #setup callbacks for Powder Slice push buttons - Plot, Oplot, and Surface Slice
         QtCore.QObject.connect(self.ui.pushButtonPowderSlicePlotSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderSlicePlotSliceSelect)
-        QtCore.QObject.connect(self.ui.pushButtonPowderSliceOplotSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderSliceOplotSliceSelect)
         QtCore.QObject.connect(self.ui.pushButtonPowderSliceSurfaceSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderSliceSurfaceSliceSelect)
 
         #setup Powder Slice tab
@@ -757,10 +756,6 @@ class MSlice(QtGui.QMainWindow):
             
             self.ui.progressBarStatusProgress.setValue(0)
             pass 
-        elif self.ui.radioButtonProcessSelected.isChecked():  
-            #case to enable corresponding tabs and buttons according to the workspaces selected
-            #can also check for compatibility of workspaces before continuing to process
-            pass
         else:
             print "unsupported radiobutton option...doing nothing"
         self.ui.tableWidgetWorkspaces.setEnabled(True)
@@ -1010,6 +1005,7 @@ class MSlice(QtGui.QMainWindow):
 
 		
     def pushButtonPowderCutPlotSelect(self):
+        const=constants()
         print "Powder Cut Plot Callback"
         PCAIndex=self.ui.comboBoxPowderCutAlong.currentIndex()
         PCAFrom=self.ui.lineEditPowderCutAlongFrom.text()
@@ -1023,25 +1019,40 @@ class MSlice(QtGui.QMainWindow):
         PCYTo=self.ui.lineEditPowderCutYTo.text()
         print "Powder Cut Plot Values: ",PCAIndex,PCAFrom,PCATo,PCAStep,PCTIndex,PCTFrom,PCTTo,PCYIndex,PCYFrom,PCYTo
         #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Plot Cut")				
-
-		
-    def pushButtonPowderCutOplotSelect(self):
-        print "Powder Cut Oplot Callback"
-        PCAIndex=self.ui.comboBoxPowderCutAlong.currentIndex()
-        PCAFrom=self.ui.lineEditPowderCutAlongFrom.text()
-        PCATo=self.ui.lineEditPowderCutAlongTo.text()		
-        PCAStep=self.ui.lineEditPowderCutAlongStep.text()
-        PCTIndex=self.ui.comboBoxPowderCutThick.currentIndex()
-        PCTFrom=self.ui.lineEditPowderCutThickFrom.text()
-        PCTTo=self.ui.lineEditPowderCutThickTo.text()
-        PCYIndex=self.ui.comboBoxPowderCutY.currentIndex()
-        PCYFrom=self.ui.lineEditPowderCutYFrom.text()
-        PCYTo=self.ui.lineEditPowderCutYTo.text()
-        print "Powder Cut Oplot Values: ",PCAIndex,PCAFrom,PCATo,PCAStep,PCTIndex,PCTFrom,PCTTo,PCYIndex,PCYFrom,PCYTo
-        #**** code to extract data and perform oplot placed here		
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Oplot Cut")				
-
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Plot Cut")		
+        print "Calling MPLPC"
+        #get list of selected workspaces from the workspace manager
+        table=self.ui.tableWidgetWorkspaces
+        Nrows=table.rowCount()
+        EmptyRows=0
+        wslist=[]
+        for row in range(Nrows):
+            try:
+                #using try here to check if user forgot to load data then we'd have a table with empty rows...
+                cw=table.cellWidget(row,const.WSM_SelectCol) 
+                cbstat=cw.isChecked()
+                #check if this workspace is selected for display
+                if cbstat == True:
+                    #case where it is selected
+                    #get workspace
+                    wsitem=str(table.item(row,const.WSM_WorkspaceCol).text())
+                    print " wsitem:",wsitem
+                    print " mtd.getObjectNames():",mtd.getObjectNames()
+                    ws=mtd.retrieve(wsitem)      
+                    wslist.append(wsitem)
+            except:
+                #case where a table row is empty - can't use this one
+                EmptyRows += 1
+                
+        print "Number of empty rows: ",EmptyRows
+#        self.ui.wslist=['Hello','World']  #for debugging use...
+        self.ui.wslist=wslist
+        if wslist != []:
+            self.MPLPC_win = MPLPowderCut(self)				
+            self.MPLPC_win.show()    
+        else:
+            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - No workspaces selected for powder cut plots...returning")		
+					
 		
     def pushButtonSCSlicePlotSliceSelect(self):
         print "Single Crystal Plot Slice Button pressed"
@@ -1067,7 +1078,7 @@ class MSlice(QtGui.QMainWindow):
         print "SC Plot values: ",SCSXcomboIndex,SCSXFrom,SCSXTo,SCSXStep,SCSYcomboIndex,SCSYFrom,SCSYTo,SCSYStep,SCSEcomboIndex,SCSEFrom,SCSETo,SCSIntensityFrom,SCSIntensityTo,SCSSmoothing
         print "  More SC Plot values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo,SCSCTcomboIndex
         #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Show Slice")				
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Show Slice")		
 
 		
     def pushButtonSCSliceOplotSliceSelect(self):
@@ -1211,7 +1222,8 @@ class MSlice(QtGui.QMainWindow):
                 
                 ad0=xname+','+str(xmin)+','+str(xmax)+',100'
                 ad1=yname+','+str(ymin)+','+str(ymax)+',100'
-                
+                print "ad0: ",ad0
+                print "ad1: ",ad1
                 MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)
                 sig=MDH.getSignalArray()
                 ne=MDH.getNumEventsArray()
@@ -1235,7 +1247,7 @@ class MSlice(QtGui.QMainWindow):
                 colormax=None
                 colorscalelog=False
                 limits=None
-                normalization=1
+                normalization=0
                 sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
                 sv.Show()
                 
@@ -1289,6 +1301,7 @@ class MSlice(QtGui.QMainWindow):
                 xlabel(wsX.getName(),fontsize=18)
                 
                 
+
         show()
         
         
