@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'MPLPowderCut.ui'
 #
-# Created: Tue Jun 17 13:52:38 2014
+# Created: Wed Jun 18 19:37:47 2014
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -440,7 +440,7 @@ class Ui_MPLPowderCutMainWindow(object):
         self.MPLpushButtonDone.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Done", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLpushButtonOPlot.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "OPlot", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLpushButtonPlot.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Plot", None, QtGui.QApplication.UnicodeUTF8))
-        self.MPLpushButtonSavePlot.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Save Plot", None, QtGui.QApplication.UnicodeUTF8))
+        self.MPLpushButtonSavePlot.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Pop Plot", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLpushButtonSaveData.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Save ASCII", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLgroupBoxDataFormat.setTitle(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Data Formatting", None, QtGui.QApplication.UnicodeUTF8))
         self.label_66.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "y", None, QtGui.QApplication.UnicodeUTF8))

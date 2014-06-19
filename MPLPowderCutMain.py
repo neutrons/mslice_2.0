@@ -103,21 +103,28 @@ class MPLPowderCut(QtGui.QMainWindow):
         #Place Matplotlib figure within the GUI frame
         #create drawing canvas
         # a figure instance to plot on
+        
+        matplotlib.rc_context({'toolbar':True})
+        self.shadowFigure = plt.figure()
+        plt.figure(self.shadowFigure.number)
         self.figure = plt.figure()
 
+        
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
+        self.shadowCanvas=FigureCanvas(self.shadowFigure)
+        self.shadowCanvas.set_window_title('Popout Figure')
         self.canvas = FigureCanvas(self.figure)
         
         #add Navigation Toolbar
         self.navigation_toolbar = NavigationToolbar(self.canvas, self)
-
+        self.shadow_navigation_toolbar = NavigationToolbar(self.shadowCanvas, self.shadowCanvas)
         
         layout=QtGui.QVBoxLayout(self.ui.MPLframe)
         layout.addWidget(self.canvas)
         layout.addWidget(self.navigation_toolbar, 0)
         self.layout=layout
-        
+
         self.doOPlot=False  #initialize to do plot (rather than oplot)
         
         self.doAnnotate=False #flag used to annotate text on plots
@@ -144,6 +151,9 @@ class MPLPowderCut(QtGui.QMainWindow):
         
     def DoPlot(self):
         print "*************** Do Plot *********************"
+        
+        if not(self.doOPlot):self.ui.MPLpushButtonSavePlot.setEnabled(True)
+        
         #need to retrieve plot config settings to perform the plot
         #line color
         linecolor=str(self.ui.MPLcomboBoxColor.currentText())
@@ -466,83 +476,87 @@ class MPLPowderCut(QtGui.QMainWindow):
         print "XAxisStr: ",XAxisStr
         print "YAxisStr: ",YAxisStr
                 
-        self.canvas #enable drawing area
-        #case for plot
-
-        #plot data
-#        print "Selected Workspace: ",self.ws
-#        plt.plot(range(10),color=linecolor,linestyle=style,label=pltlegend)  #for debugging...
-        fig=self.figure
-        ax=plt.subplot(111)
-        if not(self.doOPlot):plt.clf
-        if self.doOPlot:plt.hold(True)
-        print "min(sigsum): ",np.min(sigsum),"  max(sigsum):", np.max(sigsum)
-        plt.plot(sigsum,color=linecolor,linestyle=style,label=pltlegend)
-        plt.legend(loc=legloc)
-        if not(self.doOPlot):
-            
-            plt.title(plttitle)
-            plt.xlabel(XAxisStr,labelpad=20)
-            plt.ylabel(YAxisStr)
-            if ((str(self.ui.MPLlineEditPowderCutYFrom.text())) != '' and (str(self.ui.MPLlineEditPowderCutYTo.text()) != '')):
-                rmin=float(str(self.ui.MPLlineEditPowderCutYFrom.text()))
-                rmax=float(str(self.ui.MPLlineEditPowderCutYTo.text()))
-                plt.ylim([rmin,rmax])
+        #use a loop to plot once to the PyQt figure and second to the shadow figure
+        for pl in range(2):   
+            if pl == 0:
+                self.canvas #enable drawing area
+                fig=self.figure
             else:
-                plt.ylim([np.min(sigsum),np.max(sigsum)])
-        plt.hold(True)
-        #overplot markers
-#        plt.plot(range(10),color=markercolor,marker=mstyle,linestyle='')
-        plt.plot(sigsum,color=markercolor,marker=mstyle,linestyle='')
-        plt.hold(False)
+                self.shadowCanvas
+                fig=self.shadowFigure
+            plt.figure(fig.number)
 
-#       draw new axis
-
-        #ax1=fig.add_subplot(111)
-
-#        ax2=ax1.twiny()
-
-        print "Amin: ",Amin
-        print "Amax: ",Amax
-        print "Qmin: ",Qmin
-        print "Qmax: ",Qmax
-        print "Emin: ",Emin
-        print "Emax: ",Emax
-
-        Nticks=5.0
-        delv=np.abs(Amax-Amin)
-        tick_locations=delv*np.arange(Nticks)/(Nticks-1)+Amin
-        #limit to 1 decimal place
-        tick_locations=tick_locations.astype('float')
-        tick_locations=tick_locations*10
-        tick_locations=tick_locations.astype('int')
-        tick_locations=tick_locations.astype('float')
-        tick_locations=tick_locations/10
-        tick_vals=[]
-        for n in tick_locations:
-            tick_vals.append(str(n))
+            #plot data
+            ax=plt.subplot(111)
+            if not(self.doOPlot):plt.clf
+            if self.doOPlot:plt.hold(True)
+            print "min(sigsum): ",np.min(sigsum),"  max(sigsum):", np.max(sigsum)
+            plt.plot(sigsum,color=linecolor,linestyle=style,label=pltlegend)
+            plt.legend(loc=legloc)
+            if not(self.doOPlot):
                 
-#        plt.tick_params(axis='x',which='both',labelbottom='off',bottom='off',top='off')
-#        plt.gca().xaxis.set_major_locator(plt.NullLocator())
-#        plt.axis('off')
-        
-#        ax=plt.subplot(111)
-        plt.setp( ax.get_xticklabels(), visible=False)
-        plt.setp( ax.get_xticklines(), visible=False)
-#        ax.set_xticks([])
-        
-        ax1=plt.twiny()
-        plt.setp( ax1.get_xticklabels(), visible=True)
-        plt.setp( ax1.get_xticklines(), visible=True)
-        ax1.set_xticks(tick_locations) #new locations - sets number of ticks
-        ax1.set_xticklabels(tick_vals) #new values - sets values of the ticks
-        ax1.xaxis.set_ticks_position('bottom')
-        ax1.set_axisbelow(True)
-        
-        self.canvas.draw()
-        
+                plt.title(plttitle)
+                plt.xlabel(XAxisStr,labelpad=20)
+                plt.ylabel(YAxisStr)
+                if ((str(self.ui.MPLlineEditPowderCutYFrom.text())) != '' and (str(self.ui.MPLlineEditPowderCutYTo.text()) != '')):
+                    rmin=float(str(self.ui.MPLlineEditPowderCutYFrom.text()))
+                    rmax=float(str(self.ui.MPLlineEditPowderCutYTo.text()))
+                    plt.ylim([rmin,rmax])
+                else:
+                    plt.ylim([np.min(sigsum),np.max(sigsum)])
+            plt.hold(True)
+            #overplot markers
+            plt.plot(sigsum,color=markercolor,marker=mstyle,linestyle='')
+            plt.hold(False)
+
+    #       draw new axis
+            print "Amin: ",Amin
+            print "Amax: ",Amax
+            print "Qmin: ",Qmin
+            print "Qmax: ",Qmax
+            print "Emin: ",Emin
+            print "Emax: ",Emax
+
+            Nticks=5.0
+            delv=np.abs(Amax-Amin)
+            tick_locations=delv*np.arange(Nticks)/(Nticks-1)+Amin
+            #limit to 1 decimal place
+            tick_locations=tick_locations.astype('float')
+            tick_locations=tick_locations*10
+            tick_locations=tick_locations.astype('int')
+            tick_locations=tick_locations.astype('float')
+            tick_locations=tick_locations/10
+            tick_vals=[]
+            for n in tick_locations:
+                tick_vals.append(str(n))
+                    
+            plt.setp( ax.get_xticklabels(), visible=False)
+            plt.setp( ax.get_xticklines(), visible=False)
+            
+            ax1=plt.twiny()
+            plt.setp( ax1.get_xticklabels(), visible=True)
+            plt.setp( ax1.get_xticklines(), visible=True)
+            ax1.set_xticks(tick_locations) #new locations - sets number of ticks
+            ax1.set_xticklabels(tick_vals) #new values - sets values of the ticks
+            ax1.xaxis.set_ticks_position('bottom')
+            ax1.set_axisbelow(True)
+            
+            if pl == 0:
+                self.canvas.draw()
+                self.canvas.setVisible(True)
+
+                print "self.figure.number: ",self.figure.number
+                pass
+            else:
+                self.shadowCanvas.draw()
+                self.shadowCanvas.setVisible(False)
+
+                print "self.shadowFigure.number: ",self.shadowFigure.number
+                pass
+
         #clear oplot flag
         self.doOPlot=False
+        
         
     def DoAnnotate(self):
         self.doAnnotate=True
@@ -552,16 +566,40 @@ class MPLPowderCut(QtGui.QMainWindow):
         if self.doAnnotate:
             #first get the text to annotate
             txt=str(self.ui.MPLlineEditTextAnnotate.text())
-            self.ui.txt=plt.text(event.xdata,event.ydata,txt)
-            
+            for pl in range(2):   
+                if pl == 0:
+                    self.canvas #enable drawing area
+                    fig=self.figure
+                    plt.figure(fig.number)
+                    self.ui.txt=plt.text(event.xdata,event.ydata,txt)
+                else:
+                    self.shadowCanvas
+                    fig=self.shadowFigure
+                    plt.figure(fig.number)
+                    self.ui.shadowtxt=plt.text(event.xdata,event.ydata,txt)
+                
             self.canvas.draw()
+            self.shadowCanvas.draw()
         self.doAnnotate=False
         
     def RemText(self):
         try:
             print "Removing Annotation Text"
-            self.ui.txt.remove()
+            
+            for pl in range(2):   
+                if pl == 0:
+                    self.canvas #enable drawing area
+                    fig=self.figure
+                    plt.figure(fig.number)
+                    self.ui.txt.remove()
+                else:
+                    self.shadowCanvas
+                    fig=self.shadowFigure
+                    plt.figure(fig.number)
+                    self.ui.shadowtxt.remove()
+            
             self.canvas.draw()
+            self.shadowCanvas.draw()
         except:
             #case where the button was pushed more than once and arrow should already be gone...do nothing
             pass
@@ -583,37 +621,69 @@ class MPLPowderCut(QtGui.QMainWindow):
             frac=0.04  
             hfrac=0.02
             print "dindx: ",dindx
-            if dindx==0:
-                #point left
-                self.ui.arrow=plt.arrow(event.xdata+frac*delx+hfrac*delx,event.ydata,-frac*delx,0,head_width=hfrac*dely,head_length=hfrac*delx,width=hfrac/5*dely,fc="k",ec="k")
-
-            elif dindx==1:
-                #point right
-                self.ui.arrow=plt.arrow(event.xdata-(frac*delx+hfrac*delx),event.ydata,frac*delx,0,head_width=hfrac*dely,head_length=hfrac*delx,width=hfrac/5*dely,fc="k",ec="k")
-            elif dindx==2:
-                #point up
-                self.ui.arrow=plt.arrow(event.xdata,event.ydata-(frac*dely+hfrac*dely),0,frac*dely,head_width=hfrac*delx,head_length=hfrac*dely,width=hfrac/5*delx,fc="k",ec="k")
-                
-            elif dindx==3:
-                #point down
-                self.ui.arrow=plt.arrow(event.xdata,event.ydata+frac*dely+hfrac*dely,0,-frac*dely,head_width=hfrac*delx,head_length=hfrac*dely,width=hfrac/5*delx,fc="k",ec="k")
-            else:
-                #should never get here...
-                pass
+            for pl in range(2):
+                if pl == 0:
+                    self.canvas #enable drawing area
+                    fig=self.figure
+                    plt.figure(fig.number)
+                else:
+                    self.shadowCanvas
+                    fig=self.shadowFigure
+                    plt.figure(fig.number)   
+                if dindx==0:
+                    #point left
+                    if pl==0:
+                        self.ui.arrow=plt.arrow(event.xdata+frac*delx+hfrac*delx,event.ydata,-frac*delx,0,head_width=hfrac*dely,head_length=hfrac*delx,width=hfrac/5*dely,fc="k",ec="k")
+                    else:
+                        self.ui.shadowarrow=plt.arrow(event.xdata+frac*delx+hfrac*delx,event.ydata,-frac*delx,0,head_width=hfrac*dely,head_length=hfrac*delx,width=hfrac/5*dely,fc="k",ec="k")
+                elif dindx==1:
+                    #point right
+                    if pl==0:
+                        self.ui.arrow=plt.arrow(event.xdata-(frac*delx+hfrac*delx),event.ydata,frac*delx,0,head_width=hfrac*dely,head_length=hfrac*delx,width=hfrac/5*dely,fc="k",ec="k")
+                    else:
+                        self.ui.shadowarrow=plt.arrow(event.xdata-(frac*delx+hfrac*delx),event.ydata,frac*delx,0,head_width=hfrac*dely,head_length=hfrac*delx,width=hfrac/5*dely,fc="k",ec="k")
+                        
+                elif dindx==2:
+                    #point up
+                    if pl==0:
+                        self.ui.arrow=plt.arrow(event.xdata,event.ydata-(frac*dely+hfrac*dely),0,frac*dely,head_width=hfrac*delx,head_length=hfrac*dely,width=hfrac/5*delx,fc="k",ec="k")
+                    else:
+                        self.ui.shadowarrow=plt.arrow(event.xdata,event.ydata-(frac*dely+hfrac*dely),0,frac*dely,head_width=hfrac*delx,head_length=hfrac*dely,width=hfrac/5*delx,fc="k",ec="k")
+                        
+                elif dindx==3:
+                    #point down
+                    if pl==0:
+                        self.ui.arrow=plt.arrow(event.xdata,event.ydata+frac*dely+hfrac*dely,0,-frac*dely,head_width=hfrac*delx,head_length=hfrac*dely,width=hfrac/5*delx,fc="k",ec="k")
+                    else:
+                        self.ui.shadowarrow=plt.arrow(event.xdata,event.ydata+frac*dely+hfrac*dely,0,-frac*dely,head_width=hfrac*delx,head_length=hfrac*dely,width=hfrac/5*delx,fc="k",ec="k")
+                        
+                else:
+                    #should never get here...
+                    pass
             self.canvas.draw()
+            self.shadowCanvas.draw()
         self.doArrow=False
         
     def RemArrow(self):
         try:
             self.ui.arrow.remove()
             self.canvas.draw()
+            self.ui.shadowarrow.remove()
+            self.shadowCanvas.draw()
+
         except:
             #case where the button was pushed more than once and arrow should already be gone...do nothing
             pass
             
     def SavePlot(self):
         
+        self.shadowCanvas.setVisible(True)
+        self.shadowFigure = plt.figure()
+        self.shadowCanvas=FigureCanvas(self.shadowFigure)
+        self.shadow_navigation_toolbar = NavigationToolbar(self.shadowCanvas, self.shadowCanvas)
         
+        self.ui.MPLpushButtonSavePlot.setEnabled(False)
+        """
         winID=self.ui.MPLframe.effectiveWinId()
         print " Save Window ID: ",winID
 #        winID=QtGui.qApp.activeWindow()
@@ -640,6 +710,7 @@ class MPLPowderCut(QtGui.QMainWindow):
 
         p.save(qf, format=None)
         print " Saved: ",filename
+        """
             
             
     def SaveData(self):
