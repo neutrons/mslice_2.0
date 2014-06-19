@@ -49,3 +49,12 @@ workspaces as the data model.
 
 For convenience, a powder test data set (zrh_1000.nxs) has been to the repo
 to give the user some data to use with the application.
+
+Python imports for these applications:
+* sys, os, time
+* PyQt4
+* psutil
+* numpy
+* matplotlib
+* mantid.simpleapi
+* pyplot
