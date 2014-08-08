@@ -354,10 +354,7 @@ class MSlice(QtGui.QMainWindow):
                 print "  pws: ",pws
                 pws_out=pws+pwsSuffix
                 self.ui.StatusText.append(time.strftime('  Output Workspace: '+pws_out))	
-                print "  pws_out: ",pws_out
-                h=ConvertToMDHelper(pws,'|Q|','Direct')
-                #need to figure out how to make the output workspace name 
-                ConvertToMD(pws,MinValues=h[0],MaxValues=h[1],QDimensions='|Q|',dEAnalysisMode='Direct',Outputworkspace=pws_out)
+                ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out)
                 placeholderws=mtd.retrieve(pws_out)
                 #once outputworkspace exists, add it back to the table
                 pws_type='Powder Calc Proj'
