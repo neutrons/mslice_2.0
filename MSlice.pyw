@@ -1250,7 +1250,7 @@ class MSlice(QtGui.QMainWindow):
                 
 #                figure(1)
 #                imshow(flipud(sig))
-                
+                """
                 figure(row)
 
 #                imshow(flipud(dne.T))
@@ -1296,10 +1296,10 @@ class MSlice(QtGui.QMainWindow):
                 suptitle('Powder Slice View',fontsize=20)
                 ylabel(wsY.getName(),fontsize=18)
                 xlabel(wsX.getName(),fontsize=18)
-                
+                """
                 
 
-        show()
+#        show()
         
         
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Surface Slice")				
