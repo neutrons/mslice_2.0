@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>861</width>
-    <height>744</height>
+    <width>1011</width>
+    <height>811</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -21,41 +21,6 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0" rowspan="2">
-     <widget class="QFrame" name="MPLframe">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>544</width>
-        <height>544</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>16777215</height>
-       </size>
-      </property>
-      <property name="autoFillBackground">
-       <bool>true</bool>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::Box</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-      <property name="lineWidth">
-       <number>2</number>
-      </property>
-      <zorder>MPLgroupBoxDataFormat</zorder>
-     </widget>
-    </item>
     <item row="0" column="1">
      <widget class="QGroupBox" name="MPLgroupBoxPlotConfig">
       <property name="minimumSize">
@@ -77,10 +42,22 @@
        <property name="geometry">
         <rect>
          <x>150</x>
-         <y>140</y>
+         <y>110</y>
          <width>111</width>
-         <height>22</height>
+         <height>19</height>
         </rect>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>19</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>19</height>
+        </size>
        </property>
        <item>
         <property name="text">
@@ -256,10 +233,22 @@
        <property name="geometry">
         <rect>
          <x>150</x>
-         <y>80</y>
+         <y>70</y>
          <width>111</width>
-         <height>22</height>
+         <height>19</height>
         </rect>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>19</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>19</height>
+        </size>
        </property>
        <item>
         <property name="text">
@@ -293,8 +282,20 @@
          <x>150</x>
          <y>50</y>
          <width>111</width>
-         <height>22</height>
+         <height>19</height>
         </rect>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>19</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>19</height>
+        </size>
        </property>
        <item>
         <property name="text">
@@ -396,7 +397,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>60</y>
+         <y>50</y>
          <width>121</width>
          <height>16</height>
         </rect>
@@ -409,7 +410,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>90</y>
+         <y>70</y>
          <width>111</width>
          <height>16</height>
         </rect>
@@ -422,7 +423,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>150</y>
+         <y>110</y>
          <width>111</width>
          <height>16</height>
         </rect>
@@ -577,15 +578,38 @@
          <string>Remove</string>
         </property>
        </widget>
+       <zorder>label_7</zorder>
+       <zorder>MPLlineEditTextAnnotate</zorder>
+       <zorder>MPLpushButtonPlaceText</zorder>
+       <zorder>label_11</zorder>
+       <zorder>MPLcomboBoxArrow</zorder>
+       <zorder>MPLpushButtonPlaceArrow</zorder>
+       <zorder>MPLpushButtonRemoveText</zorder>
+       <zorder>MPLpushButtonRemoveArrow</zorder>
+       <zorder>groupBoxSettings</zorder>
+       <zorder>MPLgroupBoxDataFormat</zorder>
+       <zorder>MPLgroupBoxControls</zorder>
       </widget>
       <widget class="QComboBox" name="MPLcomboBoxColorMarker">
        <property name="geometry">
         <rect>
          <x>150</x>
-         <y>110</y>
+         <y>90</y>
          <width>111</width>
-         <height>22</height>
+         <height>19</height>
         </rect>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>19</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>19</height>
+        </size>
        </property>
        <item>
         <property name="text">
@@ -687,7 +711,7 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>120</y>
+         <y>90</y>
          <width>121</width>
          <height>16</height>
         </rect>
@@ -769,114 +793,256 @@
         </property>
        </item>
       </widget>
+      <widget class="QComboBox" name="MPLcomboBoxErrorColor">
+       <property name="geometry">
+        <rect>
+         <x>150</x>
+         <y>130</y>
+         <width>111</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <item>
+        <property name="text">
+         <string>Blue</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Green</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Red</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Cyan</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Magenta</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Yellow</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Black</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Aquamarine</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>BlueViolet</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Chocolate</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Coral</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>DarkBlue</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>DarkGreen</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>DarkRed</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Gold</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Gray</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Lime</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Violet</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Wheat</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QLabel" name="label_12">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>130</y>
+         <width>111</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Error Bar Color</string>
+       </property>
+      </widget>
+      <zorder>MPLcomboBoxMarker</zorder>
+      <zorder>label_9</zorder>
+      <zorder>MPLcomboBoxActiveWorkspace</zorder>
+      <zorder>label_8</zorder>
+      <zorder>MPLlineEditLabelsTitle</zorder>
+      <zorder>MPLlineEditLabelsLegend</zorder>
+      <zorder>label_10</zorder>
+      <zorder>MPLcomboBoxLineStyle</zorder>
+      <zorder>MPLcomboBoxColor</zorder>
+      <zorder>label_2</zorder>
+      <zorder>label_3</zorder>
+      <zorder>label_4</zorder>
+      <zorder>MPLlineEditLabelsIntensity</zorder>
+      <zorder>groupBox</zorder>
+      <zorder>MPLcomboBoxColorMarker</zorder>
+      <zorder>label_5</zorder>
+      <zorder>label_6</zorder>
+      <zorder>MPLcomboBoxLegendPos</zorder>
+      <zorder>MPLcomboBoxErrorColor</zorder>
+      <zorder>label_12</zorder>
+      <zorder>groupBoxSettings</zorder>
      </widget>
     </item>
-    <item row="1" column="1" rowspan="2">
-     <widget class="QGroupBox" name="MPLgroupBoxControls">
+    <item row="1" column="1">
+     <widget class="QGroupBox" name="groupBoxSettings">
       <property name="minimumSize">
        <size>
-        <width>231</width>
-        <height>131</height>
+        <width>0</width>
+        <height>90</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>231</width>
-        <height>131</height>
+        <width>16777215</width>
+        <height>60</height>
        </size>
       </property>
       <property name="title">
-       <string>Controls</string>
+       <string>Use Plot to Refresh</string>
       </property>
-      <widget class="QPushButton" name="MPLpushButtonDone">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>100</y>
-         <width>201</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Done</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="MPLpushButtonOPlot">
-       <property name="geometry">
-        <rect>
-         <x>130</x>
-         <y>20</y>
-         <width>91</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>OPlot</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="MPLpushButtonPlot">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>20</y>
-         <width>91</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Plot</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="MPLpushButtonSavePlot">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>60</y>
-         <width>91</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Pop Plot</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="MPLpushButtonSaveData">
-       <property name="geometry">
-        <rect>
-         <x>130</x>
-         <y>60</y>
-         <width>91</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Save ASCII</string>
-       </property>
-      </widget>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QCheckBox" name="checkBoxErrorBars">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>23</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Show Error Bars - Use Plot to Refresh</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBoxUseNorm">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>23</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Normalize by Number of Events</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBoxRemoveNans">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>23</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Set NaN, inf, and -inf  to Zero Values</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+      <zorder>groupBoxImportData</zorder>
+      <zorder>checkBoxErrorBars</zorder>
+      <zorder>checkBoxUseNorm</zorder>
+      <zorder>checkBoxRemoveNans</zorder>
+      <zorder>MPLframe</zorder>
+      <zorder>MPLtabWidgetPlotHistory</zorder>
      </widget>
     </item>
-    <item row="2" column="0">
+    <item row="3" column="0">
      <widget class="QGroupBox" name="MPLgroupBoxDataFormat">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="minimumSize">
        <size>
-        <width>491</width>
+        <width>555</width>
         <height>131</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>491</width>
-        <height>131</height>
+        <height>200</height>
        </size>
       </property>
       <property name="title">
        <string>Data Formatting</string>
       </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
       <widget class="QLabel" name="label_66">
        <property name="geometry">
         <rect>
-         <x>50</x>
-         <y>90</y>
+         <x>90</x>
+         <y>110</y>
          <width>21</width>
          <height>20</height>
         </rect>
@@ -888,8 +1054,8 @@
       <widget class="QComboBox" name="MPLcomboBoxPowderCutY">
        <property name="geometry">
         <rect>
-         <x>74</x>
-         <y>90</y>
+         <x>110</x>
+         <y>110</y>
          <width>69</width>
          <height>22</height>
         </rect>
@@ -923,8 +1089,8 @@
       <widget class="QLabel" name="label_61">
        <property name="geometry">
         <rect>
-         <x>284</x>
-         <y>60</y>
+         <x>310</x>
+         <y>80</y>
          <width>21</width>
          <height>16</height>
         </rect>
@@ -936,9 +1102,9 @@
       <widget class="QLineEdit" name="MPLlineEditPowderCutAlongTo">
        <property name="geometry">
         <rect>
-         <x>304</x>
-         <y>30</y>
-         <width>56</width>
+         <x>330</x>
+         <y>50</y>
+         <width>71</width>
          <height>20</height>
         </rect>
        </property>
@@ -946,9 +1112,9 @@
       <widget class="QLineEdit" name="MPLlineEditPowderCutYFrom">
        <property name="geometry">
         <rect>
-         <x>204</x>
-         <y>90</y>
-         <width>56</width>
+         <x>230</x>
+         <y>110</y>
+         <width>71</width>
          <height>20</height>
         </rect>
        </property>
@@ -956,9 +1122,9 @@
       <widget class="QLineEdit" name="MPLlineEditPowderCutThickTo">
        <property name="geometry">
         <rect>
-         <x>304</x>
-         <y>60</y>
-         <width>56</width>
+         <x>330</x>
+         <y>80</y>
+         <width>71</width>
          <height>20</height>
         </rect>
        </property>
@@ -966,9 +1132,9 @@
       <widget class="QLineEdit" name="MPLlineEditPowderCutThickFrom">
        <property name="geometry">
         <rect>
-         <x>204</x>
-         <y>60</y>
-         <width>56</width>
+         <x>230</x>
+         <y>80</y>
+         <width>71</width>
          <height>20</height>
         </rect>
        </property>
@@ -976,8 +1142,8 @@
       <widget class="QLabel" name="label_62">
        <property name="geometry">
         <rect>
-         <x>154</x>
-         <y>60</y>
+         <x>430</x>
+         <y>80</y>
          <width>41</width>
          <height>16</height>
         </rect>
@@ -989,9 +1155,9 @@
       <widget class="QLineEdit" name="MPLlineEditPowderCutAlongFrom">
        <property name="geometry">
         <rect>
-         <x>204</x>
-         <y>30</y>
-         <width>56</width>
+         <x>230</x>
+         <y>50</y>
+         <width>71</width>
          <height>20</height>
         </rect>
        </property>
@@ -999,21 +1165,21 @@
       <widget class="QLineEdit" name="MPLlineEditPowderCutAlongStep">
        <property name="geometry">
         <rect>
-         <x>424</x>
-         <y>30</y>
-         <width>56</width>
+         <x>490</x>
+         <y>50</y>
+         <width>51</width>
          <height>20</height>
         </rect>
        </property>
        <property name="text">
-        <string>0.035</string>
+        <string/>
        </property>
       </widget>
       <widget class="QLabel" name="label_57">
        <property name="geometry">
         <rect>
-         <x>14</x>
-         <y>30</y>
+         <x>70</x>
+         <y>50</y>
          <width>51</width>
          <height>20</height>
         </rect>
@@ -1025,8 +1191,8 @@
       <widget class="QLabel" name="label_67">
        <property name="geometry">
         <rect>
-         <x>284</x>
-         <y>90</y>
+         <x>310</x>
+         <y>110</y>
          <width>21</width>
          <height>16</height>
         </rect>
@@ -1038,8 +1204,8 @@
       <widget class="QLabel" name="label_63">
        <property name="geometry">
         <rect>
-         <x>284</x>
-         <y>30</y>
+         <x>310</x>
+         <y>50</y>
          <width>21</width>
          <height>16</height>
         </rect>
@@ -1051,8 +1217,8 @@
       <widget class="QLabel" name="label_59">
        <property name="geometry">
         <rect>
-         <x>154</x>
-         <y>30</y>
+         <x>200</x>
+         <y>50</y>
          <width>41</width>
          <height>16</height>
         </rect>
@@ -1064,9 +1230,9 @@
       <widget class="QLineEdit" name="MPLlineEditPowderCutYTo">
        <property name="geometry">
         <rect>
-         <x>304</x>
-         <y>90</y>
-         <width>56</width>
+         <x>330</x>
+         <y>110</y>
+         <width>71</width>
          <height>20</height>
         </rect>
        </property>
@@ -1074,8 +1240,8 @@
       <widget class="QLabel" name="label_58">
        <property name="geometry">
         <rect>
-         <x>154</x>
-         <y>90</y>
+         <x>190</x>
+         <y>110</y>
          <width>51</width>
          <height>20</height>
         </rect>
@@ -1087,8 +1253,8 @@
       <widget class="QComboBox" name="MPLcomboBoxPowderCutThick">
        <property name="geometry">
         <rect>
-         <x>74</x>
-         <y>60</y>
+         <x>110</x>
+         <y>80</y>
          <width>69</width>
          <height>22</height>
         </rect>
@@ -1117,8 +1283,8 @@
       <widget class="QComboBox" name="MPLcomboBoxPowderCutAlong">
        <property name="geometry">
         <rect>
-         <x>74</x>
-         <y>30</y>
+         <x>110</x>
+         <y>50</y>
          <width>69</width>
          <height>22</height>
         </rect>
@@ -1144,18 +1310,513 @@
         </property>
        </item>
       </widget>
-      <widget class="QLabel" name="label_64">
+      <widget class="QLineEdit" name="MPLlineEditPowderCutAlongNbins">
        <property name="geometry">
         <rect>
-         <x>384</x>
+         <x>490</x>
          <y>30</y>
+         <width>51</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>100</string>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="radioButtonNBins">
+       <property name="geometry">
+        <rect>
+         <x>410</x>
+         <y>30</y>
+         <width>82</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string># Bins</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="radioButtonBinWidth">
+       <property name="geometry">
+        <rect>
+         <x>410</x>
+         <y>50</y>
+         <width>82</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Bin Width</string>
+       </property>
+      </widget>
+      <widget class="QSpinBox" name="MPLspinBoxAlong">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>50</y>
+         <width>51</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="maximum">
+        <number>99999</number>
+       </property>
+       <property name="value">
+        <number>100</number>
+       </property>
+      </widget>
+      <widget class="QSpinBox" name="MPLspinBoxThick">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>80</y>
+         <width>51</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="maximum">
+        <number>99999</number>
+       </property>
+       <property name="value">
+        <number>100</number>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>101</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Num 2D Bins</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_13">
+       <property name="geometry">
+        <rect>
+         <x>410</x>
+         <y>10</y>
+         <width>131</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Num Bins - 1D Plot</string>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="MPLlineEditPowderCutWidth">
+       <property name="geometry">
+        <rect>
+         <x>492</x>
+         <y>80</y>
+         <width>51</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>0.1</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_60">
+       <property name="geometry">
+        <rect>
+         <x>200</x>
+         <y>80</y>
          <width>41</width>
          <height>16</height>
         </rect>
        </property>
        <property name="text">
-        <string>step:</string>
+        <string>from:</string>
        </property>
+      </widget>
+     </widget>
+    </item>
+    <item row="2" column="1" rowspan="2">
+     <widget class="QGroupBox" name="MPLgroupBoxControls">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>281</width>
+        <height>150</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>231</width>
+        <height>200</height>
+       </size>
+      </property>
+      <property name="title">
+       <string>Controls</string>
+      </property>
+      <widget class="QPushButton" name="MPLpushButtonDone">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>140</y>
+         <width>201</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Done</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonOPlot">
+       <property name="geometry">
+        <rect>
+         <x>130</x>
+         <y>50</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>OPlot</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonPlot">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>50</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Plot</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonPopPlot">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>80</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Pop Plot</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonSaveASCII">
+       <property name="geometry">
+        <rect>
+         <x>130</x>
+         <y>80</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Save ASCII</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonImportData">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>20</y>
+         <width>201</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Import Data from Slice Viewer</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonSavePlotWS">
+       <property name="geometry">
+        <rect>
+         <x>130</x>
+         <y>110</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Save Plot WS</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonSaveHistory">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>110</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Save History</string>
+       </property>
+      </widget>
+     </widget>
+    </item>
+    <item row="0" column="0" rowspan="3">
+     <widget class="QTabWidget" name="MPLtabWidgetPlotHistory">
+      <property name="minimumSize">
+       <size>
+        <width>550</width>
+        <height>600</height>
+       </size>
+      </property>
+      <property name="currentIndex">
+       <number>2</number>
+      </property>
+      <widget class="QWidget" name="tabPlot">
+       <attribute name="title">
+        <string>Plot</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="0" column="0">
+         <widget class="QFrame" name="MPLframe">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>544</width>
+            <height>544</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="autoFillBackground">
+           <bool>true</bool>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <property name="lineWidth">
+           <number>2</number>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabHistory">
+       <attribute name="title">
+        <string>History</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <widget class="QPushButton" name="MPLpushButtonUpdateHistory">
+              <property name="maximumSize">
+               <size>
+                <width>130</width>
+                <height>23</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Update History</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="MPLcheckBoxExpandAll">
+              <property name="minimumSize">
+               <size>
+                <width>90</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>90</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Expand All</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="MPLlabelWSName">
+              <property name="minimumSize">
+               <size>
+                <width>330</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>330</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Workspace:</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QTreeWidget" name="treeWidgetHistory">
+            <column>
+             <property name="text">
+              <string>Main Entry</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabComments">
+       <attribute name="title">
+        <string>Comments</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <layout class="QGridLayout" name="gridLayout_3">
+          <item row="4" column="0" colspan="4">
+           <widget class="QTextEdit" name="MPLtextEditComments">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QPushButton" name="MPLpushButtonSaveComments">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>10</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>130</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="sizeIncrement">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="baseSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Save Comments</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="MPLlabelCSelectedWorkspace">
+            <property name="minimumSize">
+             <size>
+              <width>350</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>350</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Workspace: </string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QCheckBox" name="MPLcheckBoxReadOnly">
+            <property name="minimumSize">
+             <size>
+              <width>130</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>130</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
+            <property name="text">
+             <string>Read Only</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>5</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
      </widget>
     </item>
@@ -1166,7 +1827,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>861</width>
+     <width>1011</width>
      <height>21</height>
     </rect>
    </property>
@@ -1201,8 +1862,8 @@
   <tabstop>MPLpushButtonRemoveArrow</tabstop>
   <tabstop>MPLpushButtonPlot</tabstop>
   <tabstop>MPLpushButtonOPlot</tabstop>
-  <tabstop>MPLpushButtonSavePlot</tabstop>
-  <tabstop>MPLpushButtonSaveData</tabstop>
+  <tabstop>MPLpushButtonPopPlot</tabstop>
+  <tabstop>MPLpushButtonSaveASCII</tabstop>
   <tabstop>MPLpushButtonDone</tabstop>
  </tabstops>
  <resources/>

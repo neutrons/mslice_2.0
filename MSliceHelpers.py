@@ -1,4 +1,5 @@
-################################################################################
+"""
+
 #
 # MSliceHelpers.py
 #
@@ -12,14 +13,18 @@
 #
 # getLastAlgFromH5Workspace
 #
-################################################################################
+
+"""
 import sys, os
+import psutil
 #import Mantid computatinal modules
 sys.path.append(os.environ['MANTIDPATH'])
 from mantid.simpleapi import *
-
+import config
+from PyQt4 import Qt, QtCore, QtGui
 
 def getLastAlgFromH5Workspace(H5Workspace,**kwargs):
+    """
     #supported keywords:
     # verbose=True or verbose=False
     # workspace=<some integer>
@@ -50,7 +55,7 @@ def getLastAlgFromH5Workspace(H5Workspace,**kwargs):
     # setup to handle multiple Algorithm names within a single 
     # MantidAlgorithm_*.data field - currently only 1 Algorithm name is 
     # assumed within the MantidAlgorithm_* data field.
-        
+    """
     vstat=False
     wsNum=1 #set default workspace value
     for kw in kwargs.keys():
@@ -179,12 +184,13 @@ def getLastAlgFromH5Workspace(H5Workspace,**kwargs):
     
     #Now let's return the algorithm name we've extracted from the workspace
     return AlgName
-    
+"""
 ###################################################################################
 #
 # getReducedAlgFromH5Workspace
 #
 ###################################################################################
+"""
 
 def getReduceAlgFromH5Workspace(H5Workspace,**kwargs):
     # Supported keywords:
@@ -324,15 +330,17 @@ def getReduceAlgFromH5Workspace(H5Workspace,**kwargs):
     #Now let's return the reduction algorithm name we've extracted from the workspace
     return ReduceAlgName
 
-
+"""
 ###################################################################################
 #
 # getReducedAlgFromWorkspace
 #
 ###################################################################################
-
+"""
 
 def getReduceAlgFromWorkspace(Workspace,**kwargs):
+    
+    
     #supported keywords:
     # verbose=True or verbose=False
     # workspace=<some integer>
@@ -431,11 +439,24 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
     else:
         #if here, we don't know the workspace type...
         AlgName=''
+        
+        
+    #Trying a different approach for now - just using the workspace ID instead
+    #of trying to extract information so the following code will negate all 
+    #of the prior code in this function...will eventually sort this out and decide
+    #which code to keep
+    
+    ws=mtd.retrieve(Workspace)
+    AlgName=ws.id()
+    
 
     #Now let's return the algorithm name we've extracted from the workspace
     return AlgName
     
-
+    
+    
+    
+"""
 ###################################################################################
 #
 # getWorkspaceMemSize
@@ -445,6 +466,7 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
 # Provide a Mantid workspace and this function will return it's memory footprint size
 #
 # workspaceName is a string variable with the name of the Mantid workspace
+"""
 
 def getWorkspaceMemSize(workspaceName):
 
@@ -464,6 +486,7 @@ def getWorkspaceMemSize(workspaceName):
     SizeStr=str(float(int(float(sz)/float(1024*1024)*10))/10)+' MB' #use *10 then /10 to show down to .1 MB
     return SizeStr
 
+"""
 ###################################################################################
 #
 # ListWorkspaces
@@ -473,6 +496,7 @@ def getWorkspaceMemSize(workspaceName):
 # Provide a Mantid workspace and this function will return the list of names
 # within a group workspace or just return the single name if it's a single
 # workspace
+"""
 
 def ListWorkspaces(workspace):
     
@@ -489,11 +513,206 @@ def ListWorkspaces(workspace):
     return wsList
 
 
+def constantUpdateActor(self):
+    #const=constants()
+    #mode to show status in percentage
+    cpu_stats = psutil.cpu_times_percent(interval=1,percpu=False)
+    percentcpubusy = 100.0 - cpu_stats.idle
+    self.ui.progressBarStatusCPU.setValue(percentcpubusy)
+    percentmembusy=psutil.virtual_memory().percent
+    self.ui.progressBarStatusMemory.setValue(percentmembusy)
+    Ncpus=len(psutil.cpu_percent(percpu=True))
+    totalcpustr='CPU Count: '+str(Ncpus)
+#        print "Total CPU str: ",totalcpustr
+    self.ui.labelCPUCount.setText(totalcpustr)
+    totalmem=int(round(float(psutil.virtual_memory().total)/(1024*1024*1024)))
+#        print "Total Mem: ",totalmem
+    totalmemstr='Max Mem: '+str(totalmem)+' GB'
+#        print "Total Mem str: ",totalmemstr
+    self.ui.labelMaxMem.setText(totalmemstr)
+				
+def getHomeDir():
+        if sys.platform == 'win32':
+            home = expanduser("~")
+        else:
+            home=os.getenv("HOME")
+        return home
+    
+def addCheckboxToWSTCell(table,row,col,state):
+    
+    if state == '':
+        state=False
+    
+    checkbox = QtGui.QCheckBox()
+    checkbox.setText('Select')
+    checkbox.setChecked(state)
+    
+    #adding a widget which will be inserted into the table cell
+    #then centering the checkbox within this widget which in turn,
+    #centers it within the table column :-)
+    QW=QtGui.QWidget()
+    cbLayout=QtGui.QHBoxLayout(QW)
+    cbLayout.addWidget(checkbox)
+    cbLayout.setAlignment(QtCore.Qt.AlignCenter)
+    cbLayout.setContentsMargins(0,0,0,0)
+    
+    table.setCellWidget(row,col, checkbox) #if just adding the checkbox directly
+#    table.setCellWidget(row,col, QW)
 
 
+def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
+    
+    #get constants
+    #const=constants()
+
+    #Need to check if workspace already exists in table
+    Nrows=table.rowCount()
+    for row in range(Nrows):   
+        wschk=str(table.item(row,config.WSM_WorkspaceCol).text())
+        print "wschk: ",wschk
+        print "wsname: ",wsname
+        if wschk == wsname:
+            print "Duplicate workspace name - not adding another entry and returning"
+            return
+
+    #Overriding wstype and just using the workspace ID here
+    ws=mtd.retrieve(wsname)
+    wstype=ws.id()
+    
+    if wstype == '':
+        wstype = 'unknown'
+
+    saved='No'
+    
+    #First determine if there is an open row
+    #need to determine the available row number in the workspace table
+    
+    Nrows=table.rowCount()
+    print "Nrows: ",Nrows,"  wsindex: ",wsindex
+
+    #check if the row index supplied is >= to the number of rows
+    #if so, add a row
+    if wsindex >= Nrows:  #check if we need to add a row or not
+        #case to insert
+        table.insertRow(Nrows)
+    col=config.WSM_SelectCol
+#        addComboboxToWSTCell(table,userow,col)
+    addCheckboxToWSTCell(table,wsindex,col,True)
+    
+    #now add the row
+    userow=wsindex		
+    print "userow: ",userow
+    table.setItem(userow,config.WSM_WorkspaceCol,QtGui.QTableWidgetItem(wsname)) #Workspace Name 
+    table.setItem(userow,config.WSM_TypeCol,QtGui.QTableWidgetItem(wstype)) #Workspace Type
+    table.setItem(userow,config.WSM_SavedCol,QtGui.QTableWidgetItem(saved)) #FIXXME Hard coded for now
+    table.setItem(userow,config.WSM_SizeCol,QtGui.QTableWidgetItem(wssize)) #Size 
+    addCheckboxToWSTCell(table,userow,config.WSM_SelectCol,True)
+#    table.setItem(userow,config.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
 
 
+def addWStoTable(table,workspaceName,workspaceLocation):
+    #function to add a single workspace to the workspace manager table
+	# workspaces may originate from create workspace or the list of files
+    print "addWStoTable workspaceName: ",workspaceName
+    print "workspaceLocation: ",workspaceLocation
+    
+        #Need to check if workspace already exists in table
+    Nrows=table.rowCount()
+    for row in range(Nrows):   
+        wschk=str(table.item(row,config.WSM_WorkspaceCol).text())
+        print "wschk: ",wschk
+        print "workspaceName: ",workspaceName
+        if wschk == workspaceName:
+            print "Duplicate workspace name - not adding another entry and returning"
+            return
+    
+    
+    #get constants
+    #const=constants()
 
+    #then get info about the workspace file
+#    ws_date=str(time.ctime(os.path.getctime(workspaceLocation)))
+#    ws_size=str(int(round(float(os.stat(workspaceLocation).st_size)/(1024*1024))))+' MB'
+    ws_size=getWorkspaceMemSize(workspaceName)
+    
+    #also need the Mantid Algorithm used to create the workspace
+    #for now, this will be obtained by reading the workspace as an HDF file and
+    #extracting the algorithm information.
+
+#    h5WS=h5py.File(str(workspaceLocation),'r')
+#    WSAlg=getReduceAlgFromH5Workspace(h5WS)
+    
+    WSAlg=getReduceAlgFromWorkspace(workspaceName)
+
+    
+    if WSAlg == "":
+        WSAlg="Not Available"
+    else:
+        print "WSAlg: ",WSAlg
+    
+
+    #two cases of rows:
+    #    1. Case where all or some rows are empty and just add directly to first available row
+	#    2. Case where all rows have content and need to add a row in this case
+	
+    #First determine if there is an open row
+    #need to determine the available row number in the workspace table
+    
+    Nrows=table.rowCount()
+    print "Nrows: ",Nrows
+
+    emptyRowCnt=0
+    emptyRows = []
+	
+    for row in range(Nrows):
+        item=str(table.item(row,0)) 
+        if item == 'None':
+            emptyRowCnt +=1
+            emptyRows.append(row)
+    print "emptyRows: ",emptyRows,"  emptyRowCnt: ",emptyRowCnt
+    if emptyRowCnt != 0:
+        #case where there is an empty row to use
+        userow=int(emptyRows[0])
+    else:
+        #case where a row needs to be added
+        userow=Nrows #recall that row indexing starts at zero thus the row to add would be at position Nrows
+        table.insertRow(Nrows)
+        col=4
+#        addComboboxToWSTCell(table,userow,col)
+        addCheckboxToWSTCell(table,userow,col,True)
+
+    #now add the row		
+    table.setItem(userow,config.WSM_WorkspaceCol,QtGui.QTableWidgetItem(workspaceName)) #Workspace Name 
+    table.setItem(userow,config.WSM_TypeCol,QtGui.QTableWidgetItem(WSAlg)) #Workspace Type
+    table.setItem(userow,config.WSM_SavedCol,QtGui.QTableWidgetItem('yes')) #FIXXME Hard coded for now
+    table.setItem(userow,config.WSM_SizeCol,QtGui.QTableWidgetItem(ws_size)) #Size 
+    table.setItem(userow,config.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
+
+"""
+class constants:
+    def __init__(self):
+#        self.WSM_WorkspaceCol=0
+#        self.WSM_LastAlgCol=1
+#        self.WSM_LocationCol=2
+#        self.WSM_DateCol=3
+#        self.WSM_SizeCol=4
+#        self.WSM_ActionCol=5
+#        self.WSM_StatusCol=6
+        self.WSM_WorkspaceCol=0
+        self.WSM_TypeCol=1
+        self.WSM_SavedCol=2
+        self.WSM_SizeCol=3
+        self.WSM_SelectCol=4
+
+        
+        self.CWS_FilenameCol=0
+        self.CWS_DateCol=1
+        self.CWS_TypeCol=2
+        self.CWS_SizeCol=3
+        self.CWS_ScaleFactorCol=4
+        self.CWS_StatusCol=5
+
+"""
 
 
 

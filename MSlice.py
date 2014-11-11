@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'MSlice.ui'
 #
-# Created: Tue Jun 17 17:50:32 2014
+# Created: Tue Nov 04 08:56:39 2014
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -581,6 +581,7 @@ class Ui_MainWindow(object):
         self.label_46.setGeometry(QtCore.QRect(470, 40, 51, 16))
         self.label_46.setObjectName(_fromUtf8("label_46"))
         self.pushButtonPowderSlicePlotSlice = QtGui.QPushButton(self.page)
+        self.pushButtonPowderSlicePlotSlice.setEnabled(False)
         self.pushButtonPowderSlicePlotSlice.setGeometry(QtCore.QRect(470, 140, 121, 23))
         self.pushButtonPowderSlicePlotSlice.setObjectName(_fromUtf8("pushButtonPowderSlicePlotSlice"))
         self.pushButtonPowderSliceSurfaceSlice = QtGui.QPushButton(self.page)
@@ -1203,10 +1204,10 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.tabWidgetFilesWorkspaces.setCurrentIndex(0)
         self.SampleTabWidget.setCurrentIndex(0)
-        self.ViewTabWidget.setCurrentIndex(2)
+        self.ViewTabWidget.setCurrentIndex(1)
         self.stackedWidgetSlice.setCurrentIndex(0)
         self.stackedWidgetCut.setCurrentIndex(0)
-        self.stackedWidgetVolume.setCurrentIndex(0)
+        self.stackedWidgetVolume.setCurrentIndex(1)
         QtCore.QObject.connect(self.comboBoxPowderu1, QtCore.SIGNAL(_fromUtf8("currentIndexChanged(QString)")), self.lineEditPowderu1.setText)
         QtCore.QObject.connect(self.comboBoxPowderu2, QtCore.SIGNAL(_fromUtf8("currentIndexChanged(QString)")), self.lineEditPowderu2.setText)
         QtCore.QObject.connect(self.pushButtonPowderCalcProj, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.pushButtonPowderCalcProj.lower)

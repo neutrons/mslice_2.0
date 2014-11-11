@@ -97,7 +97,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         wsName=thisGWS[row].name()
     #                    wsFile=os.path.normpath(r'C:\Users\mid\Documents\Mantid\Wagman\autoreduce\\'+wsName+'.nxs')  #for now just hard code path name...will eventually need to dig this out of workspace
                         wsFile=''
-                        addWStoTable(table,wsName,wsFile)
+                        WCaddWStoTable(table,wsName,wsFile)
                         print "row: ",row,"  wsName: ",wsName,"  Type: ",type(wsName)
                         if mtd.doesExist(wsName):
                             #if it exists, then it's in memory and say this
@@ -118,7 +118,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     #case where it's an individual workspace - just list the one workspace
                     wsName=thisGWS.name()
                     wsFile=''
-                    addWStoTable(table,wsName,wsFile)                    
+                    WCaddWStoTable(table,wsName,wsFile)                    
                     if mtd.doesExist(wsName):
                         table.item(0,const.WGE_InMemCol).setText("Yes")
                     sz=thisGWS.getMemorySize()
@@ -142,7 +142,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     ws=mtd.retrieve(gwsName[row])
                     wsName=gwsName[row]
                     wsFile=''
-                    addWStoTable(table,wsName,wsFile)
+                    WCaddWStoTable(table,wsName,wsFile)
                     print "row: ",row,"  wsName: ",wsName,"  Type: ",type(wsName)
                     if mtd.doesExist(wsName):
                         #if it exists, then it's in memory and say this
@@ -583,7 +583,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 print "basename: ",basename
                 wsName=basename
                 print "wsFile: ",wsFile
-                addWStoTable(table,wsName,wsFile)  #adds a workspace to table from file
+                WCaddWStoTable(table,wsName,wsFile)  #adds a workspace to table from file
 
                     
             Nrows=table.rowCount()
@@ -777,7 +777,7 @@ class constants:
         self.WGE_SelectCol=6
         
 
-def addWStoTable(table,workspaceName,workspaceLocation):
+def WCaddWStoTable(table,workspaceName,workspaceLocation):
     #function to add a single workspace to the workspace manager table
 	# workspaces may originate from create workspace or the list of files
 	
@@ -785,7 +785,7 @@ def addWStoTable(table,workspaceName,workspaceLocation):
     const=constants()
     
     if workspaceLocation != '':
-        print "addWStoTable workspaceName: ",workspaceName
+        print "WCaddWStoTable workspaceName: ",workspaceName
         print "workspaceLocation: ",workspaceLocation
         
 

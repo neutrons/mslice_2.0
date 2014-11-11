@@ -1,3 +1,4 @@
+"""
 ################################################################################
 #
 # MSlice.pyw
@@ -30,7 +31,7 @@
 # for data display are outstanding tasks to be done.
 #
 ################################################################################
-
+"""
 import sys, os, time
 from os.path import expanduser
 from PyQt4 import Qt, QtCore, QtGui
@@ -45,7 +46,7 @@ if matplotlib.get_backend() != 'QT4Agg':
 from pylab import *
 
 #import custom develped helpers
-from MSliceHelpers import getReduceAlgFromWorkspace, getWorkspaceMemSize
+from MSliceHelpers import *  #getReduceAlgFromWorkspace, getWorkspaceMemSize
 #import h5py 
 from WorkspaceComposerMain import *
 from MPLPowderCutMain import *
@@ -88,7 +89,7 @@ class MSlice(QtGui.QMainWindow):
             #otherwise...
             self.setStyleSheet('font-size: 11pt; font-family: Ariel;')
         
-        const=constants()
+        #const=constants()
 		
         #define actions and callbacks
 #        self.connect(self.ui.actionLoad_Workspace_s, QtCore.SIGNAL('triggered()'), self.WorkspaceManagerPageSelect) #make workspace stack page available to user
@@ -135,7 +136,7 @@ class MSlice(QtGui.QMainWindow):
         NrowsWS=self.ui.tableWidgetWorkspaces.rowCount()
         print "NrowsWS: ",NrowsWS
 
-#        col=const.WSM_SelectCol
+#        col=config.WSM_SelectCol
 #        for i in range(NrowsWS):
 #            addCheckboxToWSTCell(self.ui.tableWidgetWorkspaces,i,col,True)
 	   
@@ -255,7 +256,7 @@ class MSlice(QtGui.QMainWindow):
         #val can be used to let this methold know who called it should that be desired
         
         #get constants
-	const=constants()
+	#const=constants()
         
         print "on_button_clicked - val: ",val
         self.ui.pushButtonUpdate.setEnabled(True)
@@ -283,7 +284,7 @@ class MSlice(QtGui.QMainWindow):
             #case where we have one workspace with same name in Workspace Mgr and Workspace Composer - overwrite in this case
             for row in range(Nrows):
                 #find which row to overwrite
-                if wsname == str(table.item(row,const.WSM_WorkspaceCol).text()):
+                if wsname == str(table.item(row,config.WSM_WorkspaceCol).text()):
                     wsindex=row
         print "Slot WSMIndex: ",wsindex
         addmemWStoTable(table,wsname,wstype,wssize,wsindex)
@@ -306,17 +307,17 @@ class MSlice(QtGui.QMainWindow):
 
 		
     def PowderCalcProjSelect(self):
-	
-	#get constants
-	const=constants()
-	
+
+    #get constants
+	#const=constants()
+
         #disable Powder Calc Proj until calculations complete
         self.ui.pushButtonPowderCalcProj.setEnabled(False)      	
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Calculate Projections Initiated")		
-		
+
 	#get workspace table to work with
 	table=self.ui.tableWidgetWorkspaces
-		
+
         #get values from combo boxes 
         CBPU1=self.ui.comboBoxPowderu1.currentIndex()
         CBPU1txt=self.ui.comboBoxPowderu1.currentText()
@@ -324,7 +325,7 @@ class MSlice(QtGui.QMainWindow):
         CBPU2=self.ui.comboBoxPowderu2.currentIndex()
         CBPU2txt=self.ui.comboBoxPowderu2.currentText()
         print "CBPU2: ",str(CBPU2)," ",CBPU2txt
-		
+
         #now get values from the labels
         LESCu1Label=self.ui.lineEditPowderu1.text()
         print "LESCu1Label: ",LESCu1Label
@@ -342,14 +343,18 @@ class MSlice(QtGui.QMainWindow):
         for row in range(Nrows):
             percentbusy=int(100*(row+1)/Nrows)
             self.ui.progressBarStatusProgress.setValue(percentbusy)
-            cw=table.cellWidget(row,const.WSM_SelectCol) 
+            cw=table.cellWidget(row,config.WSM_SelectCol) 
+            print "cw: ",cw
+            print "type(cw): ",type(cw)
+            print "config.WSM_SelectCol: ",config.WSM_SelectCol
+            print "config.WSM_SavedCol: ",config.WSM_SavedCol
             cbstat=cw.isChecked()
             if cbstat:
                 
                 #case to attempt to run calculate projections
                 #FIXME - skipped for now, but will need to verify workspace type before running calc proj
                 #but for now, we'll assume that it's a powder workspace
-                pws=str(table.item(row,const.WSM_WorkspaceCol).text())
+                pws=str(table.item(row,config.WSM_WorkspaceCol).text())
                 self.ui.StatusText.append(time.strftime('  Input Workspace: '+pws))	
                 print "  pws: ",pws
                 pws_out=pws+pwsSuffix
@@ -365,7 +370,7 @@ class MSlice(QtGui.QMainWindow):
                 print "pws_size: ",pws_size
                 table.insertRow(pws_indx)
                 addmemWStoTable(table,pws_out,pws_type,pws_size,pws_indx)
-                addCheckboxToWSTCell(table,row,const.WSM_SelectCol,False) #row was: pws_indx-1
+                addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False) #row was: pws_indx-1
                 addcntr +=1 #increment row counter for where to add a workspace
         table.resizeColumnsToContents();
         time.sleep(0.2) #give some time since processing before clearing progress bar
@@ -374,7 +379,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.pushButtonPowderCalcProj.setEnabled(True)      
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Calculate Projections Complete")	
         print "Powder Calc Workspaces Processed: "
-		
+
     def SCCalcProjSelect(self):
 
         #disable Powder Calc Proj until calculations complete
@@ -462,7 +467,7 @@ class MSlice(QtGui.QMainWindow):
     def Update(self):
         print "** Update "
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Updating Workspace Manager")
-        const=constants()
+        #const=constants()
 
         self.ui.tableWidgetWorkspaces.setEnabled(False)
         self.ui.pushButtonPowderCalcProj.setEnabled(True) 
@@ -473,7 +478,7 @@ class MSlice(QtGui.QMainWindow):
         Nrows=table.rowCount()
         roff=0
         for row in range(Nrows):
-            item=table.item(row,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(row,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             if itemStr == 'None':
@@ -531,7 +536,7 @@ class MSlice(QtGui.QMainWindow):
             selrow=[]
             for row in range(Nrows):
                 #get checkbox status            
-                cw=table.cellWidget(row,const.WSM_SelectCol) 
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
                 try:
                     cbstat=cw.isChecked()
                     print "row: ",row," cbstat: ",cbstat
@@ -551,7 +556,7 @@ class MSlice(QtGui.QMainWindow):
                 print "type WSMIndex: ",type(self.ui.WSMIndex)
                 for row in selrow:
                     self.ui.WSMIndex.append(row)   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
-                    self.ui.GWSName.append(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                    self.ui.GWSName.append(str(table.item(row,config.WSM_WorkspaceCol).text()))
                 self.child_win = WorkspaceComposer(self)
                 self.child_win.show()                    
                 
@@ -561,26 +566,26 @@ class MSlice(QtGui.QMainWindow):
         elif self.ui.radioButtonSelectAll.isChecked():  
             #set all checkboxes in the workspace manager table
             #first check if there are any rows to update selection
-            item=table.item(0,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(0,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
 #            print "itemStr: ",itemStr
             #then only update the rows if rows with content are discovered.
             if itemStr != 'None':
                 Nrows=table.rowCount()
                 for row in range(Nrows):
-                    addCheckboxToWSTCell(table,row,const.WSM_SelectCol,True)            
+                    addCheckboxToWSTCell(table,row,config.WSM_SelectCol,True)            
 
         elif self.ui.radioButtonClearAll.isChecked():  
             #clear all checkboxes in the workspace manager table
             #first check if there are any rows to update selection
-            item=table.item(0,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(0,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
 #            print "itemStr: ",itemStr
             #then only update the rows if rows with content are discovered.
             if itemStr != 'None':
                 Nrows=table.rowCount()
                 for row in range(Nrows):
-                    addCheckboxToWSTCell(table,row,const.WSM_SelectCol,False)          
+                    addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False)          
             
         elif self.ui.radioButtonSaveSelected.isChecked():  
             #save selected workspaces
@@ -590,7 +595,7 @@ class MSlice(QtGui.QMainWindow):
             selrow=[]
             for row in range(Nrows):
                 #get checkbox status            
-                cw=table.cellWidget(row-roff,const.WSM_SelectCol) 
+                cw=table.cellWidget(row-roff,config.WSM_SelectCol) 
                 try:
                     cbstat=cw.isChecked()
                     print "row: ",row," cbstat: ",cbstat
@@ -609,12 +614,12 @@ class MSlice(QtGui.QMainWindow):
 
                 dialog=QtGui.QMessageBox(self)
                 dialog.setText("No workspaces selected to save")
-                dialog.exec_()
+                dialog.exec_()  
             elif len(selrow) == 1:
                 #when saving one file, user specifies filename and directory to save
                 row=selrow[0]
                 if row != -1:
-                    wsname=str(table.item(row,const.WSM_WorkspaceCol).text())
+                    wsname=str(table.item(row,config.WSM_WorkspaceCol).text())
                     
                 filter='.nxs'
                 wsnamext=wsname+filter
@@ -632,7 +637,7 @@ class MSlice(QtGui.QMainWindow):
                     else:
                         #case for MD workspace
                         SaveMD(wsname,wspathname)
-                    table.item(row,const.WSM_SavedCol).setText('Yes')
+                    table.item(row,config.WSM_SavedCol).setText('Yes')
                     
                     
             elif len(selrow) > 1:
@@ -653,7 +658,7 @@ class MSlice(QtGui.QMainWindow):
                 fcnt=0
                 fstat=False
                 for row in selrow:
-                    wsname=str(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                    wsname=str(str(table.item(row,config.WSM_WorkspaceCol).text()))
                     wspathname1 = wspathname + os.sep + wsname + '.nxs'
                     tmp=os.path.isfile(wspathname1)
                     if tmp:
@@ -673,7 +678,7 @@ class MSlice(QtGui.QMainWindow):
                         #wspathname will be empty if the cancel button was selected on the path dialog.
                         cntr=1
                         for row in selrow:
-                            wsname=str(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                            wsname=str(str(table.item(row,config.WSM_WorkspaceCol).text()))
                             #since wspathname contains a directory, need to add filename and extension to it
                             wspathname1 = wspathname + os.sep + wsname + '.nxs'
                             print "save wsname: ",wsname
@@ -691,7 +696,7 @@ class MSlice(QtGui.QMainWindow):
                             else:
                                 #case for MD workspace
                                 SaveMD(wsname,wspathname1)
-                            table.item(row,const.WSM_SavedCol).setText('Yes')
+                            table.item(row,config.WSM_SavedCol).setText('Yes')
                             cntr += 1
 
                 time.sleep(0.2)
@@ -707,7 +712,7 @@ class MSlice(QtGui.QMainWindow):
             
             print "Remove Selected Selected"
             #first check if there are any rows to update selection
-            item=table.item(0,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(0,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             #then only update the rows if rows with content are discovered.
@@ -716,13 +721,13 @@ class MSlice(QtGui.QMainWindow):
                 roff=0
                 rcntr=0
                 for row in range(Nrows):
-                    item=table.item(row-roff,const.WSM_WorkspaceCol)
+                    item=table.item(row-roff,config.WSM_WorkspaceCol)
                     itemStr=str(item)
                     print "itemStr: ",itemStr
                     #then only update the rows if rows with content are discovered.
                     if itemStr != 'None':
                         #get checkbox status            
-                        cw=table.cellWidget(row-roff,const.WSM_SelectCol) 
+                        cw=table.cellWidget(row-roff,config.WSM_SelectCol) 
     #                    try:
                         cbstat=cw.isChecked()
                         print "row: ",row," roff: ",roff," rcntr: ",rcntr," cbstat: ",cbstat
@@ -735,7 +740,7 @@ class MSlice(QtGui.QMainWindow):
                             #remove workspace from memory before removing the row from the table
                             #get workspace name to be removed
                             print "Available workspaces: ",mtd.getObjectNames()
-                            wsname=str(table.item(row-roff,const.WSM_WorkspaceCol).text())
+                            wsname=str(table.item(row-roff,config.WSM_WorkspaceCol).text())
                             print "wsname: ",wsname
                             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Removing Workspace: "+str(wsname))
                             percentbusy=int(float(row+1)/float(Nrows))*100
@@ -760,7 +765,7 @@ class MSlice(QtGui.QMainWindow):
 		
     def performWorkspaceActions(self):
         print "performWorkspaceActions"
-        const=constants()
+        #const=constants()
         self.ui.pushButtonPerformActions.setEnabled(False) 
         self.ui.tableWidgetWorkspaces.setEnabled(False)
         self.ui.pushButtonPowderCalcProj.setEnabled(False) 
@@ -771,7 +776,7 @@ class MSlice(QtGui.QMainWindow):
         Nrows=table.rowCount()
         roff=0
         for row in range(Nrows):
-            item=table.item(row,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(row,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             if itemStr == 'None':
@@ -790,13 +795,13 @@ class MSlice(QtGui.QMainWindow):
             self.ui.progressBarStatusProgress.setValue(percentbusy) #adjust progress bar according to % busy
             time.sleep(0.01)  #seem to need a small delay to ensure that status updates
             #determine if row has content to process
-            item=table.item(row,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(row,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             if itemStr != 'None':
-                itemText=str(table.item(row,const.WSM_WorkspaceCol).text())
+                itemText=str(table.item(row,config.WSM_WorkspaceCol).text())
                 print "row: ",row
-                rowComboboxIndex=table.cellWidget(row,const.WSM_ActionCol).currentIndex()
+                rowComboboxIndex=table.cellWidget(row,config.WSM_ActionCol).currentIndex()
                 print "rowAction: ",rowComboboxIndex
                 if rowComboboxIndex == 0:
                     print "Load case"
@@ -805,7 +810,7 @@ class MSlice(QtGui.QMainWindow):
                     self.ui.activeWSNames.append(itemText)
                     print "itemText: ",itemText," self.ui.activeWSNames: ",self.ui.activeWSNames
                     #determine if data already loaded, if so, skip load
-                    loadStat=str(table.item(row,const.WSM_StatusCol).text())
+                    loadStat=str(table.item(row,config.WSM_StatusCol).text())
                     if loadStat != 'Loaded':
                         print "Case to load data"
                         #get filename
@@ -816,13 +821,13 @@ class MSlice(QtGui.QMainWindow):
                         mockWSData=np.random.rand(Ndim,Ndim)
                         self.ui.activeWSVarsList.append(mockWSData)
                     status="Loaded"
-                    table.setItem(row,const.WSM_StatusCol,QtGui.QTableWidgetItem(status)) #Status col=5
+                    table.setItem(row,config.WSM_StatusCol,QtGui.QTableWidgetItem(status)) #Status col=5
                     #if any data are loaded, set cal proj buttons active
                     calcProjFlag +=1
 
                 elif rowComboboxIndex == 1:
                     print "Unload case"
-                    loadStat=str(table.item(row,const.WSM_StatusCol).text())
+                    loadStat=str(table.item(row,config.WSM_StatusCol).text())
                     if loadStat == 'Loaded':
                         #case to unload data
                         print "case to unload data"
@@ -834,9 +839,9 @@ class MSlice(QtGui.QMainWindow):
                     print "Remove case"
                     #remove this row
                     #first determine the current state of this workspace
-                    wkspc=str(table.item(row,const.WSM_WorkspaceCol).text())
+                    wkspc=str(table.item(row,config.WSM_WorkspaceCol).text())
                     print "Removing Workspace: ",wkspc
-                    loadStat=str(table.item(row,const.WSM_StatusCol).text())
+                    loadStat=str(table.item(row,config.WSM_StatusCol).text())
                     if loadStat == 'Loaded':    
                         self.ui.activeWSVarsList[row]=[] #replace whatever list item is there with an empty list - this deletes the data	
 #                        NumActiveRows -=1 #decrement active workspaces counter if the row to be deleted already has data
@@ -871,7 +876,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.numActiveWorkspaces=NumActiveRows
         cnt=0
         for row in range(NumActiveRows):
-            itemText=str(table.item(row,const.WSM_LastAlgCol).text())
+            itemText=str(table.item(row,config.WSM_LastAlgCol).text())
             print "row: ",row,"  itemText: ",itemText
             if itemText == "DgsReduction":
                 cnt +=1
@@ -1002,7 +1007,7 @@ class MSlice(QtGui.QMainWindow):
 
 		
     def pushButtonPowderCutPlotSelect(self):
-        const=constants()
+        #const=constants()
         print "Powder Cut Plot Callback"
         PCAIndex=self.ui.comboBoxPowderCutAlong.currentIndex()
         PCAFrom=self.ui.lineEditPowderCutAlongFrom.text()
@@ -1026,13 +1031,13 @@ class MSlice(QtGui.QMainWindow):
         for row in range(Nrows):
             try:
                 #using try here to check if user forgot to load data then we'd have a table with empty rows...
-                cw=table.cellWidget(row,const.WSM_SelectCol) 
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
                 cbstat=cw.isChecked()
                 #check if this workspace is selected for display
                 if cbstat == True:
                     #case where it is selected
                     #get workspace
-                    wsitem=str(table.item(row,const.WSM_WorkspaceCol).text())
+                    wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
                     print " wsitem:",wsitem
                     print " mtd.getObjectNames():",mtd.getObjectNames()
                     ws=mtd.retrieve(wsitem)      
@@ -1044,12 +1049,16 @@ class MSlice(QtGui.QMainWindow):
         print "Number of empty rows: ",EmptyRows
 #        self.ui.wslist=['Hello','World']  #for debugging use...
         self.ui.wslist=wslist
+        
+        self.MPLPC_win = MPLPowderCut(self)				
+        self.MPLPC_win.show() 
+        """
         if wslist != []:
             self.MPLPC_win = MPLPowderCut(self)				
             self.MPLPC_win.show()    
         else:
             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - No workspaces selected for powder cut plots...returning")		
-					
+        """
 		
     def pushButtonSCSlicePlotSliceSelect(self):
         print "Single Crystal Plot Slice Button pressed"
@@ -1148,8 +1157,11 @@ class MSlice(QtGui.QMainWindow):
         PSSmoothing=self.ui.lineEditPowderSliceSmoothing.text()
         print "Powder Plot values: ",PSXcomboIndex,PSXFrom,PSXTo,PSXStep,PSYcomboIndex,PSYFrom,PSYTo,PSYStep,PSIntensityFrom,PSIntensityTo,PSSmoothing
         #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Show Slice")				
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Show Slice")		
 
+        
+        
+        
 		
     def pushButtonPowderSliceOplotSliceSelect(self):
         print "Powder Oplot Slice Button pressed"
@@ -1188,19 +1200,19 @@ class MSlice(QtGui.QMainWindow):
         #**** code to extract data and perform plot placed here
         
         #get constants
-        const=constants()
+        #const=constants()
         
         table=self.ui.tableWidgetWorkspaces
         #first let's clean up empty rows
         Nrows=table.rowCount()
         for row in range(Nrows):
-            cw=table.cellWidget(row,const.WSM_SelectCol) 
+            cw=table.cellWidget(row,config.WSM_SelectCol) 
             cbstat=cw.isChecked()
             #check if this workspace is selected for display
             if cbstat == True:
                 #case where it is selected
                 #get workspace
-                wsitem=str(table.item(row,const.WSM_WorkspaceCol).text())
+                wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
                 print " wsitem:",wsitem
                 print " mtd.getObjectNames():",mtd.getObjectNames()
                 ws=mtd.retrieve(wsitem)
@@ -1224,8 +1236,8 @@ class MSlice(QtGui.QMainWindow):
                 MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)
                 sig=MDH.getSignalArray()
                 ne=MDH.getNumEventsArray()
-#                dne=sig/ne
-                dne=sig
+                dne=sig/ne
+ #               dne=sig  #use to just look at the signal array
                 
                 
                 #Incorporate SliceViewer here
@@ -1400,7 +1412,7 @@ class MSlice(QtGui.QMainWindow):
     def CreateWorkspace(self):
         #function creates the workspace from files and requires the user to save the workspace to disk
         print "In CreateWorkspace"
-        const=constants()
+        #const=constants()
         #disable load until another set of files has been selected
         self.ui.pushButtonCreateWorkspace.setEnabled(False)
 		
@@ -1432,13 +1444,13 @@ class MSlice(QtGui.QMainWindow):
         row=0 #set row counter
         for row in range(Nfiles):
             #get scale value and print it
-            col=const.CWS_ScaleFactorCol
+            col=config.CWS_ScaleFactorCol
             scale=self.ui.tableWidget.item(row,col)
             print "Scale: ", scale.text()
             #scale cannot be edited once a file is loaded
             self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)	
             #change the item status to 'Loaded'
-            col=const.CWS_StatusCol
+            col=config.CWS_StatusCol
             self.ui.tableWidget.setItem(row,col, QtGui.QTableWidgetItem('Loaded'))           
             self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Loaded Data")		
@@ -1476,178 +1488,9 @@ class MSlice(QtGui.QMainWindow):
         
 #************* beginning of global functions and classes ****************
 
-class constants:
-    def __init__(self):
-#        self.WSM_WorkspaceCol=0
-#        self.WSM_LastAlgCol=1
-#        self.WSM_LocationCol=2
-#        self.WSM_DateCol=3
-#        self.WSM_SizeCol=4
-#        self.WSM_ActionCol=5
-#        self.WSM_StatusCol=6
-        self.WSM_WorkspaceCol=0
-        self.WSM_TypeCol=1
-        self.WSM_SavedCol=2
-        self.WSM_SizeCol=3
-        self.WSM_SelectCol=4
 
         
-        self.CWS_FilenameCol=0
-        self.CWS_DateCol=1
-        self.CWS_TypeCol=2
-        self.CWS_SizeCol=3
-        self.CWS_ScaleFactorCol=4
-        self.CWS_StatusCol=5
-        
 
-def constantUpdateActor(self):
-    const=constants()
-    #mode to show status in percentage
-    cpu_stats = psutil.cpu_times_percent(interval=1,percpu=False)
-    percentcpubusy = 100.0 - cpu_stats.idle
-    self.ui.progressBarStatusCPU.setValue(percentcpubusy)
-    percentmembusy=psutil.virtual_memory().percent
-    self.ui.progressBarStatusMemory.setValue(percentmembusy)
-    Ncpus=len(psutil.cpu_percent(percpu=True))
-    totalcpustr='CPU Count: '+str(Ncpus)
-#        print "Total CPU str: ",totalcpustr
-    self.ui.labelCPUCount.setText(totalcpustr)
-    totalmem=int(round(float(psutil.virtual_memory().total)/(1024*1024*1024)))
-#        print "Total Mem: ",totalmem
-    totalmemstr='Max Mem: '+str(totalmem)+' GB'
-#        print "Total Mem str: ",totalmemstr
-    self.ui.labelMaxMem.setText(totalmemstr)
-				
-def getHomeDir():
-        if sys.platform == 'win32':
-            home = expanduser("~")
-        else:
-            home=os.getenv("HOME")
-        return home
-    
-def addCheckboxToWSTCell(table,row,col,state):
-    
-    if state == '':
-        state=False
-    
-    checkbox = QtGui.QCheckBox()
-    checkbox.setText('Select')
-    checkbox.setChecked(state)
-    
-    #adding a widget which will be inserted into the table cell
-    #then centering the checkbox within this widget which in turn,
-    #centers it within the table column :-)
-    QW=QtGui.QWidget()
-    cbLayout=QtGui.QHBoxLayout(QW)
-    cbLayout.addWidget(checkbox)
-    cbLayout.setAlignment(QtCore.Qt.AlignCenter)
-    cbLayout.setContentsMargins(0,0,0,0)
-    
-    table.setCellWidget(row,col, checkbox) #if just adding the checkbox directly
-#    table.setCellWidget(row,col, QW)
-
-
-def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
-    
-    #get constants
-    const=constants()
-
-    
-    if wstype == '':
-        wstype = 'unknown'
-
-    saved='No'
-    
-    #First determine if there is an open row
-    #need to determine the available row number in the workspace table
-    
-    Nrows=table.rowCount()
-    print "Nrows: ",Nrows,"  wsindex: ",wsindex
-
-    #check if the row index supplied is >= to the number of rows
-    #if so, add a row
-    if wsindex >= Nrows:  #check if we need to add a row or not
-        #case to insert
-        table.insertRow(Nrows)
-    col=const.WSM_SelectCol
-#        addComboboxToWSTCell(table,userow,col)
-    addCheckboxToWSTCell(table,wsindex,col,True)
-    
-    #now add the row
-    userow=wsindex		
-    print "userow: ",userow
-    table.setItem(userow,const.WSM_WorkspaceCol,QtGui.QTableWidgetItem(wsname)) #Workspace Name 
-    table.setItem(userow,const.WSM_TypeCol,QtGui.QTableWidgetItem(wstype)) #Workspace Type
-    table.setItem(userow,const.WSM_SavedCol,QtGui.QTableWidgetItem(saved)) #FIXXME Hard coded for now
-    table.setItem(userow,const.WSM_SizeCol,QtGui.QTableWidgetItem(wssize)) #Size 
-    addCheckboxToWSTCell(table,userow,const.WSM_SelectCol,True)
-#    table.setItem(userow,const.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
-
-       	
-def addWStoTable(table,workspaceName,workspaceLocation):
-    #function to add a single workspace to the workspace manager table
-	# workspaces may originate from create workspace or the list of files
-    print "addWStoTable workspaceName: ",workspaceName
-    print "workspaceLocation: ",workspaceLocation
-    
-    #get constants
-    const=constants()
-
-    #then get info about the workspace file
-#    ws_date=str(time.ctime(os.path.getctime(workspaceLocation)))
-#    ws_size=str(int(round(float(os.stat(workspaceLocation).st_size)/(1024*1024))))+' MB'
-    ws_size=getWorkspaceMemSize(workspaceName)
-    
-    #also need the Mantid Algorithm used to create the workspace
-    #for now, this will be obtained by reading the workspace as an HDF file and
-    #extracting the algorithm information.
-
-#    h5WS=h5py.File(str(workspaceLocation),'r')
-#    WSAlg=getReduceAlgFromH5Workspace(h5WS)
-    
-    WSAlg=getReduceAlgFromWorkspace(workspaceName)
-
-    
-    if WSAlg == "":
-        WSAlg="Not Available"
-    
-
-    #two cases of rows:
-    #    1. Case where all or some rows are empty and just add directly to first available row
-	#    2. Case where all rows have content and need to add a row in this case
-	
-    #First determine if there is an open row
-    #need to determine the available row number in the workspace table
-    
-    Nrows=table.rowCount()
-    print "Nrows: ",Nrows
-
-    emptyRowCnt=0
-    emptyRows = []
-	
-    for row in range(Nrows):
-        item=str(table.item(row,0)) 
-        if item == 'None':
-            emptyRowCnt +=1
-            emptyRows.append(row)
-    print "emptyRows: ",emptyRows,"  emptyRowCnt: ",emptyRowCnt
-    if emptyRowCnt != 0:
-        #case where there is an empty row to use
-        userow=int(emptyRows[0])
-    else:
-        #case where a row needs to be added
-        userow=Nrows #recall that row indexing starts at zero thus the row to add would be at position Nrows
-        table.insertRow(Nrows)
-        col=4
-#        addComboboxToWSTCell(table,userow,col)
-        addCheckboxToWSTCell(table,userow,col,True)
-
-    #now add the row		
-    table.setItem(userow,const.WSM_WorkspaceCol,QtGui.QTableWidgetItem(workspaceName)) #Workspace Name 
-    table.setItem(userow,const.WSM_TypeCol,QtGui.QTableWidgetItem(WSAlg)) #Workspace Type
-    table.setItem(userow,const.WSM_SavedCol,QtGui.QTableWidgetItem('yes')) #FIXXME Hard coded for now
-    table.setItem(userow,const.WSM_SizeCol,QtGui.QTableWidgetItem(ws_size)) #Size 
-    table.setItem(userow,const.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
 
 		
 if __name__=="__main__":

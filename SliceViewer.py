@@ -64,7 +64,10 @@ class SliceViewer(QtGui.QMainWindow):
         
     def Show(self):
         print "c"
+        wsNames=mtd.getObjectNames()
+        print "WS Before SliceViewer: ",wsNames
         threadsafe_call(self.svw.show)
+
         
         
     def closeEvent(self,event):

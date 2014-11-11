@@ -14,15 +14,16 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
 
 import matplotlib.pyplot as plt
-
 import numpy as np
-
 from datetime import datetime
-
+from MSliceHelpers import *
+from os.path import basename
 
 #import Mantid computatinal modules
 sys.path.append(os.environ['MANTIDPATH'])
-from mantid.simpleapi import *
+from mantid.simpleapi import * 
+
+from MPLPowderCutHelpers import *
 
 class MPLPowderCut(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -33,16 +34,24 @@ class MPLPowderCut(QtGui.QMainWindow):
         self.parent=parent 
         
         #establish signals and slots
+        QtCore.QObject.connect(self.ui.MPLpushButtonImportData, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoImport)
         QtCore.QObject.connect(self.ui.MPLpushButtonPlot, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoPlot)
         QtCore.QObject.connect(self.ui.MPLpushButtonOPlot, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoOPlot)
         QtCore.QObject.connect(self.ui.MPLpushButtonPlaceText, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoAnnotate)
         QtCore.QObject.connect(self.ui.MPLpushButtonRemoveText, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.RemText)
         QtCore.QObject.connect(self.ui.MPLpushButtonPlaceArrow, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoArrow)
         QtCore.QObject.connect(self.ui.MPLpushButtonRemoveArrow, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.RemArrow)
-        QtCore.QObject.connect(self.ui.MPLpushButtonSavePlot, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.SavePlot)
-        QtCore.QObject.connect(self.ui.MPLpushButtonSaveData, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.SaveData)
+        QtCore.QObject.connect(self.ui.MPLpushButtonPopPlot, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.PopPlot)
+        QtCore.QObject.connect(self.ui.MPLpushButtonSaveASCII, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.SaveASCII)
+        QtCore.QObject.connect(self.ui.MPLpushButtonSaveHistory, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.SaveHistory)
+        QtCore.QObject.connect(self.ui.MPLpushButtonSavePlotWS, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.SavePlotWS)
         QtCore.QObject.connect(self.ui.MPLpushButtonDone, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.Done)
         
+        QtCore.QObject.connect(self.ui.MPLpushButtonUpdateHistory, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.UpdateHistory)
+        QtCore.QObject.connect(self.ui.MPLcheckBoxExpandAll, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.ExpandAll)
+        
+        QtCore.QObject.connect(self.ui.MPLpushButtonSaveComments, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.UpdateComments)
+        QtCore.QObject.connect(self.ui.MPLcheckBoxReadOnly, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.ReadOnly)
         
         QtCore.QObject.connect(self.ui.MPLcomboBoxActiveWorkspace, QtCore.SIGNAL(_fromUtf8("currentIndexChanged(int)")), self.SelectWorkspace)
         
@@ -76,6 +85,15 @@ class MPLPowderCut(QtGui.QMainWindow):
             else:
                 #case to add rows to insert workspace names
                 self.ui.MPLcomboBoxActiveWorkspace.insertItem(n,wstotlist[n])
+                
+            #Also need to add any newly created workspaces back into the MSlice Workspace Manager
+            #workspaceLocation=''
+            table=self.parent.ui.tableWidgetWorkspaces
+            workspaceLocation=''
+            addWStoTable(table,wstotlist[n],workspaceLocation)    
+        
+        #update Comments tab while we're working with the workspace lists
+        self.getComments()        
             
         #Data Formatting
         self.ui.MPLlineEditPowderCutAlongFrom.setText(self.parent.ui.lineEditPowderCutAlongFrom.text())
@@ -130,20 +148,87 @@ class MPLPowderCut(QtGui.QMainWindow):
         self.doAnnotate=False #flag used to annotate text on plots
         self.doArrow=False #flag used to place arrows on plots
         
+        #select Plot as the default tab
+        self.ui.MPLtabWidgetPlotHistory.setCurrentIndex(0)
+        
         #Launch plot in bringing up the application
         self.DoPlot()
     
     def SelectWorkspace(self):
         #get selected workspace
         wsindx=self.ui.MPLcomboBoxActiveWorkspace.currentIndex()
-        if wsindx==0:
-            #case where we have selected the descriptive text - no workspace selected
-            self.ws=''  #clear out the workspace in this case
+        self.ui.MPLcurrentWS=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
+        if self.ui.MPLcurrentWS=='':
+            #case where we do not have a workspace
+            return
         else:
-            self.ws=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
             
-        print "Selected Workspace: ",self.ws
+            #now check if it's a 2D or 1D workspace - need to make sure that Data Formatting is enabled for 2D and disabled for 1D
+            ws=mtd.retrieve(self.ui.MPLcurrentWS)
+            NXbins=ws.getXDimension().getNBins()
+            NYbins=ws.getYDimension().getNBins()
+            print "NXbins: ",NXbins,"  NYbins: ",NYbins
+            if NXbins > 1 and NYbins > 1:
+                #case for a 2D workspace - enable Data Formatting
+                print "Enabling Data Formatting"
+                self.ui.MPLgroupBoxDataFormat.setEnabled(True)
+            else:
+                # 1D case to disable Data Formatting
+                print "Disabling Data Formatting"
+                self.ui.MPLgroupBoxDataFormat.setEnabled(False)
+                set1DBinVals(self,ws)
+        
+        #update the selected workspace label in the comments tab
+        self.getComments()
+                
+        print "Selected Workspace: ",self.ui.MPLcurrentWS
 
+    def DoImport(self):
+        #case to check mantid workspaces for workspaces created by Slice Viewer
+        #Looking for two workspaces
+        #  <ws>_line
+        #  <ws>_rebinned
+        #
+        # Will use <ws>_line to re-generate the Q and E ranges that produced the line plot
+        # <ws>_rebinned contains the rebinned data from with to re-create the line plot shown in Slice Viewer
+        # The advantage to re-creating the line plot versus just using the line plot from <ws>_line is that
+        # one can use the MPLPowderCut tool to modify the ranges to sum else one is stuck with just the one 
+        # plot view obtained from the <ws>_line workspace.
+        
+        #check if Not to ask user for overwritting Data Formatting values exists
+        try:
+            #case that it does, do nothing here
+            self.MPLNoAsk
+        except:
+            #case that it does not so set no ask to false
+            self.MPLNoAsk=False
+        
+        if self.MPLNoAsk==True:
+            #case not to present dialog
+            pass
+        else:
+            #present dialog
+            title=QtCore.QString('Warning!')
+            msg=QtCore.QString('Continuing will Overwrite Data Formatting Values with those from the Slice Viewer')
+            txt1=QtCore.QString('Continue')
+            txt2=QtCore.QString('Continue and Do Not Ask Again')
+            txt3=QtCore.QString('Exit')
+            button=QtGui.QMessageBox.warning(self,title,msg,txt1,txt2,txt3)
+            print "Button Pressed: ",button
+            if button==0:
+                self.MPLNoAsk=False
+            elif button==1:
+                self.MPLNoAsk=True
+            elif button==2:
+                return #exit out of this function if this button is selected
+            else:
+                pass   
+        #if we get here, we've gotten to the point to import information created by Slice Viewer
+        getSVValues(self) #call to MPLPowderCutHelpers.py   
+        
+
+        
+        
     def DoOPlot(self):
         self.doOPlot=True
         self.DoPlot()
@@ -151,411 +236,8 @@ class MPLPowderCut(QtGui.QMainWindow):
         
     def DoPlot(self):
         print "*************** Do Plot *********************"
-        
-        if not(self.doOPlot):self.ui.MPLpushButtonSavePlot.setEnabled(True)
-        
-        #need to retrieve plot config settings to perform the plot
-        #line color
-        linecolor=str(self.ui.MPLcomboBoxColor.currentText())
-        print "line color: ",linecolor
-        
-        #line style
-        sindx=self.ui.MPLcomboBoxLineStyle.currentIndex()
-        if sindx == 0:
-            style='-'
-        elif sindx == 1:
-            style='--'
-        elif sindx == 2:
-            style='-.'
-        elif sindx == 3:
-            style=':'
-        else:
-            style=''
+        DoPlotMSlice(self) #call to MPLPowderCutHelpers.py  
 
-        markercolor=str(self.ui.MPLcomboBoxColorMarker.currentText())
-        print "marker color: ",markercolor
-        msindx=self.ui.MPLcomboBoxMarker.currentIndex()
-        print "marker index: ",msindx
-        if msindx == 0:
-            mstyle='o'
-        elif msindx == 1:
-            mstyle='v'
-        elif msindx == 2:
-            mstyle='^'
-        elif msindx == 3:
-            mstyle='<'
-        elif msindx == 4:
-            mstyle='>'
-        elif msindx == 5:
-            mstyle='s'
-        elif msindx == 6:
-            mstyle='p'
-        elif msindx == 7:
-            mstyle='*'
-        elif msindx == 8:
-            mstyle='h'
-        elif msindx == 9:
-            mstyle='H'
-        elif msindx == 10:
-            mstyle='+'
-        elif msindx == 11:
-            mstyle='x'
-        elif msindx == 12:
-            mstyle='D'
-        elif msindx == 13:
-            mstyle='d'
-        elif msindx == 14:
-            mstyle='|'
-        elif msindx == 15:
-            mstyle='_'
-        elif msindx == 16:
-            mstyle='.'
-        elif msindx == 17:
-            mstyle=','
-        elif msindx == 18:
-            mstyle=''
-        else:
-            mstyle=''            
-         
-        print "mstyle: ",mstyle
-        
-        #get plot title
-        try:
-            plttitle=str(self.ui.MPLlineEditLabelsTitle.text())
-        except:
-            plttitle=''
-        print "plttitle: ", plttitle
-        
-        try:
-            pltlegend=str(self.ui.MPLlineEditLabelsLegend.text())
-        except:
-            pltlegend=''
-        print "pltlegend: ",pltlegend
-        
-        #get location placement for the legend
-        legloc=str(self.ui.MPLcomboBoxLegendPos.currentText())
-        
-        #query GUI for X and Y axes
-        #X axis from "along" combo box
-        xindx=self.ui.MPLcomboBoxPowderCutAlong.currentIndex()
-        print "xindx: ",xindx
-        if xindx==0:
-            #Energy
-            XAxisStr="E (meV)"
-        elif xindx==1:
-            #|Q|
-            XAxisStr='|Q| ($\AA^{-1}$)'
-        elif xindx==2:
-            #2Theta
-            XAxisStr=r'2theta ($^o$)'
-        elif xindx==3:
-            #Det Pixels
-            XAxisStr="Detector Pixel"
-        else:
-            #undefined case...
-            pass
-            
-        
-        #Y axis from "y" combo box MPLcomboBoxPowderCutY
-        yindx=self.ui.MPLcomboBoxPowderCutY.currentIndex()
-        print "yindx: ",yindx
-        if yindx==0:
-            #Intensity - get label from GUI MPLlineEditLabelsIntensity
-            YAxisStr=str(self.ui.MPLlineEditLabelsIntensity.text())
-            if YAxisStr == '':
-                #use a default Y axis string if the GUI does not have a value
-                YAxisStr="Intensity (arb. units)"
-        elif yindx==1:
-            #Energy
-            YAxisStr="E (meV)"
-        elif yindx==2:
-            #|Q|
-            YAxisStr=r'|Q| ($\AA^{-1}$)'
-        elif yindx==3:
-            #2Theta
-            YAxisStr=r'2theta ($^o$)'
-        elif yindx==4:
-            #Det Pixels
-            YAxisStr="Detector Pixel"
-        else:
-            #undefined case...
-            pass        
-        
-        #get selected workspace from combo box
-        ws_sel=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
-        
-        #now extract data from workspace
-        ws=mtd.retrieve(ws_sel)
-
-        wsX=ws.getXDimension()
-        wsY=ws.getYDimension()
-        
-        xmin=wsX.getMinimum()
-        xmax=wsX.getMaximum()
-        
-        ymin=wsY.getMinimum()
-        ymax=wsY.getMaximum()
-        
-        xname= wsX.getName()
-        yname= wsY.getName()
-        
-        delx=xmax-xmin
-        dely=ymax-ymin
-        
-        #verify that data are ordered as expected
-        if ((xname != '|Q|') or (yname != 'E')):
-            print "---> Data order mismatch...data order verification needed"
-            #FIXME eventually should not just check, but correct this condition
-        
-        #for now, just figure out if Q or E is along the x axis...
-        indx=self.ui.MPLcomboBoxPowderCutAlong.currentIndex()
-        print "indx: ",indx
-        if indx==0:
-            #case for Energy along x axis
-            minv=ymin
-            maxv=ymax
-            
-            #determine the ranges of data to work with
-            #from:to
-            if str(self.ui.MPLlineEditPowderCutAlongFrom.text()) != '':
-                Afrom=float(str(self.ui.MPLlineEditPowderCutAlongFrom.text()))
-            else:
-                Afrom=minv
-            print "trash: ",str(self.ui.MPLlineEditPowderCutAlongTo.text()) == ''
-            print "trash type: ",type(self.ui.MPLlineEditPowderCutAlongTo.text())
-            print 
-            if str(self.ui.MPLlineEditPowderCutAlongTo.text()) != '':
-                Ato=float(str(self.ui.MPLlineEditPowderCutAlongTo.text()))
-            else:
-                Ato=maxv
-            if str(self.ui.MPLlineEditPowderCutAlongStep.text()) != '':
-                Astep=float(str(self.ui.MPLlineEditPowderCutAlongStep.text()))
-            else:
-                Astep=0.035  #FIXME - this value should eventually be obtained from a config.py file
-            if str(self.ui.MPLlineEditPowderCutThickFrom.text()) != '':
-                Tfrom=float(str(self.ui.MPLlineEditPowderCutThickFrom.text()))
-            else:
-                Tfrom=xmin
-            if str(self.ui.MPLlineEditPowderCutThickTo.text()) != '':
-                Tto=float(str(self.ui.MPLlineEditPowderCutThickTo.text()))
-            else:
-                Tto=xmax
-            
-            Qmin=Tfrom
-            Qmax=Tto
-            Emin=Afrom
-            Emax=Ato
-            Amin=Afrom
-            Amax=Ato
-                
-            Nxbins=100
-            Nybins=100
-#            Nxbins=int((Ato-Afrom)/Astep)
-#            Nybins=int((Ato-Afrom)/Astep)
-
-            
-        elif indx==1:
-            #case for Q along x axis
-            minv=xmin
-            maxv=xmax
-            
-            #determine the ranges of data to work with
-            #from:to
-            if str(self.ui.MPLlineEditPowderCutAlongFrom.text()) != '':
-                Afrom=float(str(self.ui.MPLlineEditPowderCutAlongFrom.text()))
-            else:
-                Afrom=minv
-            if str(self.ui.MPLlineEditPowderCutAlongTo.text()) != '':
-                Ato=float(str(self.ui.MPLlineEditPowderCutAlongTo.text()))
-            else:
-                Ato=maxv
-            if str(self.ui.MPLlineEditPowderCutAlongStep.text()) != '':
-                Astep=float(str(self.ui.MPLlineEditPowderCutAlongStep.text()))
-            else:
-                Astep=0.035  #FIXME - this value should eventually be obtained from a config.py file
-            if str(self.ui.MPLlineEditPowderCutThickFrom.text()) != '':
-                Tfrom=float(str(self.ui.MPLlineEditPowderCutThickFrom.text()))
-            else:
-                Tfrom=ymin
-            if str(self.ui.MPLlineEditPowderCutThickTo.text()) != '':
-                Tto=float(str(self.ui.MPLlineEditPowderCutThickTo.text()))
-            else:
-                Tto=ymax
-                
-            Qmin=Afrom
-            Qmax=Ato
-            Emin=Tfrom
-            Emax=Tto
-            Amin=Afrom
-            Amax=Ato
-                
-            Nxbins=100
-            Nybins=100#int((Ato-Afrom)/Astep)
-#            Nxbins=int((Ato-Afrom)/Astep)
-#            Nybins=int((Ato-Afrom)/Astep)
-
-                
-        else:
-            print "combo box index currently not supported...plot not updated and returning"
-            return
-        
-        #check if the user has selected too many bins.
-        if ((Nxbins > 1000) or (Nybins > 1000)):
-            reply = QtGui.QMessageBox.question(self, 'Message',
-                "The number of bins will exceed 1000 - continue (yes) or return (no) to reselect step size?", QtGui.QMessageBox.Yes | 
-                QtGui.QMessageBox.No, QtGui.QMessageBox.No)
-
-            if reply == QtGui.QMessageBox.Yes:
-                #case to continue 
-                pass
-            else:
-                #case to return and reselect
-                return    
-            
-            
-            
-        #bin the data
-        ad0=xname+','+str(Qmin)+','+str(Qmax)+','+str(Nxbins)  #|Q|
-        ad1=yname+','+str(Emin)+','+str(Emax)+','+str(Nybins)  # E
-        
-        print "ad0: ",ad0
-        print "ad1: ",ad1
-        
-        MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)
-        MDHflatten=MDHistoToWorkspace2D(MDH)
-        MDHflatten.setTitle(str(self.ui.MPLcomboBoxActiveWorkspace.currentText())) 
-        
-        self.currentPlotWS=MDHflatten
-        sig_orig=MDH.getSignalArray()
-        sig=np.copy(sig_orig) #provide a working copy of the data to keep the original data in tact
-        ne=MDH.getNumEventsArray()
-#                dne=sig/ne
-        dne=sig       
-        
-        dims=sig.shape
-        NQ=dims[0]
-        NE=dims[1]
-        
-        Emini=int(float(Emin-ymin)/float(dely)*NE)
-        Emaxi=int(float(Emax-ymin)/float(dely)*NE)
-        Qmini=int(float(Qmin-xmin)/float(delx)*NQ)
-        Qmaxi=int(float(Qmax-xmin)/float(delx)*NQ)
-        
-        print "Emini: ",Emini,"  Emaxi: ",Emaxi," NE: ",NE," Emin: ",Emin," Emax: ",Emax," ymax: ",ymax," dely: ",dely
-        print "Qmini: ",Qmini,"  Qmaxi: ",Qmaxi," NQ: ",NQ," Qmin: ",Qmin," Qmax: ",Qmax," xmax: ",xmax," delx: ",delx
-       
-        
-        #now sum the data
-        if indx==0:
-            #case for Energy along x axis
-            sigsum=np.sum(sig[Emini:Emaxi,Qmini:Qmaxi],1) #produces E plot
-        elif indx==1:
-            #case for Q along x axis
-            sigsum=np.sum(sig[Emini:Emaxi,Qmini:Qmaxi],0) #produces |Q| plot
-        else:
-            print "combo box index currently not supported...plot not updated and returning"
-            return           
-
-        if str(self.ui.MPLlineEditPowderCutYFrom.text()) != '':
-            Yfrom=float(str(self.ui.MPLlineEditPowderCutYFrom.text()))
-        else:
-            Yfrom=np.min(sigsum) #use a conservative minimum value
-        if str(self.ui.MPLlineEditPowderCutYTo.text()) != '':
-            Yto=float(str(self.ui.MPLlineEditPowderCutYTo.text()))
-        else:
-            Yto=np.max(sigsum) #use an upper bound maximum value
-            
-        mn=np.min(sigsum)
-        mx=np.max(sigsum)
-        print "** mn: ",mn," mx: ",mx
-        
-        print "type(dne): ",type(dne)
-        print "dne.shape: ",dne.shape
-        print "type(sigsum): ",type(sigsum)
-        print "sigsum.shape: ",sigsum.shape
-        print "XAxisStr: ",XAxisStr
-        print "YAxisStr: ",YAxisStr
-                
-        #use a loop to plot once to the PyQt figure and second to the shadow figure
-        for pl in range(2):   
-            if pl == 0:
-                self.canvas #enable drawing area
-                fig=self.figure
-            else:
-                self.shadowCanvas
-                fig=self.shadowFigure
-            plt.figure(fig.number)
-
-            #plot data
-            ax=plt.subplot(111)
-            if not(self.doOPlot):plt.clf
-            if self.doOPlot:plt.hold(True)
-            print "min(sigsum): ",np.min(sigsum),"  max(sigsum):", np.max(sigsum)
-            plt.plot(sigsum,color=linecolor,linestyle=style,label=pltlegend)
-            plt.legend(loc=legloc)
-            if not(self.doOPlot):
-                
-                plt.title(plttitle)
-                plt.xlabel(XAxisStr,labelpad=20)
-                plt.ylabel(YAxisStr)
-                if ((str(self.ui.MPLlineEditPowderCutYFrom.text())) != '' and (str(self.ui.MPLlineEditPowderCutYTo.text()) != '')):
-                    rmin=float(str(self.ui.MPLlineEditPowderCutYFrom.text()))
-                    rmax=float(str(self.ui.MPLlineEditPowderCutYTo.text()))
-                    plt.ylim([rmin,rmax])
-                else:
-                    plt.ylim([np.min(sigsum),np.max(sigsum)])
-            plt.hold(True)
-            #overplot markers
-            plt.plot(sigsum,color=markercolor,marker=mstyle,linestyle='')
-            plt.hold(False)
-
-    #       draw new axis
-            print "Amin: ",Amin
-            print "Amax: ",Amax
-            print "Qmin: ",Qmin
-            print "Qmax: ",Qmax
-            print "Emin: ",Emin
-            print "Emax: ",Emax
-
-            Nticks=5.0
-            delv=np.abs(Amax-Amin)
-            tick_locations=delv*np.arange(Nticks)/(Nticks-1)+Amin
-            #limit to 1 decimal place
-            tick_locations=tick_locations.astype('float')
-            tick_locations=tick_locations*10
-            tick_locations=tick_locations.astype('int')
-            tick_locations=tick_locations.astype('float')
-            tick_locations=tick_locations/10
-            tick_vals=[]
-            for n in tick_locations:
-                tick_vals.append(str(n))
-                    
-            plt.setp( ax.get_xticklabels(), visible=False)
-            plt.setp( ax.get_xticklines(), visible=False)
-            
-            ax1=plt.twiny()
-            plt.setp( ax1.get_xticklabels(), visible=True)
-            plt.setp( ax1.get_xticklines(), visible=True)
-            ax1.set_xticks(tick_locations) #new locations - sets number of ticks
-            ax1.set_xticklabels(tick_vals) #new values - sets values of the ticks
-            ax1.xaxis.set_ticks_position('bottom')
-            ax1.set_axisbelow(True)
-            
-            if pl == 0:
-                self.canvas.draw()
-                self.canvas.setVisible(True)
-
-                print "self.figure.number: ",self.figure.number
-                pass
-            else:
-                self.shadowCanvas.draw()
-                self.shadowCanvas.setVisible(False)
-
-                print "self.shadowFigure.number: ",self.shadowFigure.number
-                pass
-
-        #clear oplot flag
-        self.doOPlot=False
         
         
     def DoAnnotate(self):
@@ -675,14 +357,14 @@ class MPLPowderCut(QtGui.QMainWindow):
             #case where the button was pushed more than once and arrow should already be gone...do nothing
             pass
             
-    def SavePlot(self):
+    def PopPlot(self):
         
         self.shadowCanvas.setVisible(True)
         self.shadowFigure = plt.figure()
         self.shadowCanvas=FigureCanvas(self.shadowFigure)
         self.shadow_navigation_toolbar = NavigationToolbar(self.shadowCanvas, self.shadowCanvas)
         
-        self.ui.MPLpushButtonSavePlot.setEnabled(False)
+        self.ui.MPLpushButtonPopPlot.setEnabled(False)
         """
         winID=self.ui.MPLframe.effectiveWinId()
         print " Save Window ID: ",winID
@@ -713,7 +395,7 @@ class MPLPowderCut(QtGui.QMainWindow):
         """
             
             
-    def SaveData(self):
+    def SaveASCII(self):
         ws=self.currentPlotWS
         print "ws.getTitle: ",ws.getTitle()
         print "type(ws): ",type(ws)
@@ -722,6 +404,277 @@ class MPLPowderCut(QtGui.QMainWindow):
         wsname=fname+filter
         fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save ASCII Data', fname,filter))
         SaveAscii(ws,fsavename)
+        
+    def SaveHistory(self):
+        #case to extract the tree widget structure and save the items to file
+        #must first Update History to fill the tree structure - so find the number of items in the tree first
+        NTreeItems=self.ui.treeWidgetHistory.topLevelItemCount()
+        if NTreeItems <= 0:
+            #case where no items are in the tree - inform user and return
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("No workspace history found - From History tab, run Update History then use Save History")
+            dialog.exec_()  
+        else:
+            #case to get the filename and save history to file
+            filter='.txt'
+            #get workspace name from workspace label
+            wsName=str(self.ui.MPLlabelWSName.text())
+            #parse out workspace name from the label
+            wsName=wsName.split(": ")
+            wsName=wsName[1] #extract just the workspace name to preface the output filename
+            fname=wsName+filter
+            fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace History to File', fname,filter))
+            if fsavename != '':
+                #case to save history
+                #open file
+                with open(fsavename, 'w') as f:
+                    #write header info
+                    f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                    f.write('\r')
+                    f.write(str(self.ui.MPLlabelWSName.text()))
+                    f.write('\r')
+                    #now progress through the tree for each item
+                    for i in range(NTreeItems):
+                        item=self.ui.treeWidgetHistory.topLevelItem(i)
+                        f.write(str(item.text(0)))
+                        f.write('\r')
+                        NChildren=item.childCount()
+                        if NChildren > 0:
+                            #then write each item child to file
+                            for j in range(NChildren):
+                                txt=str(item.child(j).text(0))
+                                f.write('\t')
+                                f.write(txt)
+                                f.write('\r')
+
+        
+    def SavePlotWS(self):
+        #check if a workspace is a 1D plot workspace and if so, save it
+        print " self.ui.current1DWorkspace: ",self.ui.current1DWorkspace
+        try:
+            MDH1D=self.ui.current1DWorkspace
+        except:
+            #case where there is no 1D workspace to save
+            print "No 1D workspace to save - returning"
+            return
+        #create a workspace save name based upon the workspace name in the Select Workspace pull down menu
+        wsName=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
+        wsName=wsName+'_1D'
+        ws=wsName #placeholder string name that will become a workspace when Load() occurs below
+        filter='.nxs'
+        fname=wsName+filter
+        fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save 1D Workspace', fname,filter))
+        #need to update wsName to be commensurate with the filename once the user has specified the workspace filename
+        tmp=basename(fsavename) #returns the filename
+        tmp=tmp.split('.')
+        wsName=tmp[0] 
+        #then need to update the workspace name to match the requested workspace name
+        mtd.addOrReplace(wsName,MDH1D)
+        print "** fsavename: ",fsavename
+        if fsavename != '':
+            #case to save workspace
+            print "Saving workspace: ",MDH1D.name()
+            print "  Workspace ID: ",MDH1D.id()
+            try:
+                #first try to save as MD workspace
+                SaveMD(MDH1D,Filename=fsavename) #save workspace
+            except:
+                try:
+                    #if saving as MD fails, try SaveNexus
+                    SaveNexus(MDH1D,Filename=fsavename) #save workspace
+                except:
+                    #otherwise - give up...
+                    print "Unable to successfully save workspace - returning"
+                    return
+
+            Load(fsavename,OutputWorkspace=ws) #loading workspace back in under new name is easiest way (I know) to associate the workspace with the name
+        else:
+            print "No filename given - returning"
+            return
+        #Now add workspace to the list of workspaces in the MPL Select Workspace list    
+        #but fitst check if the name already exists and only add new names
+        Nws=self.ui.MPLcomboBoxActiveWorkspace.count()
+        cnt=0
+        for i in range(Nws):
+            CBitemName=self.ui.MPLcomboBoxActiveWorkspace.itemText(i)
+            print "CBitemName: ",CBitemName
+            if CBitemName == wsName:
+                #if we find the name already, increment counter indicating the find
+                cnt+=1
+        print "cnt: ",cnt
+        if cnt == 0:
+            #case to add new workspace name
+            self.ui.MPLcomboBoxActiveWorkspace.insertItem(Nws,wsName)
+            #set Select Workspace to this new workspace
+            self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(Nws)
+            
+        #need to disable the Data Formatting block since the 1D workspace should not be rebinned
+        self.ui.MPLgroupBoxDataFormat.setEnabled(False)
+        
+        #also need to add workspace name to Workspace Manager table
+        table=self.parent.ui.tableWidgetWorkspaces
+        workspaceLocation=''
+        addWStoTable(table,wsName,workspaceLocation)
+
+        
+    def UpdateHistory(self):
+        #method to update the Tree Widget tab with the history information from the file in the 'Select Workspace' pulldown menu
+        #find the workspace to get the history from        
+        wsName=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
+        
+        if wsName == '':
+            print "No workspace selected - returning"
+            return
+        
+        ws=mtd.retrieve(wsName)
+        
+        NEntries=len(ws.getHistory().getAlgorithmHistories())
+        
+        try:
+            #check if there is past history in the tree and clear it
+            self.ui.treeWidgetHistory.clear()
+        except:
+            #if no past history, move onward
+            pass
+        
+        for i in range(NEntries):
+            NTags=len(ws.getHistory().getAlgorithmHistories()[i].getProperties())
+            print ws.getHistory().getAlgorithmHistories()[i].name()
+            entry=ws.getHistory().getAlgorithmHistories()[i].name()
+            newItem=QtGui.QTreeWidgetItem( [entry])
+            for j in range(NTags):
+                name=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name()
+                value=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value()
+                txt="  "+name+": "+value
+                if value != '':
+                    #print "  ",name,": ",value
+                    child=QtGui.QTreeWidgetItem( [txt])
+                    newItem.addChild(child)
+                else:
+                    pass
+            self.ui.treeWidgetHistory.addTopLevelItem(newItem)    
+            if self.ui.MPLcheckBoxExpandAll.isChecked():
+                #case to expand items in tree widget
+                self.ui.treeWidgetHistory.expandItem(newItem)
+            else:
+                self.ui.treeWidgetHistory.collapseItem(newItem)
+        #set the workspace name text field so people know which history is being shown
+        self.ui.MPLlabelWSName.setText("Workspace: "+wsName)
+        
+    def ExpandAll(self):
+        self.UpdateHistory()
+
+    def UpdateComments(self):
+        #method to update the Tree Widget tab with the history information from the file in the 'Select Workspace' pulldown menu
+        #find the workspace to get the history from        
+        wsName=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
+        
+        if wsName == '':
+            print "No workspace selected - returning"
+            return
+        
+        ws=mtd.retrieve(wsName)
+        
+        NEntries=len(ws.getHistory().getAlgorithmHistories())
+        
+        #check readonly status - should only get here if readonly not enabled
+        if self.ui.MPLcheckBoxReadOnly.isChecked():
+            print "ReadOnly case mismatch - returning"
+            return
+        
+        #Read in text from text 
+        txt=self.ui.MPLtextEditComments.toPlainText()
+        txtstr=str(txt)
+        print "** type(txtstr): ",type(txtstr)
+        print "** txtstr: ",txtstr
+            
+        #Put text into workspace
+        ws.setComment(txtstr)
+        
+        #Save workspace
+        #create a workspace save name based upon the workspace name in the Select Workspace pull down menu
+        wsName=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
+        filter='.nxs'
+        fname=wsName+filter
+        fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', fname,filter))
+        #need to update wsName to be commensurate with the filename once the user has specified the workspace filename
+        tmp=basename(fsavename) #returns the filename
+        tmp=tmp.split('.')
+        wsName=tmp[0] 
+        #then need to update the workspace name to match the requested workspace name
+        mtd.addOrReplace(wsName,ws)
+        print "** fsavename: ",fsavename
+        if fsavename != '':
+            #case to save workspace
+            print "Saving workspace: ",ws.name()
+            print "  Workspace ID: ",ws.id()
+            try:
+                #first try to save as MD workspace
+                SaveMD(ws,Filename=fsavename) #save workspace
+            except:
+                try:
+                    #if saving as MD fails, try SaveNexus
+                    SaveNexus(ws,Filename=fsavename) #save workspace
+                except:
+                    #otherwise - give up...
+                    print "Unable to successfully save workspace - returning"
+                    return
+
+            Load(fsavename,OutputWorkspace=ws) #loading workspace back in under new name is easiest way (I know) to associate the workspace with the name
+        else:
+            print "No filename given - returning"
+            return
+        #Now add workspace to the list of workspaces in the MPL Select Workspace list    
+        #but fitst check if the name already exists and only add new names
+        Nws=self.ui.MPLcomboBoxActiveWorkspace.count()
+        cnt=0
+        for i in range(Nws):
+            CBitemName=self.ui.MPLcomboBoxActiveWorkspace.itemText(i)
+            print "CBitemName: ",CBitemName
+            if CBitemName == wsName:
+                #if we find the name already, increment counter indicating the find
+                cnt+=1
+        print "cnt: ",cnt
+        if cnt == 0:
+            #case to add new workspace name
+            self.ui.MPLcomboBoxActiveWorkspace.insertItem(Nws,wsName)
+            #set Select Workspace to this new workspace
+            self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(Nws)        
+
+        #set the workspace name text field so people know which history is being shown
+        self.ui.MPLlabelCSelectedWorkspace.setText("Workspace: "+wsName)        
+        
+    def ReadOnly(self):
+        #checkbox for the Comments tab to determine if comments are read only or editable
+        #default is read only
+
+        if self.ui.MPLcheckBoxReadOnly.isChecked():
+            #case to make text area read only
+            self.ui.MPLtextEditComments.setReadOnly(True)
+            self.ui.MPLpushButtonSaveComments.setEnabled(False)
+        else:
+            #case to enable editing 
+            self.ui.MPLtextEditComments.setReadOnly(False)
+            self.ui.MPLpushButtonSaveComments.setEnabled(True)
+            self.ui.MPLtextEditComments.setFocus(True)
+            
+    def getComments(self):
+        #method to call to extract comments from a file and place them in the Comments tab
+        wsName=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
+        if wsName == '':
+            print "No workspace selected - returning"
+            return
+        #retrive the workspace
+        ws=mtd.retrieve(wsName)        
+
+        #update comments tab workspace selected label
+        self.ui.MPLlabelCSelectedWorkspace.setText('Workspace: '+wsName)
+        #get text string from current workspace
+        txtstr=ws.getComment()
+        print "txtstr: ",txtstr
+        #write it to text edit
+        self.ui.MPLtextEditComments.setText(txtstr)
+        
         
     def Done(self):
         reply = QtGui.QMessageBox.question(self, 'Message',
