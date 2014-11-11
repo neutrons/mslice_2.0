@@ -564,16 +564,26 @@ def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
     
     #get constants
     #const=constants()
+    print "** In addmemWStoTable"
+    print "table: ",table
+    print "wsname: ",wsname
+    print "wstype: ",wstype
+    print "wssize: ",wssize
+    print "wsindex: ",wsindex
 
     #Need to check if workspace already exists in table
     Nrows=table.rowCount()
     for row in range(Nrows):   
-        wschk=str(table.item(row,config.WSM_WorkspaceCol).text())
-        print "wschk: ",wschk
-        print "wsname: ",wsname
-        if wschk == wsname:
-            print "Duplicate workspace name - not adding another entry and returning"
-            return
+        try:
+            wschk=str(table.item(row,config.WSM_WorkspaceCol).text())
+            print "wschk: ",wschk
+            print "wsname: ",wsname
+            if wschk == wsname:
+                print "Duplicate workspace name - not adding another entry and returning"
+                return
+        except:
+            #just skip this test with any empty rows that might be in the table
+            pass
 
     #Overriding wstype and just using the workspace ID here
     ws=mtd.retrieve(wsname)

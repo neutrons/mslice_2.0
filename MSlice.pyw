@@ -368,6 +368,8 @@ class MSlice(QtGui.QMainWindow):
                 print "pws_out: ",pws_out
                 print "pws_type: ",pws_type
                 print "pws_size: ",pws_size
+                print "table: ",table
+                print "config.WSM_SelectCol: ",config.WSM_SelectCol
                 table.insertRow(pws_indx)
                 addmemWStoTable(table,pws_out,pws_type,pws_size,pws_indx)
                 addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False) #row was: pws_indx-1
