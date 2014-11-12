@@ -766,11 +766,14 @@ def getSVValues(self):
     NMPLCombo=self.ui.MPLcomboBoxActiveWorkspace.count()
     if NMPLCombo >0:
         #case where there are more than 0 workspaces in the list
-        wsMPLCombo=[self.ui.MPLcomboBoxActiveWorkspace.itemText(i) for i in range(NMPLCombo)]
-        
+        wsMPLCombo=[str(self.ui.MPLcomboBoxActiveWorkspace.itemText(i)) for i in range(NMPLCombo)]
+        indx=wsMPLCombo.index(wsSel)
+        print " wsMPLCombo: ",wsMPLCombo
     #now check if wsSel is already on the list
     if any(wsSel in w for w in wsMPLCombo):
-        #case where it's already there - do nothing
+        #case where it's already in the list so set this 2D workspace as the 
+        #current workspace in the MPL workspace selection combo box
+        self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(indx)
         pass
     else:
         #case to add the workspace to the list
