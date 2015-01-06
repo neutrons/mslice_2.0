@@ -16,6 +16,10 @@
 
 """
 import sys, os
+#handle potential deprecation warnings as psutil is in transition from
+#version 1 to version 2
+import warnings
+warnings.filterwarnings('ignore',category=DeprecationWarning)
 import psutil
 #import Mantid computatinal modules
 sys.path.append(os.environ['MANTIDPATH'])
@@ -516,7 +520,7 @@ def ListWorkspaces(workspace):
 def constantUpdateActor(self):
     #const=constants()
     #mode to show status in percentage
-    cpu_stats = psutil.cpu_times_percent(interval=1,percpu=False)
+    cpu_stats = psutil.cpu_times_percent(interval=0.1,percpu=False)
     percentcpubusy = 100.0 - cpu_stats.idle
     self.ui.progressBarStatusCPU.setValue(percentcpubusy)
     percentmembusy=psutil.virtual_memory().percent

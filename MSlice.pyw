@@ -1235,9 +1235,10 @@ class MSlice(QtGui.QMainWindow):
                 ad1=yname+','+str(ymin)+','+str(ymax)+',100'
                 print "ad0: ",ad0
                 print "ad1: ",ad1
-                MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)
-                sig=MDH.getSignalArray()
-                ne=MDH.getNumEventsArray()
+                BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1,OutputWorkspace="__MDH")
+                __MDH=mtd.retrieve('__MDH')
+                sig=__MDH.getSignalArray()
+                ne=__MDH.getNumEventsArray()
                 dne=sig/ne
  #               dne=sig  #use to just look at the signal array
                 
@@ -1496,8 +1497,18 @@ class MSlice(QtGui.QMainWindow):
 
 		
 if __name__=="__main__":
-    app = QtGui.QApplication(sys.argv)
-    msliceapp = MSlice()
-    msliceapp.show()
-
-    sys.exit(app.exec_())
+    activeWin=QtGui.QApplication.activeWindow()
+    print "Active Window: ",activeWin
+    if activeWin == None:
+        #case where running this application as a standalone application
+        app = QtGui.QApplication(sys.argv)
+        msliceapp = MSlice()
+        msliceapp.show()
+        exit_code=app.exec_()
+        print "exit code: ",exit_code
+        sys.exit(exit_code)
+    else:
+        #case running this application within an existing app such as mantidplot
+        #in this case, do not need to create application or handle exit case
+        msliceapp = MSlice()
+        msliceapp.show()

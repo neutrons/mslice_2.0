@@ -72,11 +72,11 @@ class MPLPowderCut(QtGui.QMainWindow):
         Nws=len(wslist)
         wstotlist=[]
         for n in range(Nws):
-            tmpws=mtd.retrieve(wslist[n])
-            if 'Group' in str(type(tmpws)):
+            __tmpws=mtd.retrieve(wslist[n])
+            if 'Group' in str(type(__tmpws)):
             #case to get all workspace names from the group
-                for ws in tmpws:
-                    wstotlist.append(ws)
+                for __ws in __tmpws:
+                    wstotlist.append(__ws)
             else:
                 #case we just have a single workspace
                 wstotlist.append(wslist[n])
@@ -170,9 +170,9 @@ class MPLPowderCut(QtGui.QMainWindow):
         else:
             
             #now check if it's a 2D or 1D workspace - need to make sure that Data Formatting is enabled for 2D and disabled for 1D
-            ws=mtd.retrieve(self.ui.MPLcurrentWS)
-            NXbins=ws.getXDimension().getNBins()
-            NYbins=ws.getYDimension().getNBins()
+            __ws=mtd.retrieve(self.ui.MPLcurrentWS)
+            NXbins=__ws.getXDimension().getNBins()
+            NYbins=__ws.getYDimension().getNBins()
             print "NXbins: ",NXbins,"  NYbins: ",NYbins
             if NXbins > 1 and NYbins > 1:
                 #case for a 2D workspace - enable Data Formatting
@@ -182,7 +182,7 @@ class MPLPowderCut(QtGui.QMainWindow):
                 # 1D case to disable Data Formatting
                 print "Disabling Data Formatting"
                 self.ui.MPLgroupBoxDataFormat.setEnabled(False)
-                set1DBinVals(self,ws)
+                set1DBinVals(self,__ws)
         
         #update the selected workspace label in the comments tab
         self.getComments()
@@ -214,11 +214,11 @@ class MPLPowderCut(QtGui.QMainWindow):
             pass
         else:
             #present dialog
-            title=QtCore.QString('Warning!')
-            msg=QtCore.QString('Continuing will Overwrite Data Formatting Values with those from the Slice Viewer')
-            txt1=QtCore.QString('Continue')
-            txt2=QtCore.QString('Continue and Do Not Ask Again')
-            txt3=QtCore.QString('Exit')
+            title=_fromUtf8('Warning!')
+            msg=_fromUtf8('Continuing will Overwrite Data Formatting Values with those from the Slice Viewer')
+            txt1=_fromUtf8('Continue')
+            txt2=_fromUtf8('Continue and Do Not Ask Again')
+            txt3=_fromUtf8('Exit')
             button=QtGui.QMessageBox.warning(self,title,msg,txt1,txt2,txt3)
             print "Button Pressed: ",button
             if button==0:
@@ -402,14 +402,14 @@ class MPLPowderCut(QtGui.QMainWindow):
             
             
     def SaveASCII(self):
-        ws=self.currentPlotWS
-        print "ws.getTitle: ",ws.getTitle()
-        print "type(ws): ",type(ws)
-        fname=ws.getTitle()
+        __ws=self.currentPlotWS
+        print "__ws.getTitle: ",__ws.getTitle()
+        print "type(__ws): ",type(__ws)
+        fname=__ws.getTitle()
         filter='.txt'
         wsname=fname+filter
         fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save ASCII Data', fname,filter))
-        SaveAscii(ws,fsavename)
+        SaveAscii(__ws,fsavename)
         
     def SaveHistory(self):
         #case to extract the tree widget structure and save the items to file
@@ -458,7 +458,7 @@ class MPLPowderCut(QtGui.QMainWindow):
         #check if a workspace is a 1D plot workspace and if so, save it
         print " self.ui.current1DWorkspace: ",self.ui.current1DWorkspace
         try:
-            MDH1D=self.ui.current1DWorkspace
+            __MDH1D=self.ui.current1DWorkspace
         except:
             #case where there is no 1D workspace to save
             print "No 1D workspace to save - returning"
@@ -475,19 +475,19 @@ class MPLPowderCut(QtGui.QMainWindow):
         tmp=tmp.split('.')
         wsName=tmp[0] 
         #then need to update the workspace name to match the requested workspace name
-        mtd.addOrReplace(wsName,MDH1D)
+        mtd.addOrReplace(wsName,__MDH1D)
         print "** fsavename: ",fsavename
         if fsavename != '':
             #case to save workspace
-            print "Saving workspace: ",MDH1D.name()
-            print "  Workspace ID: ",MDH1D.id()
+            print "Saving workspace: ",__MDH1D.name()
+            print "  Workspace ID: ",__MDH1D.id()
             try:
                 #first try to save as MD workspace
-                SaveMD(MDH1D,Filename=fsavename) #save workspace
+                SaveMD(__MDH1D,Filename=fsavename) #save workspace
             except:
                 try:
                     #if saving as MD fails, try SaveNexus
-                    SaveNexus(MDH1D,Filename=fsavename) #save workspace
+                    SaveNexus(__MDH1D,Filename=fsavename) #save workspace
                 except:
                     #otherwise - give up...
                     print "Unable to successfully save workspace - returning"
@@ -541,9 +541,9 @@ class MPLPowderCut(QtGui.QMainWindow):
             print "No workspace selected - returning"
             return
         
-        ws=mtd.retrieve(wsName)
+        __ws=mtd.retrieve(wsName)
         
-        NEntries=len(ws.getHistory().getAlgorithmHistories())
+        NEntries=len(__ws.getHistory().getAlgorithmHistories())
         
         try:
             #check if there is past history in the tree and clear it
@@ -553,13 +553,13 @@ class MPLPowderCut(QtGui.QMainWindow):
             pass
         
         for i in range(NEntries):
-            NTags=len(ws.getHistory().getAlgorithmHistories()[i].getProperties())
-            print ws.getHistory().getAlgorithmHistories()[i].name()
-            entry=ws.getHistory().getAlgorithmHistories()[i].name()
+            NTags=len(__ws.getHistory().getAlgorithmHistories()[i].getProperties())
+            print __ws.getHistory().getAlgorithmHistories()[i].name()
+            entry=__ws.getHistory().getAlgorithmHistories()[i].name()
             newItem=QtGui.QTreeWidgetItem( [entry])
             for j in range(NTags):
-                name=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name()
-                value=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value()
+                name=__ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name()
+                value=__ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value()
                 txt="  "+name+": "+value
                 if value != '':
                     #print "  ",name,": ",value
@@ -588,9 +588,9 @@ class MPLPowderCut(QtGui.QMainWindow):
             print "No workspace selected - returning"
             return
         
-        ws=mtd.retrieve(wsName)
+        __ws=mtd.retrieve(wsName)
         
-        NEntries=len(ws.getHistory().getAlgorithmHistories())
+        NEntries=len(__ws.getHistory().getAlgorithmHistories())
         
         #check readonly status - should only get here if readonly not enabled
         if self.ui.MPLcheckBoxReadOnly.isChecked():
@@ -604,7 +604,7 @@ class MPLPowderCut(QtGui.QMainWindow):
         print "** txtstr: ",txtstr
             
         #Put text into workspace
-        ws.setComment(txtstr)
+        __ws.setComment(txtstr)
         
         #Save workspace
         #create a workspace save name based upon the workspace name in the Select Workspace pull down menu
@@ -617,25 +617,25 @@ class MPLPowderCut(QtGui.QMainWindow):
         tmp=tmp.split('.')
         wsName=tmp[0] 
         #then need to update the workspace name to match the requested workspace name
-        mtd.addOrReplace(wsName,ws)
+        mtd.addOrReplace(wsName,__ws)
         print "** fsavename: ",fsavename
         if fsavename != '':
             #case to save workspace
-            print "Saving workspace: ",ws.name()
-            print "  Workspace ID: ",ws.id()
+            print "Saving workspace: ",__ws.name()
+            print "  Workspace ID: ",__ws.id()
             try:
                 #first try to save as MD workspace
-                SaveMD(ws,Filename=fsavename) #save workspace
+                SaveMD(__ws,Filename=fsavename) #save workspace
             except:
                 try:
                     #if saving as MD fails, try SaveNexus
-                    SaveNexus(ws,Filename=fsavename) #save workspace
+                    SaveNexus(__ws,Filename=fsavename) #save workspace
                 except:
                     #otherwise - give up...
                     print "Unable to successfully save workspace - returning"
                     return
 
-            Load(fsavename,OutputWorkspace=ws) #loading workspace back in under new name is easiest way (I know) to associate the workspace with the name
+            Load(fsavename,OutputWorkspace=__ws) #loading workspace back in under new name is easiest way (I know) to associate the workspace with the name
         else:
             print "No filename given - returning"
             return
@@ -680,12 +680,12 @@ class MPLPowderCut(QtGui.QMainWindow):
             print "No workspace selected - returning"
             return
         #retrive the workspace
-        ws=mtd.retrieve(wsName)        
+        __ws=mtd.retrieve(wsName)        
 
         #update comments tab workspace selected label
         self.ui.MPLlabelCSelectedWorkspace.setText('Workspace: '+wsName)
         #get text string from current workspace
-        txtstr=ws.getComment()
+        txtstr=__ws.getComment()
         print "txtstr: ",txtstr
         #write it to text edit
         self.ui.MPLtextEditComments.setText(txtstr)

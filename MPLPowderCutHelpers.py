@@ -10,9 +10,9 @@ from PyQt4 import Qt,QtCore, QtGui
 def DoPlotMSlice(self):
     
     ws_sel=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
-    ws=mtd.retrieve(ws_sel)
-    NXDbins=ws.getXDimension().getNBins()
-    NYDbins=ws.getYDimension().getNBins()
+    __ws=mtd.retrieve(ws_sel)	
+    NXDbins=__ws.getXDimension().getNBins()	
+    NYDbins=__ws.getYDimension().getNBins()
     print "NXDbins: ",NXDbins,"  NYDbins: ",NYDbins
     
     #now check if it's a 2D or 1D workspace - need to make sure that Data Formatting is enabled for 2D and disabled for 1D
@@ -24,7 +24,7 @@ def DoPlotMSlice(self):
         # 1D case to disable Data Formatting
         print "Disabling Data Formatting"
         self.ui.MPLgroupBoxDataFormat.setEnabled(False)
-        set1DBinVals(self,ws)
+        set1DBinVals(self,_ws)
     
     
     
@@ -170,10 +170,10 @@ def DoPlotMSlice(self):
         ws_sel=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
     
         #now extract data from workspace
-        ws=mtd.retrieve(ws_sel)
+        __ws=mtd.retrieve(ws_sel)
     
-        wsX=ws.getXDimension()
-        wsY=ws.getYDimension()
+        wsX=__ws.getXDimension()
+        wsY=__ws.getYDimension()
     
         xmin=wsX.getMinimum()
         xmax=wsX.getMaximum()
@@ -368,21 +368,24 @@ def DoPlotMSlice(self):
         self.ui.MPLlineEditPowderCutThickTo.setText("%.3f" % float(ad1str[2]))
         self.ui.MPLlineEditPowderCutAlongNbins.setText(str(int(ad0str[3])))
         self.ui.MPLlineEditPowderCutAlongStep.setText("%.3f" % ((float(ad0str[2])-float(ad0str[1]))/float(ad0str[3])))
+        
+        #MDH is Multi-Dimension Histogram workspace.  The "__" before MDH suppreses the workspace from being displayed in mantidplot
+        BinMD(InputWorkspace=__ws,AlignedDim0=ad0,AlignedDim1=ad1,OutputWorkspace='__MDH')#2D rebinned workspace 
+        __MDH=mtd.retrieve('__MDH')
+        BinMD(InputWorkspace=__ws,AlignedDim0=ad0a,AlignedDim1=ad1a,OutputWorkspace='__MDH1D') #define a 1 bin width histogram to have BinMD do summation for us
+        __MDH1D=mtd.retrieve('__MDH1D')
     
-        MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)#2D rebinned workspace 
-        MDH1D=BinMD(InputWorkspace=ws,AlignedDim0=ad0a,AlignedDim1=ad1a) #define a 1 bin width histogram to have BinMD do summation for us
-    
-        self.ui.current1DWorkspace=MDH1D  #identify 1D workspace for use later such as with Save Plot WS
+        self.ui.current1DWorkspace=__MDH1D  #identify 1D workspace for use later such as with Save Plot WS
     
         #SaveMD(MDH,'C:\Users\mid\Documents\Mantid\Powder\MDH.nxs')  #used for debugging
             
-        MDHflatten=MDHistoToWorkspace2D(MDH)
-        MDHflatten.setTitle(str(self.ui.MPLcomboBoxActiveWorkspace.currentText())) 
-        self.currentPlotWS=MDHflatten  #MDHflatten needed for saving ASCII data
+        __MDHflatten=MDHistoToWorkspace2D(__MDH)
+        __MDHflatten.setTitle(str(self.ui.MPLcomboBoxActiveWorkspace.currentText())) 
+        self.currentPlotWS=__MDHflatten  #__MDHflatten needed for saving ASCII data
     
         if self.ui.checkBoxUseNorm.isChecked():
             #case to normalize by number of events
-            ne=MDH1D.getNumEventsArray()
+            ne=__MDH1D.getNumEventsArray()
         else:
             #else just divde by 1 to show data as is
             ne=1
@@ -397,11 +400,11 @@ def DoPlotMSlice(self):
         if indx==0:
             #case for Energy along x axis
             #sigsum=np.sum(sig,1) #produces E plot
-            sigsum=MDH1D.getSignalArray()/ne
+            sigsum=__MDH1D.getSignalArray()/ne
         elif indx==1:
             #case for Q along x axis
             #sigsum=np.sum(sig,0) #produces |Q| plot
-            sigsum=MDH1D.getSignalArray()/ne
+            sigsum=__MDH1D.getSignalArray()/ne
         else:
             print "combo box index currently not supported...plot not updated and returning"
             return            
@@ -410,19 +413,19 @@ def DoPlotMSlice(self):
         #using 95% confidence window which is 2*sigma - see:
         #http://en.wikipedia.org/wiki/Error_bar 
         #http://en.wikipedia.org/wiki/Standard_deviation
-        ebar=2.0*np.sqrt(MDH1D.getErrorSquaredArray())/ne
+        ebar=2.0*np.sqrt(__MDH1D.getErrorSquaredArray())/ne
             
         #Determine binning parameters
-        Nbins=MDH1D.getSignalArray().size
-        b1=MDH1D.getYDimension().getMaximum()  #Appears that |Q| is in X and E is in Y for this workspace
-        b0=MDH1D.getYDimension().getMinimum()
+        Nbins=__MDH1D.getSignalArray().size
+        b1=__MDH1D.getYDimension().getMaximum()  #Appears that |Q| is in X and E is in Y for this workspace
+        b0=__MDH1D.getYDimension().getMinimum()
         
-        print "type(MDH): ",type(MDH)
-        print "type(MDH1D): ",type(MDH1D)
-        print "** XMAX: ",MDH1D.getXDimension().getMaximum()
-        print "** XMIN: ",MDH1D.getXDimension().getMinimum()
-        print "** YMAX: ",MDH1D.getYDimension().getMaximum()
-        print "** YMIN: ",MDH1D.getYDimension().getMinimum()
+        print "type(__MDH): ",type(__MDH)
+        print "type(__MDH1D): ",type(__MDH1D)
+        print "** XMAX: ",__MDH1D.getXDimension().getMaximum()
+        print "** XMIN: ",__MDH1D.getXDimension().getMinimum()
+        print "** YMAX: ",__MDH1D.getYDimension().getMaximum()
+        print "** YMIN: ",__MDH1D.getYDimension().getMinimum()
         
         
         width=(b1-b0)/Nbins
@@ -562,24 +565,24 @@ def DoPlotMSlice(self):
         
         if self.ui.checkBoxUseNorm.isChecked():
             #case to normalize by number of events
-            ne=ws.getNumEventsArray()
+            ne=__ws.getNumEventsArray()
         else:
             #else just divde by 1 to show data as is
             ne=1
 
-        print "type(ws): ",type(ws)
-#        self.currentPlotWS=ConvertToMatrixWorkspace(ws)
-        MDHflatten=MDHistoToWorkspace2D(ws)
-        MDHflatten.setTitle(str(self.ui.MPLcomboBoxActiveWorkspace.currentText())) 
-        self.currentPlotWS=MDHflatten  #MDHflatten needed for saving ASCII data
-        self.ui.current1DWorkspace=ws
+        print "type(__ws): ",type(__ws)
+#        self.currentPlotWS=ConvertToMatrixWorkspace(__ws)
+        __MDHflatten=MDHistoToWorkspace2D(__ws)
+        __MDHflatten.setTitle(str(self.ui.MPLcomboBoxActiveWorkspace.currentText())) 
+        self.currentPlotWS=__MDHflatten  #__MDHflatten needed for saving ASCII data
+        self.ui.current1DWorkspace=__ws
 
-        sigsum=ws.getSignalArray()/ne
+        sigsum=__ws.getSignalArray()/ne
                     #determine xaxis values
         Nsigsum=len(sigsum)
         
         #Set Data Formatting GUI info using the workspace history
-        set1DBinVals(self,ws)
+        set1DBinVals(self,__ws)
         #Now get values from the GUI
         Afrom=float(str(self.ui.MPLlineEditPowderCutAlongFrom.text()))
         Ato=float(str(self.ui.MPLlineEditPowderCutAlongTo.text()))
@@ -602,7 +605,7 @@ def DoPlotMSlice(self):
             if self.ui.checkBoxErrorBars.isChecked():
                 #case to add errorbars
                 errcolor=str(self.ui.MPLcomboBoxErrorColor.currentText())
-                ebar=np.sqrt(ws.getErrorSquaredArray())/ne
+                ebar=2.0*np.sqrt(__ws.getErrorSquaredArray())/ne
                 plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='')
                 #seems to be a bug in errorbar that does not respect the color of the line so just replot the line once errorbar is done
                 plt.hold(True)
@@ -741,7 +744,7 @@ def getSVValues(self):
     #Need to retrieve these workspaces from the Mantid layer
     try:
         #verify that the _line workspace exists 
-        lws=mtd.retrieve(wsLine)
+        __lws=mtd.retrieve(wsLine)
     except:
         #else handle that it does not
         dialog=QtGui.QMessageBox(self)
@@ -750,28 +753,28 @@ def getSVValues(self):
         return          
     
     #use the rebinned workspace to get the 2D binning parameters
-    rws=mtd.retrieve(wsReb)
-    NbinsX=rws.getXDimension().getNBins()
-    NbinsY=rws.getYDimension().getNBins()
+    __rws=mtd.retrieve(wsReb)
+    NbinsX=__rws.getXDimension().getNBins()
+    NbinsY=__rws.getYDimension().getNBins()
     
     """
     #used to debug externally using this workspace
-    print "** type(lws): ",type(lws)
-    SaveMD(lws,Filename='C:\Users\mid\Documents\Mantid\Powder\zrh_1000_line.nxs')
+    print "** type(__lws): ",type(__lws)
+    SaveMD(__lws,Filename='C:\Users\mid\Documents\Mantid\Powder\zrh_1000_line.nxs')
     """
     
     if wsSel !='':
         #get the number of output bins
-        NOutBins=lws.getSignalArray().size
+        NOutBins=__lws.getSignalArray().size
         #now determine the bin width size
-        mx=lws.getXDimension().getMaximum()
-        mn=lws.getXDimension().getMinimum()
+        mx=__lws.getXDimension().getMaximum()
+        mn=__lws.getXDimension().getMinimum()
         BWOut=(mx-mn)/NOutBins
         
-        print "** BWOut XMAX: ",lws.getXDimension().getMaximum()
-        print "** BWOut XMIN: ",lws.getXDimension().getMinimum()
-        print "** BWOut YMAX: ",lws.getYDimension().getMaximum()
-        print "** BWOut YMIN: ",lws.getYDimension().getMinimum()
+        print "** BWOut XMAX: ",__lws.getXDimension().getMaximum()
+        print "** BWOut XMIN: ",__lws.getXDimension().getMinimum()
+        print "** BWOut YMAX: ",__lws.getYDimension().getMaximum()
+        print "** BWOut YMIN: ",__lws.getYDimension().getMinimum()
 
     else:
         #case where the base workspace did't surface properly...warn and return
@@ -802,14 +805,14 @@ def getSVValues(self):
         self.ui.MPLcomboBoxActiveWorkspace.insertItem(NMPLCombo,wsSel)
         self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(NMPLCombo)
 
-    h=lws.getHistory()
+    h=__lws.getHistory()
     ah=h.getAlgorithmHistories()
     Nah=len(ah)
     print "Nah: ",Nah
     #find BinMD history
     cntBMD=0
     for i in range(Nah):
-        algName=lws.getHistory().getAlgorithmHistories()[i].name()
+        algName=__lws.getHistory().getAlgorithmHistories()[i].name()
         if algName == 'BinMD':
             indxBMD=i
             algNameSel=algName
@@ -867,12 +870,12 @@ def getSVValues(self):
     Qmin=min(Qmintmp,Qmaxtmp)
     Qmax=max(Qmintmp,Qmaxtmp)
     
-    print "getXDimension().getMaximum(): ",lws.getXDimension().getMaximum()
-    print "getXDimension().getMinimum(): ",lws.getXDimension().getMinimum()
-    print "getYDimension().getMaximum(): ",lws.getYDimension().getMaximum()
-    print "getYDimension().getMinimum(): ",lws.getYDimension().getMinimum()
+    print "getXDimension().getMaximum(): ",__lws.getXDimension().getMaximum()
+    print "getXDimension().getMinimum(): ",__lws.getXDimension().getMinimum()
+    print "getYDimension().getMaximum(): ",__lws.getYDimension().getMaximum()
+    print "getYDimension().getMinimum(): ",__lws.getYDimension().getMinimum()
     
-    DeltaQE=lws.getYDimension().getMaximum() - lws.getYDimension().getMinimum()
+    DeltaQE=__lws.getYDimension().getMaximum() - __lws.getYDimension().getMinimum()
     print "DeltaQE: ",DeltaQE
     print "** Qmin: ",Qmin,"  Qmax: ",Qmax          
     
@@ -898,17 +901,17 @@ def getSVValues(self):
     #now that we've set everything, let's call the plot!
     DoPlotMSlice(self)
 
-def set1DBinVals(self,ws):
+def set1DBinVals(self,__ws):
     #first check if we have a valie workspace
     try:
         #if the workspace has a name, it's an existing workspace
-        ws.name()
+        __ws.name()
     except:
         print "Workspace does not exist - returning"
         return
         
-    NXDbins=ws.getXDimension().getNBins()
-    NYDbins=ws.getYDimension().getNBins()
+    NXDbins=__ws.getXDimension().getNBins()
+    NYDbins=__ws.getYDimension().getNBins()
     
     if NXDbins > 1 and NYDbins > 1:
         #2D workspace case - return
@@ -916,17 +919,17 @@ def set1DBinVals(self,ws):
         return
     
     #get the number of history entries
-    NEntries=len(ws.getHistory().getAlgorithmHistories())    
+    NEntries=len(__ws.getHistory().getAlgorithmHistories())    
     #find the last BinMD operation as we can get binning parameters from here
     for i in NEntries-np.arange(NEntries)-1:
-        entry=ws.getHistory().getAlgorithmHistories()[i].name()
+        entry=__ws.getHistory().getAlgorithmHistories()[i].name()
         if entry=='BinMD':
             #case we found the BinMD case - exit loop
             break
-    NTags=len(ws.getHistory().getAlgorithmHistories()[i].getProperties())
+    NTags=len(__ws.getHistory().getAlgorithmHistories()[i].getProperties())
     for j in range(NTags):
-        name=str(ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name())
-        value=str(ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value())
+        name=str(__ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name())
+        value=str(__ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value())
         value=value.split(',')
         if name=='AlignedDim0':
             ad0str=value
