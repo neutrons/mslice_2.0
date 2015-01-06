@@ -961,7 +961,7 @@
           </size>
          </property>
          <property name="text">
-          <string>Show Error Bars - Use Plot to Refresh</string>
+          <string>Show Error Bars - 95% Confidence Interval</string>
          </property>
         </widget>
        </item>
@@ -1434,6 +1434,19 @@
        </property>
        <property name="text">
         <string>from:</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="MPLpushButtonResetParams">
+       <property name="geometry">
+        <rect>
+         <x>410</x>
+         <y>110</y>
+         <width>131</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Reset Parameters</string>
        </property>
       </widget>
      </widget>

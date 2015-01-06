@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'MPLPowderCut.ui'
 #
-# Created: Tue Nov 11 15:36:33 2014
+# Created: Fri Nov 21 16:51:31 2014
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -354,6 +354,9 @@ class Ui_MPLPowderCutMainWindow(object):
         self.label_60 = QtGui.QLabel(self.MPLgroupBoxDataFormat)
         self.label_60.setGeometry(QtCore.QRect(200, 80, 41, 16))
         self.label_60.setObjectName(_fromUtf8("label_60"))
+        self.MPLpushButtonResetParams = QtGui.QPushButton(self.MPLgroupBoxDataFormat)
+        self.MPLpushButtonResetParams.setGeometry(QtCore.QRect(410, 110, 131, 23))
+        self.MPLpushButtonResetParams.setObjectName(_fromUtf8("MPLpushButtonResetParams"))
         self.gridLayout.addWidget(self.MPLgroupBoxDataFormat, 3, 0, 1, 1)
         self.MPLgroupBoxControls = QtGui.QGroupBox(self.centralwidget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
@@ -645,7 +648,7 @@ class Ui_MPLPowderCutMainWindow(object):
         self.MPLcomboBoxErrorColor.setItemText(18, QtGui.QApplication.translate("MPLPowderCutMainWindow", "Wheat", None, QtGui.QApplication.UnicodeUTF8))
         self.label_12.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Error Bar Color", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBoxSettings.setTitle(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Use Plot to Refresh", None, QtGui.QApplication.UnicodeUTF8))
-        self.checkBoxErrorBars.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Show Error Bars - Use Plot to Refresh", None, QtGui.QApplication.UnicodeUTF8))
+        self.checkBoxErrorBars.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Show Error Bars - 95% Confidence Interval", None, QtGui.QApplication.UnicodeUTF8))
         self.checkBoxUseNorm.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Normalize by Number of Events", None, QtGui.QApplication.UnicodeUTF8))
         self.checkBoxRemoveNans.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Set NaN, inf, and -inf  to Zero Values", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLgroupBoxDataFormat.setTitle(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Data Formatting", None, QtGui.QApplication.UnicodeUTF8))
@@ -677,6 +680,7 @@ class Ui_MPLPowderCutMainWindow(object):
         self.label_13.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Num Bins - 1D Plot", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLlineEditPowderCutWidth.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "0.1", None, QtGui.QApplication.UnicodeUTF8))
         self.label_60.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "from:", None, QtGui.QApplication.UnicodeUTF8))
+        self.MPLpushButtonResetParams.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Reset Parameters", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLgroupBoxControls.setTitle(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Controls", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLpushButtonDone.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "Done", None, QtGui.QApplication.UnicodeUTF8))
         self.MPLpushButtonOPlot.setText(QtGui.QApplication.translate("MPLPowderCutMainWindow", "OPlot", None, QtGui.QApplication.UnicodeUTF8))

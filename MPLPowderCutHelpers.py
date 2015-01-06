@@ -208,26 +208,23 @@ def DoPlotMSlice(self):
             
             #determine the ranges of data to work with
             #from:to
-            if str(self.ui.MPLlineEditPowderCutAlongFrom.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutAlongFrom.text()) != '' and self.ui.ResetParams == False:
                 Afrom=float(str(self.ui.MPLlineEditPowderCutAlongFrom.text()))
             else:
                 Afrom=minv
-            print "trash: ",str(self.ui.MPLlineEditPowderCutAlongTo.text()) == ''
-            print "trash type: ",type(self.ui.MPLlineEditPowderCutAlongTo.text())
-            print 
-            if str(self.ui.MPLlineEditPowderCutAlongTo.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutAlongTo.text()) != '' and self.ui.ResetParams == False:
                 Ato=float(str(self.ui.MPLlineEditPowderCutAlongTo.text()))
             else:
                 Ato=maxv
-            if str(self.ui.MPLlineEditPowderCutAlongStep.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutAlongStep.text()) != '' and self.ui.ResetParams == False:
                 Astep=float(str(self.ui.MPLlineEditPowderCutAlongStep.text()))
             else:
                 Astep=0.035  #FIXME - this value should eventually be obtained from a config.py file
-            if str(self.ui.MPLlineEditPowderCutThickFrom.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutThickFrom.text()) != '' and self.ui.ResetParams == False:
                 Tfrom=float(str(self.ui.MPLlineEditPowderCutThickFrom.text()))
             else:
                 Tfrom=xmin
-            if str(self.ui.MPLlineEditPowderCutThickTo.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutThickTo.text()) != '' and self.ui.ResetParams == False:
                 Tto=float(str(self.ui.MPLlineEditPowderCutThickTo.text()))
             else:
                 Tto=xmax
@@ -252,23 +249,23 @@ def DoPlotMSlice(self):
             
             #determine the ranges of data to work with
             #from:to
-            if str(self.ui.MPLlineEditPowderCutAlongFrom.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutAlongFrom.text()) != '' and self.ui.ResetParams == False:
                 Afrom=float(str(self.ui.MPLlineEditPowderCutAlongFrom.text()))
             else:
                 Afrom=minv
-            if str(self.ui.MPLlineEditPowderCutAlongTo.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutAlongTo.text()) != '' and self.ui.ResetParams == False:
                 Ato=float(str(self.ui.MPLlineEditPowderCutAlongTo.text()))
             else:
                 Ato=maxv
-            if str(self.ui.MPLlineEditPowderCutAlongStep.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutAlongStep.text()) != '' and self.ui.ResetParams == False:
                 Astep=float(str(self.ui.MPLlineEditPowderCutAlongStep.text()))
             else:
                 Astep=0.035  #FIXME - this value should eventually be obtained from a config.py file
-            if str(self.ui.MPLlineEditPowderCutThickFrom.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutThickFrom.text()) != '' and self.ui.ResetParams == False:
                 Tfrom=float(str(self.ui.MPLlineEditPowderCutThickFrom.text()))
             else:
                 Tfrom=ymin
-            if str(self.ui.MPLlineEditPowderCutThickTo.text()) != '':
+            if str(self.ui.MPLlineEditPowderCutThickTo.text()) != '' and self.ui.ResetParams == False:
                 Tto=float(str(self.ui.MPLlineEditPowderCutThickTo.text()))
             else:
                 Tto=ymax
@@ -410,7 +407,10 @@ def DoPlotMSlice(self):
             return            
         
         #calculate errorbar    
-        ebar=np.sqrt(MDH1D.getErrorSquaredArray())/ne
+        #using 95% confidence window which is 2*sigma - see:
+        #http://en.wikipedia.org/wiki/Error_bar 
+        #http://en.wikipedia.org/wiki/Standard_deviation
+        ebar=2.0*np.sqrt(MDH1D.getErrorSquaredArray())/ne
             
         #Determine binning parameters
         Nbins=MDH1D.getSignalArray().size
@@ -648,11 +648,11 @@ def getSVValues(self):
     
     """
     wsNames=mtd.getObjectNames()
-    cntws=0
-    lcnt=-1
-    indxws=-1
-    rcnt=-1
-    cntws2=0
+    cntws=0    #line workspace counter
+    lcnt=-1    #workspace counter (not crazy with this choice of variable name here)
+    indxws=-1  #index of line workspace
+    cntws2=0   #rebinned workspace counter
+    wslst=[]   #list to contain base workspace names to be used in case multiple sliceviewers can be imported from
     for tws in wsNames:
         lcnt+=1
         pos=tws.find('_line') #look for line workspaces created by SliceViewer
@@ -660,15 +660,21 @@ def getSVValues(self):
             #case we found a line workspace
             cntws+=1
             indxws=lcnt
+            #extract base workspacename and append this to the list
+            tmpbase=tws.split('_line')
+            wslst.append(tmpbase[0])
+            
         pos2=tws.find('_rebinned') #look for line workspaces created by SliceViewer
         if pos2 > 0:
-            #case we found a line workspace
+            #case we found a rebinned workspace
             cntws2+=1
-            indxws2=rcnt
+            indxws2=lcnt
+
     #now check for problems
-    if lcnt < 0 or cntws == 0 or cntws > 1 or indxws < 0:
+    if lcnt < 0 or cntws == 0 or indxws < 0:
         #case with a problem
         print "Unable to locate a line workspace"
+        print "Current Mantid workspaces: ",mtd.getObjectNames()
         dialog=QtGui.QMessageBox(self)
         dialog.setText("No workspaces from Slice Viewer Available - Returning to Powder Cut GUI")
         dialog.exec_()
@@ -677,6 +683,20 @@ def getSVValues(self):
         pass
     if cntws > 1:
         print "Ambiguous case where more than one line workspace was discovered"
+        print "wslst: ",wslst
+        #wsSel is a base workspace name, not a line workspace name
+        wsSel,ok = QtGui.QInputDialog.getItem(self,"Available Workspaces","Select from the list:",wslst)
+        if ok==False:
+            #case where a selction was cancelled - exit out of method 
+            print "No workspace selected - returning"
+            return
+        print "Selected Workspace: ",wsSel," OK/Cancel: ",ok
+        
+        wsSel=str(wsSel)  #convert from QString to string
+        wsLine=wsSel+'_line'
+        wsReb=wsSel+'_rebinned'
+        
+        """
         #in this case, check which workspaces are selected in the Workspace Manager and take the
         #corresponding _line workspace
         table=self.ui.tableWidgetWorkspaces 
@@ -698,68 +718,70 @@ def getSVValues(self):
                 #Need to check if Slice Viewer can take more than one workspace in at a time as this case may 
                 #need to be handled more carefully
                 wsSel=ws  
+        """
+        
     else:
-        tmpws=wsNames[indxws]
-        lws=mtd.retrieve(tmpws)
-        
-        rws=mtd.retrieve(wsNames[indxws2])
-        NbinsX=rws.getXDimension().getNBins()
-        NbinsY=rws.getYDimension().getNBins()
-        
-        """
-        #used to debug externally using this workspace
-        print "** type(lws): ",type(lws)
-        SaveMD(tmpws,Filename='C:\Users\mid\Documents\Mantid\Powder\zrh_1000_line.nxs')
-        """
-        
-        tmpws=tmpws.split('_line')
-        if tmpws[0] !=[]:
-            #case where we have a workspace
-            wsSel=tmpws[0]
-            #get the number of output bins
-            NOutBins=lws.getSignalArray().size
-            #now determine the bin width size
-            mx=lws.getXDimension().getMaximum()
-            mn=lws.getXDimension().getMinimum()
-            BWOut=(mx-mn)/NOutBins
-            
-            print "** BWOut XMAX: ",lws.getXDimension().getMaximum()
-            print "** BWOut XMIN: ",lws.getXDimension().getMinimum()
-            print "** BWOut YMAX: ",lws.getYDimension().getMaximum()
-            print "** BWOut YMIN: ",lws.getYDimension().getMinimum()
-
-            
-            
-        else:
-            #case where the base workspace did't surface properly...warn and return
-            dialog=QtGui.QMessageBox(self)
-            dialog.setText("Unable to identify a base workspace name from line workspace - Returning")
-            dialog.exec_()
-            return            
-                
-    #At this point we currently assume that we have one selected workspace and one corresponding _line workspace
-    
-    
-    if wsNames[indxws] == wsSel+'_line':
+        #case with just a single _line workspace
         wsLine=wsNames[indxws]
-    else:
-        dialog=QtGui.QMessageBox(self)
-        dialog.setText("Missing _line workspace - try running Slice Viewer again - returning")
-        dialog.exec_()
-        return        
-    
+        wsSel=wsLine.split('_line')
+        wsSel=wsSel[0] #convert from list to str 
+        wsReb=wsSel+'_rebinned'
+        
     """
     In getting to this point, we assume:
         wsSel is the original workspace selected in MSlice Workspace Manager
         wsLine is the corresponding line workspace
-
+        both are string names for the workspaces
     """
-    print "  wsSel:  ",wsSel
-    print "  wsLine: ",wsLine
+        
+    #At this point we currently assume that we have one selected workspace and one corresponding _line workspace
+    print "  wsSel:  ",wsSel," workspace exists: ",mtd.doesExist(wsSel)
+    print "  wsLine: ",wsLine," workspace exists: ",mtd.doesExist(wsLine)
+    print "  available workspaces: ",mtd.getObjectNames()
     #Need to retrieve these workspaces from the Mantid layer
-    wsLine=mtd.retrieve(wsLine)
+    try:
+        #verify that the _line workspace exists 
+        lws=mtd.retrieve(wsLine)
+    except:
+        #else handle that it does not
+        dialog=QtGui.QMessageBox(self)
+        dialog.setText("Missing _line workspace - try running Slice Viewer again - returning")
+        dialog.exec_()
+        return          
     
+    #use the rebinned workspace to get the 2D binning parameters
+    rws=mtd.retrieve(wsReb)
+    NbinsX=rws.getXDimension().getNBins()
+    NbinsY=rws.getYDimension().getNBins()
+    
+    """
+    #used to debug externally using this workspace
+    print "** type(lws): ",type(lws)
+    SaveMD(lws,Filename='C:\Users\mid\Documents\Mantid\Powder\zrh_1000_line.nxs')
+    """
+    
+    if wsSel !='':
+        #get the number of output bins
+        NOutBins=lws.getSignalArray().size
+        #now determine the bin width size
+        mx=lws.getXDimension().getMaximum()
+        mn=lws.getXDimension().getMinimum()
+        BWOut=(mx-mn)/NOutBins
+        
+        print "** BWOut XMAX: ",lws.getXDimension().getMaximum()
+        print "** BWOut XMIN: ",lws.getXDimension().getMinimum()
+        print "** BWOut YMAX: ",lws.getYDimension().getMaximum()
+        print "** BWOut YMIN: ",lws.getYDimension().getMinimum()
 
+    else:
+        #case where the base workspace did't surface properly...warn and return
+        dialog=QtGui.QMessageBox(self)
+        dialog.setText("Unable to identify a base workspace name from line workspace - Returning")
+        dialog.exec_()
+        return            
+                
+
+    
     #first verify the rebinned workspace is not already on the MPL list of workspaces 
     #and if not insert the rebinned workspace into the list
     #  Getting the list of workspaces in the MPL combobox:
@@ -780,14 +802,14 @@ def getSVValues(self):
         self.ui.MPLcomboBoxActiveWorkspace.insertItem(NMPLCombo,wsSel)
         self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(NMPLCombo)
 
-    h=wsLine.getHistory()
+    h=lws.getHistory()
     ah=h.getAlgorithmHistories()
     Nah=len(ah)
     print "Nah: ",Nah
     #find BinMD history
     cntBMD=0
     for i in range(Nah):
-        algName=wsLine.getHistory().getAlgorithmHistories()[i].name()
+        algName=lws.getHistory().getAlgorithmHistories()[i].name()
         if algName == 'BinMD':
             indxBMD=i
             algNameSel=algName

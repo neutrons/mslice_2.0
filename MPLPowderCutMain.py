@@ -47,9 +47,15 @@ class MPLPowderCut(QtGui.QMainWindow):
         QtCore.QObject.connect(self.ui.MPLpushButtonSavePlotWS, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.SavePlotWS)
         QtCore.QObject.connect(self.ui.MPLpushButtonDone, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.Done)
         
+        QtCore.QObject.connect(self.ui.MPLpushButtonResetParams, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.ResetParams)
+        #set reset flag status to false
+        self.ui.ResetParams=False
+        
+        #History Tab
         QtCore.QObject.connect(self.ui.MPLpushButtonUpdateHistory, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.UpdateHistory)
         QtCore.QObject.connect(self.ui.MPLcheckBoxExpandAll, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.ExpandAll)
         
+        #Comment Tab
         QtCore.QObject.connect(self.ui.MPLpushButtonSaveComments, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.UpdateComments)
         QtCore.QObject.connect(self.ui.MPLcheckBoxReadOnly, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.ReadOnly)
         
@@ -95,7 +101,7 @@ class MPLPowderCut(QtGui.QMainWindow):
         #update Comments tab while we're working with the workspace lists
         self.getComments()        
             
-        #Data Formatting
+        #Data Formatting - copy parameters over from MSlice main application
         self.ui.MPLlineEditPowderCutAlongFrom.setText(self.parent.ui.lineEditPowderCutAlongFrom.text())
         self.ui.MPLlineEditPowderCutAlongTo.setText(self.parent.ui.lineEditPowderCutAlongTo.text())
         self.ui.MPLlineEditPowderCutAlongStep.setText(self.parent.ui.lineEditPowderCutAlongStep.text())
@@ -515,6 +521,15 @@ class MPLPowderCut(QtGui.QMainWindow):
         table=self.parent.ui.tableWidgetWorkspaces
         workspaceLocation=''
         addWStoTable(table,wsName,workspaceLocation)
+        
+    def ResetParams(self):
+        #case to restore Data Formatting values to those in the selected workspace
+        #toggle reset parameters flag to on
+        self.ui.ResetParams=True
+        #use DoPlot() to set parameters
+        self.DoPlot()
+        #toggle reset parameters flag back off
+        self.ui.ResetParams=False
 
         
     def UpdateHistory(self):
