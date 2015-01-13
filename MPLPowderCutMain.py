@@ -25,6 +25,8 @@ from mantid.simpleapi import *
 
 from MPLPowderCutHelpers import *
 
+from LegendManager import *
+
 class MPLPowderCut(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -34,6 +36,8 @@ class MPLPowderCut(QtGui.QMainWindow):
         self.parent=parent 
         
         #establish signals and slots
+        QtCore.QObject.connect(self.ui.MPLpushButtonLegendEdit, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.LegendEdit)
+        QtCore.QObject.connect(self.ui.MPLcomboBoxErrorColor, QtCore.SIGNAL(_fromUtf8("currentIndexChanged(int)")), self.ShowEBars)
         QtCore.QObject.connect(self.ui.MPLpushButtonImportData, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoImport)
         QtCore.QObject.connect(self.ui.MPLpushButtonPlot, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoPlot)
         QtCore.QObject.connect(self.ui.MPLpushButtonOPlot, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.DoOPlot)
@@ -124,6 +128,8 @@ class MPLPowderCut(QtGui.QMainWindow):
         self.ui.MPLlineEditLabelsTitle.setText(self.parent.ui.lineEditLabelsTitle.text())
         self.ui.MPLlineEditLabelsLegend.setText(self.parent.ui.lineEditLabelsLegend.text())
         
+        self.ui.ax=None
+        
         #Place Matplotlib figure within the GUI frame
         #create drawing canvas
         # a figure instance to plot on
@@ -188,6 +194,17 @@ class MPLPowderCut(QtGui.QMainWindow):
         self.getComments()
                 
         print "Selected Workspace: ",self.ui.MPLcurrentWS
+        
+    def LegendEdit(self):
+        print "Legend Edit"
+        LM=LegendManager(self)
+        LM.show()
+        
+    def ShowEBars(self):
+        self.ui.checkBoxErrorBars.setCheckState(True) 
+        #seems that setting state to true is making checkbox tristate
+        #so disable tristate once state has been set
+        self.ui.checkBoxErrorBars.setTristate(False)
 
     def DoImport(self):
         #case to check mantid workspaces for workspaces created by Slice Viewer

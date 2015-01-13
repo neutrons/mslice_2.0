@@ -466,6 +466,7 @@ def DoPlotMSlice(self):
     
             #plot data
             ax=plt.subplot(111)
+            self.ui.ax=ax
             if not(self.doOPlot):plt.clf
             if self.doOPlot:plt.hold(True)
             print "min(sigsum): ",np.min(sigsum),"  max(sigsum):", np.max(sigsum)
@@ -480,17 +481,21 @@ def DoPlotMSlice(self):
             Nsigsum=len(sigsum)
             xaxis=((np.arange(float(Nsigsum))/float(Nsigsum-1))*(Amax-Amin))+Amin
                 
-            plt.plot(xaxis,sigsum,color=linecolor,linestyle=style,label=pltlegend)
+            
             if self.ui.checkBoxErrorBars.isChecked():
                 #case to add errorbars
                 errcolor=str(self.ui.MPLcomboBoxErrorColor.currentText())
                 plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='')
                 #seems to be a bug in errorbar that does not respect the color of the line so just replot the line once errorbar is done
                 plt.hold(True)
+                #need this plot to handle the legend properly
                 plt.plot(xaxis,sigsum,color=linecolor,linestyle=style,label=pltlegend)
                 plt.hold(False)
+            else:
+                plt.plot(xaxis,sigsum,color=linecolor,linestyle=style,label=pltlegend)
             
             plt.legend(loc=legloc)
+                
             if not(self.doOPlot):
                 
                 plt.title(plttitle)
