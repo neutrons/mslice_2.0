@@ -485,7 +485,7 @@ def DoPlotMSlice(self):
             if self.ui.checkBoxErrorBars.isChecked():
                 #case to add errorbars
                 errcolor=str(self.ui.MPLcomboBoxErrorColor.currentText())
-                plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='')
+                plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='',label='_nolegend_')
                 #seems to be a bug in errorbar that does not respect the color of the line so just replot the line once errorbar is done
                 plt.hold(True)
                 #need this plot to handle the legend properly
@@ -611,7 +611,7 @@ def DoPlotMSlice(self):
                 #case to add errorbars
                 errcolor=str(self.ui.MPLcomboBoxErrorColor.currentText())
                 ebar=2.0*np.sqrt(__ws.getErrorSquaredArray())/ne
-                plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='')
+                plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='',label='_nolegend_')
                 #seems to be a bug in errorbar that does not respect the color of the line so just replot the line once errorbar is done
                 plt.hold(True)
                 plt.plot(xaxis,sigsum,color=linecolor,linestyle=style,label=pltlegend)
