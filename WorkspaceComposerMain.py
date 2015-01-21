@@ -359,7 +359,74 @@ class WorkspaceComposer(QtGui.QMainWindow):
                 sumSizeStr=str(int(float(sumSize)/float(1024*1024)))+' MB'
                 gwsSizeStr=sumSizeStr
                 gwsType=sumType
-                print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not            
+                print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not       
+            elif self.ui.radioButtonMergeWS.isChecked():
+                gwsName=str(self.ui.lineEditGroupName.text()) 
+                #case to sum workspaces
+                print "** Sum Workspaces"
+                #case to sum workspaces already in memory into a new workspace
+                #get the list of workspaces to sum
+                
+                #check if there are any table rows selected, if not, just return
+                NwsSel=0
+                for row in range(Nrows):
+                    cw=table.cellWidget(row,const.WGE_SelectCol) 
+                    if cw.isChecked():
+                        NwsSel += 1
+                        
+                if NwsSel == 0:
+                    #case with no workspaces to operate with - just return
+                    return
+                
+                mergeSize=0
+                grpLst=[]
+                gwsSize=0
+                cnt=0
+                for row in range(Nrows):
+                    percentbusy=int(100*(row+1)/Nrows)
+                    self.parent.ui.progressBarStatusProgress.setValue(percentbusy) #update progress bar
+                    
+                    cw=table.cellWidget(row,const.WGE_SelectCol) 
+                    if cw.isChecked():
+                        
+                        ws=str(table.item(row,const.WGE_WorkspaceCol).text())
+                        if cnt==0:
+                            mergeType=getReduceAlgFromWorkspace(ws) 
+                        cnt+=1
+                        someMergeChk=True #FIXME will eventually need a real check here but for now stub it out
+                        if someMergeChk:
+                            grpLst.append(ws)
+                        else:
+                            dialog=QtGui.QMessageBox(self)
+                            dialog.setText("The workspaces are not compatible for merging - returning")
+                            dialog.exec_()
+                            break
+                            return    
+                                
+                if cnt == 0:
+                    #case we have an empty group - return
+                    dialog=QtGui.QMessageBox(self)
+                    dialog.setText("No workspaces contained in the merge workspace - returning")
+                    dialog.exec_()
+                    return    
+                              
+                print "grpLst: ",grpLst
+                exec("%s = GroupWorkspaces(%r)" % ('spe',grpLst))
+                #min and max returned are for what is possible on the instrument so do not need to find these values for each file
+                minn,maxx = ConvertToMDMinMaxLocal(InputWorkspace=spe[0],QDimensions='|Q|',dEAnalysisMode='Direct') #not sure this step is needed but seems to be inexpensive to perform
+                mdpieces=ConvertToMD(spe,Qdimensions='|Q|',dEAnalysisMode='Direct',MinValues=minn,MaxValues=maxx)  
+                md=MergeMD(mdpieces)
+     
+                exec("%s = md" % (gwsName))
+                eval("mtd.addOrReplace(%r,%s,)" % (gwsName,gwsName))       
+                eval("mtd.retrieve(%r)" % (gwsName))       
+                
+                exec("mergeSize=%s.getMemorySize()" % gwsName)  #get size of the output workspace
+                mergeSizeStr=str(int(float(mergeSize)/float(1024*1024)))+' MB'
+                gwsSizeStr=mergeSizeStr
+                gwsType=mergeType
+                print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not       
+                     
             elif self.ui.radioButtonExecuteEqn.isChecked():
                 #case to execute an equation a user has entered
                 

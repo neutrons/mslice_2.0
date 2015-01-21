@@ -6,7 +6,9 @@ try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
     _fromUtf8 = lambda s: s
-
+#ignore potential matplotlib backend selection warnings as the backend may already be selected when running via mantidplot
+import warnings
+warnings.filterwarnings('ignore',category=UserWarning)
 import matplotlib
 if matplotlib.get_backend() != 'QT4Agg':
     matplotlib.use('QT4Agg')

@@ -537,7 +537,7 @@ def constantUpdateActor(self):
 				
 def getHomeDir():
         if sys.platform == 'win32':
-            home = expanduser("~")
+            home = os.path.expanduser("~")
         else:
             home=os.getenv("HOME")
         return home

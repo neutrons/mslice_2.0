@@ -13,7 +13,17 @@ import imp
 sys.path.append(os.environ['MANTIDPATH'])
 import PyQt4
 from mantid.simpleapi import *
-from mantidplotpy.proxies import threadsafe_call
+try:
+    #for up to version 3.2 of Mantid
+    from mantidplotpy.proxies import threadsafe_call
+except:
+    #new for mantid version 3.3
+    #from mantidplot.proxies import threadsafe_call #would be the preferred way to call however not working for me...
+    #so instead, do it this way:
+    import mantidplot
+    threadsafe_call=mantidplot.proxies.threadsafe_call
+
+    
 import mantidqtpython
 
 

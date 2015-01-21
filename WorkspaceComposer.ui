@@ -20,7 +20,7 @@
       <x>690</x>
       <y>20</y>
       <width>211</width>
-      <height>361</height>
+      <height>391</height>
      </rect>
     </property>
     <property name="title">
@@ -45,7 +45,7 @@
        <x>10</x>
        <y>190</y>
        <width>191</width>
-       <height>161</height>
+       <height>191</height>
       </rect>
      </property>
      <property name="title">
@@ -84,7 +84,7 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>130</y>
+        <y>160</y>
         <width>121</width>
         <height>23</height>
        </rect>
@@ -126,7 +126,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>100</y>
+        <y>120</y>
         <width>171</width>
         <height>17</height>
        </rect>
@@ -135,13 +135,19 @@
        <string>Execute Equation</string>
       </property>
      </widget>
-     <zorder>label</zorder>
-     <zorder>lineEditGroupName</zorder>
-     <zorder>pushButtonCreateWorkspace</zorder>
-     <zorder>radioButtonSumWS</zorder>
-     <zorder>radioButtonSumWS</zorder>
-     <zorder>radioButtonGroupWS</zorder>
-     <zorder>radioButtonExecuteEqn</zorder>
+     <widget class="QRadioButton" name="radioButtonMergeWS">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>100</y>
+        <width>161</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Merge Workspaces</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QGroupBox" name="groupBox_6">
      <property name="geometry">
@@ -393,11 +399,6 @@
      <string>Done</string>
     </property>
    </widget>
-   <zorder>groupBox</zorder>
-   <zorder>groupBox_2</zorder>
-   <zorder>groupBox_4</zorder>
-   <zorder>pushButtonDone</zorder>
-   <zorder>groupBox_6</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

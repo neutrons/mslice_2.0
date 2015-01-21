@@ -359,7 +359,19 @@ class MSlice(QtGui.QMainWindow):
                 print "  pws: ",pws
                 pws_out=pws+pwsSuffix
                 self.ui.StatusText.append(time.strftime('  Output Workspace: '+pws_out))	
-                ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out)
+                pws=mtd.retrieve(pws)
+                if pws.id() == 'Workspace2D':
+                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out)
+                elif pws.id() == 'WorkspaceGroup':
+                    #FIXME - eventually need to check inside group to determine each ws is a Workspace2D type
+                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out)
+                elif pws.id() == 'MDEventWorkspace<MDEvent,2>':
+                    #case convert to MD has already been done 
+                    #so employ some mantid workspace handlers...
+                    mtd.addOrReplace(pws_out,pws)                
+                else:
+                    #unhandled case for now
+                    pass
                 placeholderws=mtd.retrieve(pws_out)
                 #once outputworkspace exists, add it back to the table
                 pws_type='Powder Calc Proj'

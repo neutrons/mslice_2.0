@@ -24,8 +24,13 @@ def DoPlotMSlice(self):
         # 1D case to disable Data Formatting
         print "Disabling Data Formatting"
         self.ui.MPLgroupBoxDataFormat.setEnabled(False)
-        set1DBinVals(self,_ws)
-    
+        aligned=set1DBinVals(self,__ws)
+        if aligned!=1:
+            #case to exit out of plotting data
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("Problem: Unaligned data thus unable to determine plot units - Returning")
+            dialog.exec_()
+            return      
     
     
     #get plot info common to both 2D and 1D plots
@@ -201,6 +206,15 @@ def DoPlotMSlice(self):
         #for now, just figure out if Q or E is along the x axis...
         indx=self.ui.MPLcomboBoxPowderCutAlong.currentIndex()
         print "indx: ",indx
+        
+        #check if parameter reset requested
+        if self.ui.ResetParams:
+            #reset menu pulldowns for plotting ranges
+            self.ui.MPLcomboBoxPowderCutAlong.setCurrentIndex(0)
+            self.ui.MPLcomboBoxPowderCutThick.setCurrentIndex(1)
+            self.ui.MPLcomboBoxPowderCutY.setCurrentIndex(0)
+            indx=0
+        
         if indx==0:
             #case for Energy along x axis
             minv=ymin
@@ -587,7 +601,13 @@ def DoPlotMSlice(self):
         Nsigsum=len(sigsum)
         
         #Set Data Formatting GUI info using the workspace history
-        set1DBinVals(self,__ws)
+        aligned=set1DBinVals(self,__ws)
+        if aligned!=1:
+            #case to exit out of plotting data
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("Problem: Unaligned data thus unable to determine plot units - Returning")
+            dialog.exec_()
+            return  
         #Now get values from the GUI
         Afrom=float(str(self.ui.MPLlineEditPowderCutAlongFrom.text()))
         Ato=float(str(self.ui.MPLlineEditPowderCutAlongTo.text()))
@@ -862,6 +882,26 @@ def getSVValues(self):
     E2=float(OE[2])
     E3=float(OE[3])
 
+    """
+    Note that it can be challenging for the user to define summation boundaries
+    in SliceViewer that are orthogonal |Q| and DeltaE.  This being the case,
+    the algorithms for calculating Emin and Qmin are necessary for getting these
+    values.
+    
+    Also note that BinMD creates workspaces with the following:
+    * For powder:
+      - Dim0: |Q|
+      - Dim1: DeltaE
+      - Dim2: Parameter (such as sample environment setting)
+    * For Single crystal
+      - Dim0: Qx
+      - Dim1: Qy
+      - Dim2: Qz
+      - Dim3: DeltaE
+      - Dim4: Parameter (such as sample environment setting)
+    
+    """
+
     Emintmp=E0*X0+E1*X1+T1
     Emaxtmp=T1
     Emin=min(Emintmp,Emaxtmp)
@@ -940,27 +980,37 @@ def set1DBinVals(self,__ws):
             ad0str=value
         if name=='AlignedDim1':
             ad1str=value
+        if name=='AxisAligned':
+            aligned=value
+            
+    if aligned==1:
+        #case we have unambiguous axis units - OK to plot
     
-    if ad1str[3]=='1':
-        #case where ad0 contains the Amin and Amax values
-        self.ui.MPLlineEditPowderCutAlongFrom.setText("%.3f" % float(ad0str[1]))
-        self.ui.MPLlineEditPowderCutAlongTo.setText("%.3f" % float(ad0str[2]))
-        self.ui.MPLlineEditPowderCutThickFrom.setText("%.3f" % float(ad1str[1]))
-        self.ui.MPLlineEditPowderCutThickTo.setText("%.3f" % float(ad1str[2]))
-        self.ui.MPLlineEditPowderCutAlongNbins.setText(str(int(ad0str[3])))
-        self.ui.MPLlineEditPowderCutAlongStep.setText("%.3f" % ((float(ad0str[2])-float(ad0str[1]))/float(ad0str[3])))
+        if ad1str[3]=='1':
+            #case where ad0 contains the Amin and Amax values
+            self.ui.MPLlineEditPowderCutAlongFrom.setText("%.3f" % float(ad0str[1]))
+            self.ui.MPLlineEditPowderCutAlongTo.setText("%.3f" % float(ad0str[2]))
+            self.ui.MPLlineEditPowderCutThickFrom.setText("%.3f" % float(ad1str[1]))
+            self.ui.MPLlineEditPowderCutThickTo.setText("%.3f" % float(ad1str[2]))
+            self.ui.MPLlineEditPowderCutAlongNbins.setText(str(int(ad0str[3])))
+            self.ui.MPLlineEditPowderCutAlongStep.setText("%.3f" % ((float(ad0str[2])-float(ad0str[1]))/float(ad0str[3])))
+            
+        if ad0str[3]=='1':
+            #case where ad1 contains the Amin and Amax values
+            self.ui.MPLlineEditPowderCutAlongFrom.setText("%.3f" % float(ad1str[1]))
+            self.ui.MPLlineEditPowderCutAlongTo.setText("%.3f" % float(ad1str[2]))
+            self.ui.MPLlineEditPowderCutThickFrom.setText("%.3f" % float(ad0str[1]))
+            self.ui.MPLlineEditPowderCutThickTo.setText("%.3f" % float(ad0str[2]))
+            self.ui.MPLlineEditPowderCutAlongNbins.setText(str(int(ad1str[3])))
+            self.ui.MPLlineEditPowderCutAlongStep.setText("%.3f" % ((float(ad1str[2])-float(ad1str[1]))/float(ad1str[3])))
+            
+        #use the number of bins corresponding to the 1D data array
+        self.ui.radioButtonNBins.setChecked(True)
+    else:
+        #unambiguous axis units - at this point, do not support plotting
+        pass
         
-    if ad0str[3]=='1':
-        #case where ad1 contains the Amin and Amax values
-        self.ui.MPLlineEditPowderCutAlongFrom.setText("%.3f" % float(ad1str[1]))
-        self.ui.MPLlineEditPowderCutAlongTo.setText("%.3f" % float(ad1str[2]))
-        self.ui.MPLlineEditPowderCutThickFrom.setText("%.3f" % float(ad0str[1]))
-        self.ui.MPLlineEditPowderCutThickTo.setText("%.3f" % float(ad0str[2]))
-        self.ui.MPLlineEditPowderCutAlongNbins.setText(str(int(ad1str[3])))
-        self.ui.MPLlineEditPowderCutAlongStep.setText("%.3f" % ((float(ad1str[2])-float(ad1str[1]))/float(ad1str[3])))
-        
-    #use the number of bins corresponding to the 1D data array
-    self.ui.radioButtonNBins.setChecked(True)
+    return aligned
         
         
         
