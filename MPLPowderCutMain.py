@@ -427,8 +427,17 @@ class MPLPowderCut(QtGui.QMainWindow):
         fname=__ws.getTitle()
         filter='.txt'
         wsname=fname+filter
+        filter="TXT (*.txt);;All files (*.*)"
+        if self.parent.ui.rememberDataPath=='':
+            curdir=os.curdir
+        else:
+            curdir=self.parent.ui.rememberDataPath
+        fname=_fromUtf8(curdir+'/'+fname)
+        print "fname: ",fname
+        print "type(fname): ",type(fname)
         fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save ASCII Data', fname,filter))
-        SaveAscii(__ws,fsavename)
+        if fsavename!='':
+            SaveAscii(__ws,fsavename) #Mantid routine to save a workspace as ascii data
         
     def SaveHistory(self):
         #case to extract the tree widget structure and save the items to file
@@ -444,33 +453,40 @@ class MPLPowderCut(QtGui.QMainWindow):
             filter='.txt'
             #get workspace name from workspace label
             wsName=str(self.ui.MPLlabelWSName.text())
-            #parse out workspace name from the label
-            wsName=wsName.split(": ")
-            wsName=wsName[1] #extract just the workspace name to preface the output filename
-            fname=wsName+filter
-            fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace History to File', fname,filter))
-            if fsavename != '':
-                #case to save history
-                #open file
-                with open(fsavename, 'w') as f:
-                    #write header info
-                    f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                    f.write('\r')
-                    f.write(str(self.ui.MPLlabelWSName.text()))
-                    f.write('\r')
-                    #now progress through the tree for each item
-                    for i in range(NTreeItems):
-                        item=self.ui.treeWidgetHistory.topLevelItem(i)
-                        f.write(str(item.text(0)))
+            if wsName!='':
+                #parse out workspace name from the label
+                wsName=wsName.split(": ")
+                wsName=wsName[1] #extract just the workspace name to preface the output filename
+                fname=wsName+'_history'+filter
+                filter="TXT (*.txt);;All files (*.*)"
+                if self.parent.ui.rememberDataPath=='':
+                    curdir=os.curdir
+                else:
+                    curdir=self.parent.ui.rememberDataPath
+                fname=_fromUtf8(curdir+'/'+fname)
+                fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace History to File', fname,filter))
+                if fsavename != '':
+                    #case to save history
+                    #open file
+                    with open(fsavename, 'w') as f:
+                        #write header info
+                        f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                         f.write('\r')
-                        NChildren=item.childCount()
-                        if NChildren > 0:
-                            #then write each item child to file
-                            for j in range(NChildren):
-                                txt=str(item.child(j).text(0))
-                                f.write('\t')
-                                f.write(txt)
-                                f.write('\r')
+                        f.write(str(self.ui.MPLlabelWSName.text()))
+                        f.write('\r')
+                        #now progress through the tree for each item
+                        for i in range(NTreeItems):
+                            item=self.ui.treeWidgetHistory.topLevelItem(i)
+                            f.write(str(item.text(0)))
+                            f.write('\r')
+                            NChildren=item.childCount()
+                            if NChildren > 0:
+                                #then write each item child to file
+                                for j in range(NChildren):
+                                    txt=str(item.child(j).text(0))
+                                    f.write('\t')
+                                    f.write(txt)
+                                    f.write('\r')
 
         
     def SavePlotWS(self):
@@ -488,58 +504,66 @@ class MPLPowderCut(QtGui.QMainWindow):
         ws=wsName #placeholder string name that will become a workspace when Load() occurs below
         filter='.nxs'
         fname=wsName+filter
-        fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save 1D Workspace', fname,filter))
-        #need to update wsName to be commensurate with the filename once the user has specified the workspace filename
-        tmp=basename(fsavename) #returns the filename
-        tmp=tmp.split('.')
-        wsName=tmp[0] 
-        #then need to update the workspace name to match the requested workspace name
-        mtd.addOrReplace(wsName,__MDH1D)
-        print "** fsavename: ",fsavename
-        if fsavename != '':
-            #case to save workspace
-            print "Saving workspace: ",__MDH1D.name()
-            print "  Workspace ID: ",__MDH1D.id()
-            try:
-                #first try to save as MD workspace
-                SaveMD(__MDH1D,Filename=fsavename) #save workspace
-            except:
-                try:
-                    #if saving as MD fails, try SaveNexus
-                    SaveNexus(__MDH1D,Filename=fsavename) #save workspace
-                except:
-                    #otherwise - give up...
-                    print "Unable to successfully save workspace - returning"
-                    return
-
-            Load(fsavename,OutputWorkspace=ws) #loading workspace back in under new name is easiest way (I know) to associate the workspace with the name
+        filter="NXS (*.nxs);;All files (*.*)"
+        if self.parent.ui.rememberDataPath=='':
+            curdir=os.curdir
         else:
-            print "No filename given - returning"
-            return
-        #Now add workspace to the list of workspaces in the MPL Select Workspace list    
-        #but fitst check if the name already exists and only add new names
-        Nws=self.ui.MPLcomboBoxActiveWorkspace.count()
-        cnt=0
-        for i in range(Nws):
-            CBitemName=self.ui.MPLcomboBoxActiveWorkspace.itemText(i)
-            print "CBitemName: ",CBitemName
-            if CBitemName == wsName:
-                #if we find the name already, increment counter indicating the find
-                cnt+=1
-        print "cnt: ",cnt
-        if cnt == 0:
-            #case to add new workspace name
-            self.ui.MPLcomboBoxActiveWorkspace.insertItem(Nws,wsName)
-            #set Select Workspace to this new workspace
-            self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(Nws)
-            
-        #need to disable the Data Formatting block since the 1D workspace should not be rebinned
-        self.ui.MPLgroupBoxDataFormat.setEnabled(False)
+            curdir=self.parent.ui.rememberDataPath
+        fname=_fromUtf8(curdir+'/'+fname)
         
-        #also need to add workspace name to Workspace Manager table
-        table=self.parent.ui.tableWidgetWorkspaces
-        workspaceLocation=''
-        addWStoTable(table,wsName,workspaceLocation)
+        fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save 1D Workspace', fname,filter))
+        if fsavename !='':
+            #need to update wsName to be commensurate with the filename once the user has specified the workspace filename
+            tmp=basename(fsavename) #returns the filename
+            tmp=tmp.split('.')
+            wsName=tmp[0] 
+            #then need to update the workspace name to match the requested workspace name
+            mtd.addOrReplace(wsName,__MDH1D)
+            print "** fsavename: ",fsavename
+            if fsavename != '':
+                #case to save workspace
+                print "Saving workspace: ",__MDH1D.name()
+                print "  Workspace ID: ",__MDH1D.id()
+                try:
+                    #first try to save as MD workspace
+                    SaveMD(__MDH1D,Filename=fsavename) #save workspace
+                except:
+                    try:
+                        #if saving as MD fails, try SaveNexus
+                        SaveNexus(__MDH1D,Filename=fsavename) #save workspace
+                    except:
+                        #otherwise - give up...
+                        print "Unable to successfully save workspace - returning"
+                        return
+    
+                Load(fsavename,OutputWorkspace=ws) #loading workspace back in under new name is easiest way (I know) to associate the workspace with the name
+            else:
+                print "No filename given - returning"
+                return
+            #Now add workspace to the list of workspaces in the MPL Select Workspace list    
+            #but fitst check if the name already exists and only add new names
+            Nws=self.ui.MPLcomboBoxActiveWorkspace.count()
+            cnt=0
+            for i in range(Nws):
+                CBitemName=self.ui.MPLcomboBoxActiveWorkspace.itemText(i)
+                print "CBitemName: ",CBitemName
+                if CBitemName == wsName:
+                    #if we find the name already, increment counter indicating the find
+                    cnt+=1
+            print "cnt: ",cnt
+            if cnt == 0:
+                #case to add new workspace name
+                self.ui.MPLcomboBoxActiveWorkspace.insertItem(Nws,wsName)
+                #set Select Workspace to this new workspace
+                self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(Nws)
+                
+            #need to disable the Data Formatting block since the 1D workspace should not be rebinned
+            self.ui.MPLgroupBoxDataFormat.setEnabled(False)
+            
+            #also need to add workspace name to Workspace Manager table
+            table=self.parent.ui.tableWidgetWorkspaces
+            workspaceLocation=''
+            addWStoTable(table,wsName,workspaceLocation)
         
     def ResetParams(self):
         #case to restore Data Formatting values to those in the selected workspace

@@ -149,7 +149,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         table.item(row,const.WGE_InMemCol).setText("Yes")
                     sz = ws.getMemorySize()       
                     if int(sz) == 0:
-						#then check if this is a group workspace and get it's size accordingly
+                        #then check if this is a group workspace and get it's size accordingly
                         try:
                             sz=0
                             for wsr in ws:
@@ -163,8 +163,12 @@ class WorkspaceComposer(QtGui.QMainWindow):
     
     def CreateWorkspace(self):
         print "**** Create Workspace button pressed"
+        
         self.parent.ui.progressBarStatusProgress.setValue(0)
         self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Composer Creating Workspace(s)")
+        self.ui.pushButtonCreateWorkspace.setEnabled(False) 
+        QtGui.QApplication.processEvents()  #need to process the event with the request to set the button disabled before it shows grey
+
         #get info from the widget
         #create a group workspace:
         #  1. extract a list each of file names and locations from table
@@ -234,6 +238,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     dialog=QtGui.QMessageBox(self)
                     dialog.setText("Then return and please enter a unique workspace name")
                     dialog.exec_()
+                    self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                     return
 
             
@@ -264,6 +269,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         
                 if NwsSel == 0:
                     #case with no workspaces to operate with - just return
+                    self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                     return
                 
                 
@@ -324,6 +330,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         
                 if NwsSel == 0:
                     #case with no workspaces to operate with - just return
+                    self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                     return
                 
                 sumSize=0
@@ -350,6 +357,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         dialog=QtGui.QMessageBox(self)
                         dialog.setText("The workspaces are not compatible for summation")
                         dialog.exec_()
+                        self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                         return    
      
                 exec("%s = sumws" % (gwsName))
@@ -376,6 +384,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         
                 if NwsSel == 0:
                     #case with no workspaces to operate with - just return
+                    self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                     return
                 
                 mergeSize=0
@@ -390,16 +399,19 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     if cw.isChecked():
                         
                         ws=str(table.item(row,const.WGE_WorkspaceCol).text())
+                        print "** ws: ",ws
                         if cnt==0:
                             mergeType=getReduceAlgFromWorkspace(ws) 
                         cnt+=1
-                        someMergeChk=True #FIXME will eventually need a real check here but for now stub it out
+                        someMergeChk=True #FIXME will eventually need a real check here to confirm all selected files can be merged but for now stub it out
                         if someMergeChk:
                             grpLst.append(ws)
+                            mtd.retrieve(ws) #make sure workspace is available from Mantid
                         else:
                             dialog=QtGui.QMessageBox(self)
                             dialog.setText("The workspaces are not compatible for merging - returning")
                             dialog.exec_()
+                            self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                             break
                             return    
                                 
@@ -408,24 +420,34 @@ class WorkspaceComposer(QtGui.QMainWindow):
                     dialog=QtGui.QMessageBox(self)
                     dialog.setText("No workspaces contained in the merge workspace - returning")
                     dialog.exec_()
+                    self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                     return    
                               
                 print "grpLst: ",grpLst
-                exec("%s = GroupWorkspaces(%r)" % ('spe',grpLst))
-                #min and max returned are for what is possible on the instrument so do not need to find these values for each file
-                minn,maxx = ConvertToMDMinMaxLocal(InputWorkspace=spe[0],QDimensions='|Q|',dEAnalysisMode='Direct') #not sure this step is needed but seems to be inexpensive to perform
-                mdpieces=ConvertToMD(spe,Qdimensions='|Q|',dEAnalysisMode='Direct',MinValues=minn,MaxValues=maxx)  
-                md=MergeMD(mdpieces)
-     
-                exec("%s = md" % (gwsName))
+                #ensure that workspaces are available at the python level
+                Ngrp=len(grpLst)
+                if Ngrp > 1:
+                    for i in range(Ngrp):
+                        mtd.retrieve(grpLst[i])
+                elif Ngrp == 1:
+                    mtd.retrieve(grpLst)
+                else:
+                    #case with an unanticipated number of workspaces
+                    self.ui.pushButtonCreateWorkspace.setEnabled(True) 
+                    return
+                #exec("%s = GroupWorkspaces(%r)" % ('spe',grpLst))
+                __spe=GroupWorkspaces(grpLst)
+                __mdpieces=ConvertToMD(__spe,Qdimensions='|Q|',dEAnalysisMode='Direct',PreprocDetectorsWS='')  
+                md=MergeMD(__mdpieces)
+
+                exec("%s = md" % (gwsName))  #use this exec to create a new workspace using the name contained in string var gwsName - here gwsName remains a string var
                 eval("mtd.addOrReplace(%r,%s,)" % (gwsName,gwsName))       
-                eval("mtd.retrieve(%r)" % (gwsName))       
-                
+                eval("mtd.retrieve(%r)" % (gwsName))   
+                mtd.remove('md')
                 exec("mergeSize=%s.getMemorySize()" % gwsName)  #get size of the output workspace
                 mergeSizeStr=str(int(float(mergeSize)/float(1024*1024)))+' MB'
                 gwsSizeStr=mergeSizeStr
-                gwsType=mergeType
-                print "mtd.getObjectNames(): ",mtd.getObjectNames() #checking if this worked or not       
+                gwsType=mergeType   
                      
             elif self.ui.radioButtonExecuteEqn.isChecked():
                 #case to execute an equation a user has entered
@@ -497,6 +519,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         if replcntr != Nws:
                             #case where the number of workspace name replacements does not match the number of workspace indicies in the equation
                             print "Workspace name mismatch...returning"
+                            self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                             return
                                 
                         
@@ -506,6 +529,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         print "  **** Equation(elif): ",RplEqnStr
                     else:
                         print "No workspaces identified in the equation...returning"
+                        self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                         return
                         
                     #make sure all workspaces are at the python working level
@@ -541,6 +565,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                         print " dir(): ",dir()
                         self.parent.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Equation failed to execute...please check and try again")
                         print "Workspaces in memory: ",mtd.getObjectNames()
+                        self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                         return
                         
                     #if we get here, add the output workspace to the table
@@ -555,6 +580,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
             else:
                 #should never get here...
                 print "Undefined case - returning"
+                self.ui.pushButtonCreateWorkspace.setEnabled(True) 
                 return
              
         
@@ -577,8 +603,9 @@ class WorkspaceComposer(QtGui.QMainWindow):
         
         #now that we have the info we need, destroy the WorkspaceComposer
 #        self.close()      
-        time.sleep(0.5)   
+        time.sleep(0.1)   
         self.parent.ui.progressBarStatusProgress.setValue(0) #update progress bar
+        self.ui.pushButtonCreateWorkspace.setEnabled(True) 
         
     def Update(self):
         #case to check the radio buttons and perform accordingly
@@ -633,9 +660,13 @@ class WorkspaceComposer(QtGui.QMainWindow):
             #case to select workspaces
             print "Choose Workspace Selected"
             
-            curdir=os.curdir
-            filter='*.nxs'
+            if self.parent.ui.rememberDataPath=='':
+                curdir=os.curdir
+            else:
+                curdir=self.parent.ui.rememberDataPath
+            filter="NXS (*.nxs);;All files (*.*)"
             wsFiles = QtGui.QFileDialog.getOpenFileNames(self, 'Open Workspace(s)', curdir,filter)
+            self.parent.ui.rememberDataPath=os.path.dirname(str(wsFiles[0]))
             if len(wsFiles) > 0:
                 self.parent.ui.WSMIndex=[]  #if workspaces are chosen, then enable those new workspaces to be loaded via the buttonBoxOK() procedure
             

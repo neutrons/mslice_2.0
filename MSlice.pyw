@@ -74,6 +74,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.activeWSVarsList=[]    #this is where these workspaces are loaded
         self.ui.activePowderCalcWS=[]  #list for holding projection data for powder sample
         self.ui.activeSCCalcWS=[]      #list for holding projection data for single crystal sample
+        self.ui.rememberDataPath=''        #retain path where user selects data
                 
         #set global font style by system type as point size seems different on different platforms.
         if os.sys.platform == 'win32':
@@ -305,18 +306,17 @@ class MSlice(QtGui.QMainWindow):
             fileObj.write(log)
             fileObj.close()
 
-		
     def PowderCalcProjSelect(self):
 
-    #get constants
-	#const=constants()
+        #get constants
+        #const=constants()
 
         #disable Powder Calc Proj until calculations complete
         self.ui.pushButtonPowderCalcProj.setEnabled(False)      	
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Calculate Projections Initiated")		
 
-	#get workspace table to work with
-	table=self.ui.tableWidgetWorkspaces
+        #get workspace table to work with
+        table=self.ui.tableWidgetWorkspaces
 
         #get values from combo boxes 
         CBPU1=self.ui.comboBoxPowderu1.currentIndex()
@@ -361,10 +361,10 @@ class MSlice(QtGui.QMainWindow):
                 self.ui.StatusText.append(time.strftime('  Output Workspace: '+pws_out))	
                 pws=mtd.retrieve(pws)
                 if pws.id() == 'Workspace2D':
-                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out)
+                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out,PreprocDetectorsWS='')
                 elif pws.id() == 'WorkspaceGroup':
                     #FIXME - eventually need to check inside group to determine each ws is a Workspace2D type
-                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out)
+                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out,PreprocDetectorsWS='')
                 elif pws.id() == 'MDEventWorkspace<MDEvent,2>':
                     #case convert to MD has already been done 
                     #so employ some mantid workspace handlers...
@@ -451,7 +451,7 @@ class MSlice(QtGui.QMainWindow):
         print "VA - fold u1: ",SCVAu1Fold,SCVAu1Center,SCVAu1Direction,SCVAu1Directiontxt
         print "VA - fold u2: ",SCVAu2Fold,SCVAu2Center,SCVAu2Direction,SCVAu2Directiontxt
         print "VA - fold u3: ",SCVAu3Fold,SCVAu3Center,SCVAu3Direction,SCVAu3Directiontxt
-		
+
         NumActiveWorkspaces=self.ui.numActiveWorkspaces
         #for demo purposes, activate the application status progress bar
         for i in range(NumActiveWorkspaces):
@@ -469,14 +469,12 @@ class MSlice(QtGui.QMainWindow):
             print "thisWS shape: ",thisWS.shape," WS name: ",self.ui.activeWSNames[i]," SCCP shape: ",SCCP.shape
             time.sleep(1) #have a 1 second delay to enable viewing progress bar update changes
         self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
-		
+
         #upon successful completion enable Powder Calc Proj button
         self.ui.pushButtonSCCalcProj.setEnabled(True)      
         #for now, just enable the corresponding Save Workspaces button
         self.ui.pushButtonSCSaveWorkspace.setEnabled(True) 
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Calculate Projections Complete")		
-		
-
         
     def Update(self):
         print "** Update "
@@ -504,11 +502,14 @@ class MSlice(QtGui.QMainWindow):
             #Load workspaces or groups from files
             
             #open dialog box to select files
-            curdir=os.curdir
-            filter='*.nxs'
+            if self.ui.rememberDataPath=='':
+                curdir=os.curdir
+            else:
+                curdir=self.ui.rememberDataPath
+            filter="NXS (*.nxs);;All files (*.*)"
             wsFiles = QtGui.QFileDialog.getOpenFileNames(self, 'Open Workspace(s)', curdir,filter)
-            
-            
+            self.ui.rememberDataPath=os.path.dirname(str(wsFiles[0]))
+        
             #for each file selected:
             #  - load mantid workspace
             #  - populate workspace manager table
@@ -635,7 +636,7 @@ class MSlice(QtGui.QMainWindow):
                 if row != -1:
                     wsname=str(table.item(row,config.WSM_WorkspaceCol).text())
                     
-                filter='.nxs'
+                filter="NXS (*.nxs);;All files (*.*)"
                 wsnamext=wsname+filter
                 wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsnamext,filter))
                 print "Workspace Save: ",wspathname
@@ -661,7 +662,7 @@ class MSlice(QtGui.QMainWindow):
                 dialog.setText("Multiple files selected to save - user selects the directory to save the files and filenames will be automatically generated")
                 dialog.exec_()
                              
-                filter='.nxs'
+                filter="NXS (*.nxs);;All files (*.*)"
 #                wsnamext=wsname+filter
 #                wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsnamext,filter))
                 home=getHomeDir()
@@ -685,9 +686,11 @@ class MSlice(QtGui.QMainWindow):
                     print "one or more files already exist - overwrite?"
                     reply = QtGui.QMessageBox.question(self, 'Warning', "One or more files already exist - overwrite all existing files?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
                     print "Button pressed: ",reply
+                else:
+                    reply = QtGui.QMessageBox.Yes
                     
                 if reply == QtGui.QMessageBox.Yes:
-                    #case to overwrite files
+                    #case to (over)write files
                     if wspathname != '':
                         #wspathname will be empty if the cancel button was selected on the path dialog.
                         cntr=1
@@ -1173,10 +1176,6 @@ class MSlice(QtGui.QMainWindow):
         #**** code to extract data and perform plot placed here
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Show Slice")		
 
-        
-        
-        
-		
     def pushButtonPowderSliceOplotSliceSelect(self):
         print "Powder Oplot Slice Button pressed"
         #now extract values from this tab
@@ -1195,7 +1194,6 @@ class MSlice(QtGui.QMainWindow):
         #**** code to extract data and perform plot placed here
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Oplot Slice")				
 
-		
     def pushButtonPowderSliceSurfaceSliceSelect(self):
         print "Powder Surface Slice Button pressed"
         #now extract values from this tab
@@ -1436,7 +1434,7 @@ class MSlice(QtGui.QMainWindow):
 
         #get output filename first
         wsname=self.ui.lineEditWorkspaceName.text()
-        filter='.nxs'
+        filter="NXS (*.nxs);;All files (*.*)"
         wsname=wsname+filter
         wspathname = QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsname,filter)        
         print "Workspace Save: ",wspathname
