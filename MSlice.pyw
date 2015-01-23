@@ -560,7 +560,7 @@ class MSlice(QtGui.QMainWindow):
                         selrow.append(row)
                 except AttributeError:
                     #case where rows have been deleted and nothing do check or do
-					print "unexpected case"
+                    print "unexpected case"
 
             #once done checking selects, determine:
             # if none were selected
@@ -636,9 +636,15 @@ class MSlice(QtGui.QMainWindow):
                 if row != -1:
                     wsname=str(table.item(row,config.WSM_WorkspaceCol).text())
                     
-                filter="NXS (*.nxs);;All files (*.*)"
+                if self.ui.rememberDataPath=='':
+                    curdir=os.curdir
+                else:
+                    curdir=self.ui.rememberDataPath
+                    
+                filter=".nxs"
                 wsnamext=wsname+filter
-                wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsnamext,filter))
+                filter="NXS (*.nxs);;All files (*.*)"
+                wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', curdir+'/'+wsnamext,filter))
                 print "Workspace Save: ",wspathname
                 
                 if wspathname != '':

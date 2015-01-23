@@ -709,7 +709,7 @@ class WorkspaceComposer(QtGui.QMainWindow):
                             exec("%s = mtd.retrieve(%r)" % (itemStr,itemStr))     
                             #then update the in-memory column
                             table.item(row,const.WGE_InMemCol).setText("Yes")
-							#case to generate the in-memory size of the workspace and replace the file size listed in the table
+                            #case to generate the in-memory size of the workspace and replace the file size listed in the table
                         tmpws=mtd.retrieve(itemStr)
                         if 'Group' in str(type(tmpws)):
                         #case to get cumulative size for each member of the group in memory
