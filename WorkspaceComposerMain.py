@@ -877,8 +877,8 @@ class constants:
 
 def WCaddWStoTable(table,workspaceName,workspaceLocation):
     #function to add a single workspace to the workspace manager table
-	# workspaces may originate from create workspace or the list of files
-	
+    # workspaces may originate from create workspace or the list of files
+
     #get constants
     const=constants()
     
@@ -886,13 +886,8 @@ def WCaddWStoTable(table,workspaceName,workspaceLocation):
         print "WCaddWStoTable workspaceName: ",workspaceName
         print "workspaceLocation: ",workspaceLocation
         
-
-    
         #then get info about the workspace file
         ws_date=str(time.ctime(os.path.getctime(workspaceLocation)))
-		
-
-
         ws_size=str(int(round(float(os.stat(workspaceLocation).st_size)/(1024*1024))))+' MB'
 
         
@@ -916,8 +911,8 @@ def WCaddWStoTable(table,workspaceName,workspaceLocation):
 
     #two cases of rows:
     #    1. Case where all or some rows are empty and just add directly to first available row
-	#    2. Case where all rows have content and need to add a row in this case
-	
+    #    2. Case where all rows have content and need to add a row in this case
+
     #First determine if there is an open row
     #need to determine the available row number in the workspace table
     Nrows=table.rowCount()

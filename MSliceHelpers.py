@@ -584,6 +584,9 @@ def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
             print "wsname: ",wsname
             if wschk == wsname:
                 print "Duplicate workspace name - not adding another entry and returning"
+                dialog=QtGui.QMessageBox()
+                dialog.setText("Duplicate filename - please correct and try again")
+                dialog.exec_()  
                 return
         except:
             #just skip this test with any empty rows that might be in the table
@@ -727,6 +730,276 @@ class constants:
         self.CWS_StatusCol=5
 
 """
+
+def makeSCNames(self):
+
+    """
+    helper function to extract GUI info to build the name fields needed by MDNormDirectSC
+    SC Viewing Axes define the variables to use
+    Labels need to be integrated with a,b,c for each of u1,u2,and u3
+    a,b,c can be floating point numbers
+    name results are returned as a list of strings
+    however -1H should be -H (drop the 1)
+    """
+    print "In makeSCNames"
+    print "self: ",self
+    print "type self.ui.lineEditSCVAu1a.text(): ",type(self.ui.lineEditSCVAu1a.text())
+    print "self.ui.lineEditSCVAu1a.text(): ",self.ui.lineEditSCVAu1a.text()
+    print "type str(self.ui.lineEditSCVAu1a.text()): ",type(str(self.ui.lineEditSCVAu1a.text()))
+    print "str(self.ui.lineEditSCVAu1a.text()): ",str(self.ui.lineEditSCVAu1a.text())
+    
+    u1a=str(self.ui.lineEditSCVAu1a.text())
+    u1b=str(self.ui.lineEditSCVAu1b.text())
+    u1c=str(self.ui.lineEditSCVAu1c.text())
+    u1Label=str(self.ui.lineEditSCVAu1Label.text())
+    print "***** u1a: ",u1a,"  u1b: ",u1b,"  u1c: ",u1c,"  u1Label: ",u1Label
+    
+    if u1a == '1':
+        lab1a=''
+    elif u1a == '-1':
+        lab1a='-'
+    else:
+        lab1a=u1a
+    if u1a == '0':
+        lab1a=str(lab1a)
+    else:
+        lab1a=str(lab1a)+str(u1Label)
+    print "lab1a: ",lab1a,"  u1Label: ",u1Label
+    print "lab1a: ",lab1a
+    if u1b == '1':
+        lab1b=''
+    elif u1b == '-1':
+        lab1b='-'
+    else:
+        lab1b=u1b
+    if u1b == '0':
+        lab1b=str(lab1b)
+    else:
+        lab1b=str(lab1b)+str(u1Label)
+    print "lab1b: ",lab1b
+    if u1c == '1':
+        lab1c=''
+    elif u1c == '-1':
+        lab1c='-'
+    else:
+        lab1c=u1c
+    if u1c == '0':
+        lab1c=str(lab1c)
+    else:
+        lab1c=str(lab1c)+str(u1Label)
+    print "lab1c: ",lab1c
+    u1Name='['+lab1a+','+lab1b+','+lab1c+']'
+    print "u1Name: ",u1Name
+
+    u2a=str(self.ui.lineEditSCVAu2a.text())
+    u2b=str(self.ui.lineEditSCVAu2b.text())
+    u2c=str(self.ui.lineEditSCVAu2c.text())
+    u2Label=str(self.ui.lineEditSCVAu2Label.text())
+    if u2a == '1':
+        lab2a=''
+    elif u2a == '-1':
+        lab2a='-'
+    else:
+        lab2a=u2a
+    if u2a == '0':
+        lab2a=str(lab2a)
+    else:
+        lab2a=str(lab2a)+str(u2Label)
+    if u2b == '1':
+        lab2b=''
+    elif u2b == '-1':
+        lab2b='-'
+    else:
+        lab2b=u2b
+    if u2b == '0':
+        lab2b=str(lab2b)
+    else:
+        lab2b=str(lab2b)+str(u2Label)
+    if u2c == '1':
+        lab2c=''
+    elif u2c == '-1':
+        lab2c='-'
+    else:
+        lab2c=u2c
+    if u2c == '0':
+        lab2c=str(lab2c)
+    else:
+        lab2c=str(lab2c)+str(u2Label)
+
+    u2Name='['+lab2a+','+lab2b+','+lab2c+']'
+    print "u2Name: ",u2Name
+            
+    u3a=str(self.ui.lineEditSCVAu3a.text())
+    u3b=str(self.ui.lineEditSCVAu3b.text())
+    u3c=str(self.ui.lineEditSCVAu3c.text())
+    u3Label=str(self.ui.lineEditSCVAu3Label.text())
+    if u3a == '1':
+        lab3a=''
+    elif u3a == '-1':
+        lab3a='-'
+    else:
+        lab3a=u3a
+    if u3a == '0':
+        lab3a=str(lab3a)
+    else:
+        lab3a=str(lab3a)+str(u3Label)
+    if u3b == '1':
+        lab3b=''
+    elif u3b == '-1':
+        lab3b='-'
+    else:
+        lab3b=u3b
+    if u3b == '0':
+        lab3b=str(lab3b)
+    else:
+        lab3b=str(lab3b)+str(u3Label)
+    if u3c == '1':
+        lab3c=''
+    elif u3c == '-1':
+        lab3c='-'
+    else:
+        lab3c=u3c
+    if u3c == '0':
+        lab3c=str(lab3c)
+    else:
+        lab3c=str(lab3c)+str(u3Label)
+    u3Name='['+lab3a+','+lab3b+','+lab3c+']'
+    print "u3Name: ",u3Name
+    
+    print "***** u1Name: ",u1Name," u2Name: ",u2Name," u3Name: ",u3Name
+    return [u1Name,u2Name,u3Name]
+
+    
+def swapSCViewParams(self,tab,CBIndx0,CBIndx1):
+
+    """Utility function to swap the parameters for the single crystal view tabs
+    self - main MSlice object
+    tab - string indicating which tab ('Slice','Cut','Volume') - necessary as each tab has different widget names
+    CBIndx0 - first combo box index to switch
+    CBIndx1 - second combo box index to switch
+    This utility simply swaps the contents of the GUI widgets
+    """
+    
+    if CBIndx0 == CBIndx1:
+        print "Cannot have CBIndx0 and CBIndx1 equal - returning"
+        return
+    #perform swap:
+    #move contents of CBIndx0 to tmp
+    #move contents of CBIndx1 to CBIndx0
+    #move contents of tmp to CBIndx1
+    
+    
+    if tab == 'Slice':
+        #move CBIndx0 values to tmp
+        if CBIndx0 == 0:
+            f0=self.ui.lineEditSCSliceXFrom.text()
+            t0=self.ui.lineEditSCSliceXTo.text()
+        elif CBIndx0 == 1:
+            f0=self.ui.lineEditSCSliceYFrom.text()
+            t0=self.ui.lineEditSCSliceYTo.text()            
+        elif CBIndx0 == 2:
+            f0=self.ui.lineEditSCSliceZFrom.text()
+            t0=self.ui.lineEditSCSliceZTo.text()
+        elif CBIndx0 == 3:
+            f0=self.ui.lineEditSCSliceEFrom.text()
+            t0=self.ui.lineEditSCSliceETo.text()
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+            
+        print "f0: ",f0," t0: ",t0
+
+        #then get CBIndx1 values
+        if CBIndx1 == 0:
+            f1=self.ui.lineEditSCSliceXFrom.text()
+            t1=self.ui.lineEditSCSliceXTo.text()
+        elif CBIndx1 == 1:
+            f1=self.ui.lineEditSCSliceYFrom.text()
+            t1=self.ui.lineEditSCSliceYTo.text()            
+        elif CBIndx1 == 2:
+            f1=self.ui.lineEditSCSliceZFrom.text()
+            t1=self.ui.lineEditSCSliceZTo.text()
+        elif CBIndx1 == 3:
+            f1=self.ui.lineEditSCSliceEFrom.text()
+            t1=self.ui.lineEditSCSliceETo.text()
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+            
+        print "f1: ",f1," t1: ",t1
+            
+        #now place CBIndx1 values in CBIndx0
+        if CBIndx0 == 0:
+            self.ui.lineEditSCSliceXFrom.setText(f1)
+            self.ui.lineEditSCSliceXTo.setText(t1)
+        elif CBIndx0 == 1:
+            self.ui.lineEditSCSliceYFrom.setText(f1)
+            self.ui.lineEditSCSliceYTo.setText(t1)            
+        elif CBIndx0 == 2:
+            self.ui.lineEditSCSliceZFrom.setText(f1)
+            self.ui.lineEditSCSliceZTo.setText(t1)
+        elif CBIndx0 == 3:
+            self.ui.lineEditSCSliceEFrom.setText(f1)
+            self.ui.lineEditSCSliceETo.setText(t1)
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+
+        #finally place CBIndx0 values into CBIndx1
+        if CBIndx1 == 0:
+            self.ui.lineEditSCSliceXFrom.setText(f0)
+            self.ui.lineEditSCSliceXTo.setText(t0)
+        elif CBIndx1 == 1:
+            self.ui.lineEditSCSliceYFrom.setText(f0)
+            self.ui.lineEditSCSliceYTo.setText(t0)            
+        elif CBIndx1 == 2:
+            self.ui.lineEditSCSliceZFrom.setText(f0)
+            self.ui.lineEditSCSliceZTo.setText(t0)
+        elif CBIndx1 == 3:
+            self.ui.lineEditSCSliceEFrom.setText(f0)
+            self.ui.lineEditSCSliceETo.setText(t0)
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+
+
+    elif tab == 'Cut':
+        pass #stub for Cut tab
+    elif tab == 'Volume':
+        pass #stub for Volume tab
+    else:
+        print "Incorrect tab identifier specified - bug in code - returning"
+        return
+        
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
