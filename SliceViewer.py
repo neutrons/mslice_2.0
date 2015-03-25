@@ -53,9 +53,13 @@ class SliceViewer(QtGui.QMainWindow):
         
     def LoadData(self,ws,label):
         print "b"
+        print "label: ",label
+        print "ws: ",ws,"  type(ws): ",type(ws)
         self.svw = threadsafe_call(mantidqtpython.MantidQt.Factory.WidgetFactory.Instance().createSliceViewerWindow, ws, label)
+
         print "b2"
     def SetParams(self,xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization):
+        print "b3"
         # --- X/Y Dimensions ---
         if (not xydim is None):
             if len(xydim) != 2:
@@ -71,22 +75,27 @@ class SliceViewer(QtGui.QMainWindow):
                     raise ValueError("Could not convert item %d of slicepoint parameter to float (got '%s'" % (d, slicepoint[d]))
                 sv.setSlicePoint(d, val)  
         # Set the normalization before the color scale
+        print "b4"
         sv=threadsafe_call(self.svw.getSlicer)
         threadsafe_call(sv.setNormalization, normalization)
+        print "b5"
         # --- Color scale ---
         if (not colormin is None) and (not colormax is None):
             threadsafe_call(sv.setColorScale, colormin, colormax, colorscalelog)
         else:
             if (not colormin is None): threadsafe_call(sv.setColorScaleMin, colormin)
             if (not colormax is None): threadsafe_call(sv.setColorScaleMax, colormax)
+        print "b6"
         try:
+            print "b7"
             threadsafe_call(sv.setColorScaleLog, colorscalelog)
+            print "b8"
         except:
             print "Log color scale not possible."
         # --- XY limits ---
         if not limits is None:
             threadsafe_call(sv.setXYLimits, limits[0], limits[1], limits[2], limits[3])
-        
+        print "b9"
     def Show(self):
         print "c"
         wsNames=mtd.getObjectNames()

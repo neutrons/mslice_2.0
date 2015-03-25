@@ -18,3 +18,12 @@ CWS_TypeCol=2
 CWS_SizeCol=3
 CWS_ScaleFactorCol=4
 CWS_StatusCol=5
+
+#MSlice Single Crystal Number of points "too large" thresholds
+SCXNpts=10000
+SCYNpts=10000
+
+#Units for HKL combo box labels
+XYZUnits=' (RLU)'
+SCSStep = 0.035
+SCVStep = 0.050

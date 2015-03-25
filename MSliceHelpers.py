@@ -670,8 +670,8 @@ def addWStoTable(table,workspaceName,workspaceLocation):
 
     #two cases of rows:
     #    1. Case where all or some rows are empty and just add directly to first available row
-	#    2. Case where all rows have content and need to add a row in this case
-	
+    #    2. Case where all rows have content and need to add a row in this case
+
     #First determine if there is an open row
     #need to determine the available row number in the workspace table
     
@@ -680,7 +680,7 @@ def addWStoTable(table,workspaceName,workspaceLocation):
 
     emptyRowCnt=0
     emptyRows = []
-	
+
     for row in range(Nrows):
         item=str(table.item(row,0)) 
         if item == 'None':
@@ -788,7 +788,7 @@ def makeSCNames(self):
     else:
         lab1c=str(lab1c)+str(u1Label)
     print "lab1c: ",lab1c
-    u1Name='['+lab1a+','+lab1b+','+lab1c+']'
+    u1Name='['+lab1a+','+lab1b+','+lab1c+']'+ config.XYZUnits
     print "u1Name: ",u1Name
 
     u2a=str(self.ui.lineEditSCVAu2a.text())
@@ -826,7 +826,7 @@ def makeSCNames(self):
     else:
         lab2c=str(lab2c)+str(u2Label)
 
-    u2Name='['+lab2a+','+lab2b+','+lab2c+']'
+    u2Name='['+lab2a+','+lab2b+','+lab2c+']'+config.XYZUnits
     print "u2Name: ",u2Name
             
     u3a=str(self.ui.lineEditSCVAu3a.text())
@@ -863,7 +863,7 @@ def makeSCNames(self):
         lab3c=str(lab3c)
     else:
         lab3c=str(lab3c)+str(u3Label)
-    u3Name='['+lab3a+','+lab3b+','+lab3c+']'
+    u3Name='['+lab3a+','+lab3b+','+lab3c+']'+config.XYZUnits
     print "u3Name: ",u3Name
     
     print "***** u1Name: ",u1Name," u2Name: ",u2Name," u3Name: ",u3Name
@@ -973,27 +973,268 @@ def swapSCViewParams(self,tab,CBIndx0,CBIndx1):
         
         
 
+def convertIndexToLabel(self,comboBox):
+    """
+    self is MSlice main object
+    comboBox is a text string indicating which of X,Y,Z,E combo boxes are being examined
+    
+    The currentIndex() for the selected comboBox is identified and returned 
+    
+    """
+    
+    ViewSCDict=self.ui.ViewSCDict
+    
+    if comboBox == 'X':
+        labelCB=str(self.ui.comboBoxSCSliceX.currentText())
+        if labelCB == ViewSCDict['u1']['label']:
+            labelDict='u1'
+        elif labelCB == ViewSCDict['u2']['label']:
+            labelDict='u2'
+        elif labelCB == ViewSCDict['u3']['label']:
+            labelDict='u3'
+        elif labelCB == ViewSCDict['E']['label']:
+            labelDict='E'
+        else:
+            print "Label match not found - returning"
+            return
+        
+    elif comboBox == 'Y':
+        labelCB=str(self.ui.comboBoxSCSliceY.currentText())
+        if labelCB == ViewSCDict['u1']['label']:
+            labelDict='u1'
+        elif labelCB == ViewSCDict['u2']['label']:
+            labelDict='u2'
+        elif labelCB == ViewSCDict['u3']['label']:
+            labelDict='u3'
+        elif labelCB == ViewSCDict['E']['label']:
+            labelDict='E'    
+        else:
+            print "Label match not found - returning"
+            return
+                            
+    elif comboBox == 'Z':
+        labelCB=str(self.ui.comboBoxSCSliceZ.currentText())
+        if labelCB == ViewSCDict['u1']['label']:
+            labelDict='u1'
+        elif labelCB == ViewSCDict['u2']['label']:
+            labelDict='u2'
+        elif labelCB == ViewSCDict['u3']['label']:
+            labelDict='u3'
+        elif labelCB == ViewSCDict['E']['label']:
+            labelDict='E'
+        else:
+            print "Label match not found - returning"
+            return            
+        
+    elif comboBox == 'E':
+        labelCB=str(self.ui.comboBoxSCSliceE.currentText())
+        if labelCB == ViewSCDict['u1']['label']:
+            labelDict='u1'
+        elif labelCB == ViewSCDict['u2']['label']:
+            labelDict='u2'
+        elif labelCB == ViewSCDict['u3']['label']:
+            labelDict='u3'
+        elif labelCB == ViewSCDict['E']['label']:
+            labelDict='E'
+        else:
+            print "Label match not found - returning"
+            return
+        
+    else:
+        print "Unknown combo box - returning"
+        return
+    
+    
+    return labelDict
+        
+
+def histToDict(ws):
+    """ 
+    Utility to extract the history from a workspace and place it within a
+    dictionary.  The resulting dictionary is returned to the calling program
+    """
+    
+    histDict={}
+    #NEntries=len(ws.getHistory().getAlgorithmHistories())
+    NEntries=ws.getHistory().size()
+    subDicts=[] #list of dictionary names within the main dictionary
+    cntr=0
+    for i in range(NEntries):
+                NTags=len(ws.getHistory().getAlgorithmHistories()[i].getProperties())
+                print ws.getHistory().getAlgorithmHistories()[i].name()
+                entry=ws.getHistory().getAlgorithmHistories()[i].name()
+                #histories can contain multiple entries with duplicate names.  
+                #However the latest duplicate name will be the one that survies
+                #placement into the dictionary.  To avoid this issue, check each
+                #dictionary label to see if it has been used before and if so,
+                #add an index counter value to the name to keep it unique.
+                #Not doing this will append all of the key/value pairs into the
+                #original dictionary declaration.
+                if entry in subDicts:
+                    entry=entry+str(cntr) #append a unique identifier to this subDict
+                    cntr+=1 #increment counter
+                subDicts.append(entry) #put new subDict in list
+                #place each key/value pair into the corresponding subDict
+                for j in range(NTags):
+                    name=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name()
+                    value=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value()
+                    histDict.setdefault(entry,{})[name]=value
+
+    #Get combo box labels - also add them to histDict
+    XName=ws.getXDimension().getName()
+    if XName == 'DeltaE':
+        XName = 'E (meV)'
+    else:
+        XName=XName+config.XYZUnits
+    histDict.setdefault('Names',{})['XName']=XName
+    YName=ws.getYDimension().getName()
+    if YName == 'DeltaE':
+        YName = 'E (meV)'
+    else:
+        YName=YName+config.XYZUnits
+    histDict.setdefault('Names',{})['YName']=YName
+    ZName=ws.getZDimension().getName()
+    if ZName == 'DeltaE':
+        ZName = 'E (meV)'
+    else:
+        ZName=ZName+config.XYZUnits
+    histDict.setdefault('Names',{})['ZName']=ZName
+    TName=ws.getTDimension().getName()
+    if TName == 'DeltaE':
+        TName = 'E (meV)'
+    else:
+        TName=TName+config.XYZUnits
+    histDict.setdefault('Names',{})['TName']=TName
+
+    return histDict
+
+def updateSCParms(self,histDict,modes):
+    #case to update the Single Crystal Slice tab parameters
+    #values to use are in histDict
+    #expecting mode values of:
+    # - 'Cut'
+    # - 'Slice'
+    # - 'Volume'
+    #modes is expecited to be a list of strings (may just be one string)
+    #this enables all three tabs to be updated from this one call.
+    #Example: modes=['Slice']
+    
+    #FIXME - note that it is possible that there could be multiple entries
+    #for SetUB, SetGoniometer, and ConvertToMD, however these cases are not
+    #currently being checked and handled - will address this if it becomes an
+    #issue.
+    
+    #Update Unit Cell Lattice Parameters
+    a = '%.2f' % float(histDict['SetUB']['a'])
+    b = '%.2f' % float(histDict['SetUB']['b'])
+    c = '%.2f' % float(histDict['SetUB']['c'])
+    alpha = '%.2f' % float(histDict['SetUB']['alpha'])
+    beta = '%.2f' % float(histDict['SetUB']['beta'])
+    gamma ='%.2f' % float(histDict['SetUB']['gamma'])
+    uvec = histDict['SetUB']['u'].split(',')
+    vvec = histDict['SetUB']['v'].split(',')
+
+    #Get Goniometer settings
+    Axis0=histDict['SetGoniometer']['Axis0'].split(',')
+    Axis1=histDict['SetGoniometer']['Axis1'].split(',')
+
+    #Get Viewing axes info
+    Uproj=histDict['ConvertToMD']['Uproj'].split(',')
+    Vproj=histDict['ConvertToMD']['Vproj'].split(',')
+    Wproj=histDict['ConvertToMD']['Wproj'].split(',')
+
+    #Get min/max values
+    MinVals=histDict['ConvertToMD']['MinValues'].split(',')
+    MaxVals=histDict['ConvertToMD']['MaxValues'].split(',')    
 
 
+        
+    #set Unit Cell, Crystal Orientation, Goniometer, and Viewing Axes fields
+    self.ui.lineEditUCa.setText(a)
+    self.ui.lineEditUCb.setText(b)
+    self.ui.lineEditUCc.setText(c)
+    self.ui.lineEditUCalpha.setText(alpha)
+    self.ui.lineEditUCbeta.setText(beta)
+    self.ui.lineEditUCgamma.setText(gamma)
+    self.ui.lineEditSCCOux.setText(uvec[0])
+    self.ui.lineEditSCCOuy.setText(uvec[1])
+    self.ui.lineEditSCCOuz.setText(uvec[2])
+    self.ui.lineEditSCCOvx.setText(vvec[0])
+    self.ui.lineEditSCCOvy.setText(vvec[1])
+    self.ui.lineEditSCCOvz.setText(vvec[2])
+    self.ui.lineEditSCCOPsi.setText(Axis1[0])
+    self.ui.lineEditSCCOName.setText(Axis0[0])
+    self.ui.lineEditSCVAu1a.setText(Uproj[0])
+    self.ui.lineEditSCVAu1b.setText(Uproj[1])
+    self.ui.lineEditSCVAu1c.setText(Uproj[2])
+    self.ui.lineEditSCVAu2a.setText(Vproj[0])
+    self.ui.lineEditSCVAu2b.setText(Vproj[1])
+    self.ui.lineEditSCVAu2c.setText(Vproj[2])
+    self.ui.lineEditSCVAu3a.setText(Wproj[0])
+    self.ui.lineEditSCVAu3b.setText(Wproj[1])
+    self.ui.lineEditSCVAu3c.setText(Wproj[2])
+    
+    self.ui.lineEditSCWorkspaceSuffix.setText('_SCProj')
+    
+    #set Viewing Axes Labels
+    #need to extract each label from its corresponding dimensional name
+    self.ui.lineEditSCVAu1Label.setText(getLabelChar(histDict,'XName'))
+    self.ui.lineEditSCVAu2Label.setText(getLabelChar(histDict,'YName'))
+    self.ui.lineEditSCVAu3Label.setText(getLabelChar(histDict,'ZName'))
+    
+    #can now call methods for updating ViewSCDict and for populating the 
+    #view tabs as if the 'Calculate Projections' button was pressed
+    
+    #update ViewSCDict with minn and maxx values calculated above
+    self.ui.ViewSCDict=self.ui.ViewSCDict
+    self.ui.ViewSCDict['u1']['from']=float(MinVals[0])
+    self.ui.ViewSCDict['u1']['to']=float(MaxVals[0])      
+    self.ui.ViewSCDict['u2']['from']=float(MinVals[1])
+    self.ui.ViewSCDict['u2']['to']=float(MaxVals[1])
+    self.ui.ViewSCDict['u3']['from']=float(MinVals[2])
+    self.ui.ViewSCDict['u3']['to']=float(MaxVals[2])
+    self.ui.ViewSCDict['E']['from']=float(MinVals[3])
+    self.ui.ViewSCDict['E']['to']=float(MaxVals[3])
+    
+    
+    self.UpdateViewSCDict()
+    
 
+        
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def getLabelChar(histDict,dimName):
+    """
+    Function to extract the label character from the dimensional name
+    Example: dimensional name may be [-H,H,0] --> H
+    Function expects dimName(s) to be one of:
+    XName
+    YName
+    ZName
+    TName
+    """
+    
+    #extract label from histDict dictionary
+    label=histDict['Names'][dimName]
+    
+    #realize that label may have '(RLU)' appended - don't want this part in label
+    label.replace('RLU','')
+    
+    #now search for H, K, or L in label
+    #Important assumption here: assumed that each label will only contain ONE
+    #of H, K, or L 
+    
+    if 'H' in label:
+        return 'H'
+        
+    elif 'K' in label:
+        return 'K'
+        
+    elif 'L' in label:
+        return 'L'
+    else:
+        return ''
+        
+    
 
 
 

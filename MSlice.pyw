@@ -51,9 +51,6 @@ from MSliceHelpers import *  #getReduceAlgFromWorkspace, getWorkspaceMemSize
 from WorkspaceComposerMain import *
 from MPLPowderCutMain import *
 
-#import Mantid computatinal modules
-sys.path.append(os.environ['MANTIDPATH'])
-from mantid.simpleapi import *
 
 #import SliceViewer (here it assumes local module as a Mantid produced module for this does not exist)
 from SliceViewer import *
@@ -316,27 +313,27 @@ class MSlice(QtGui.QMainWindow):
         ViewSCDict={}
 
         ViewSCDict.setdefault('u1',{})['index']='0'
-        ViewSCDict.setdefault('u1',{})['label']='[H,0,0]'
-        ViewSCDict.setdefault('u1',{})['from']='-1'
-        ViewSCDict.setdefault('u1',{})['to']='1'
+        ViewSCDict.setdefault('u1',{})['label']='[H,0,0]'+config.XYZUnits
+        ViewSCDict.setdefault('u1',{})['from']=''
+        ViewSCDict.setdefault('u1',{})['to']=''
         ViewSCDict.setdefault('u1',{})['Intensity']=''
         
         ViewSCDict.setdefault('u2',{})['index']='1'
-        ViewSCDict.setdefault('u2',{})['label']='[0,K,0]'
-        ViewSCDict.setdefault('u2',{})['from']='-1'
-        ViewSCDict.setdefault('u2',{})['to']='1'
+        ViewSCDict.setdefault('u2',{})['label']='[0,K,0]'+config.XYZUnits
+        ViewSCDict.setdefault('u2',{})['from']=''
+        ViewSCDict.setdefault('u2',{})['to']=''
         ViewSCDict.setdefault('u2',{})['Intensity']=''
         
         ViewSCDict.setdefault('u3',{})['index']='2'
-        ViewSCDict.setdefault('u3',{})['label']='[0,0,L]'
-        ViewSCDict.setdefault('u3',{})['from']='-3'
-        ViewSCDict.setdefault('u3',{})['to']='3'
+        ViewSCDict.setdefault('u3',{})['label']='[0,0,L]'+config.XYZUnits
+        ViewSCDict.setdefault('u3',{})['from']=''
+        ViewSCDict.setdefault('u3',{})['to']=''
         ViewSCDict.setdefault('u3',{})['Intensity']=''
         
         ViewSCDict.setdefault('E',{})['index']='3'
         ViewSCDict.setdefault('E',{})['label']='E (meV)'
-        ViewSCDict.setdefault('E',{})['from']='-10'
-        ViewSCDict.setdefault('E',{})['to']='10'
+        ViewSCDict.setdefault('E',{})['from']=''
+        ViewSCDict.setdefault('E',{})['to']=''
         ViewSCDict.setdefault('E',{})['Intensity']=''
         #make dictionary available to MSlice
         self.ui.ViewSCDict=ViewSCDict
@@ -362,6 +359,14 @@ class MSlice(QtGui.QMainWindow):
         QtCore.QObject.connect(self.ui.comboBoxSCSliceE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCE)
         self.ui.ViewSCDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
         #and a second for programmatically changing the current index when updating the ViewSCDict.  Skip the second update...
+
+        #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
 
     #add slot for workspace group editor to connect to
     @QtCore.pyqtSlot(int)
@@ -698,6 +703,20 @@ class MSlice(QtGui.QMainWindow):
             table.insertRow(cws_indx)
             addmemWStoTable(table,cws_out,cws_type,cws_size,cws_indx)
             addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False) #row was: pws_indx-1
+            
+            #update ViewSCDict with minn and maxx values calculated above
+            ViewSCDict=self.ui.ViewSCDict
+            ViewSCDict['u1']['from']=minn[0]
+            ViewSCDict['u1']['to']=maxx[0]            
+            ViewSCDict['u2']['from']=minn[1]
+            ViewSCDict['u2']['to']=maxx[1] 
+            ViewSCDict['u3']['from']=minn[2]
+            ViewSCDict['u3']['to']=maxx[2] 
+            ViewSCDict['E']['from']=minn[3]
+            ViewSCDict['E']['to']=maxx[3] 
+            
+            
+            
         except Exception as e:
             #parse error messages and provide info to user
             etype=e.__class__.__name__
@@ -735,7 +754,7 @@ class MSlice(QtGui.QMainWindow):
             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Calculate Projections Complete")	
             
         finally:
-            #this code executed no matter the case for try/except/else conditions
+            #this code executed for either case for try/except conditions occuring
             #upon completion enable Powder Calc Proj button
             self.ui.pushButtonSCCalcProj.setEnabled(True)      
             self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
@@ -782,14 +801,60 @@ class MSlice(QtGui.QMainWindow):
             table=self.ui.tableWidgetWorkspaces
             
             print "Number of files selected: ",Nfiles
-            cntr=1
+            cntr=1 #used for calculating progress bar % complete...
+            gotOne=0
             for wsfile in wsFiles:
                 basename=os.path.basename(str(wsfile))
                 fileparts=os.path.splitext(basename)
                 wsName=fileparts[0]
                 Load(Filename=str(wsfile),OutputWorkspace=wsName)
                 #make sure workspaces are available at the python level
+                __ws=mtd.retrieve(wsName)
+                print "** type(__ws): ",type(__ws)
+                #check if the workspace just loaded is a single crystal CalcProj workspace
+                #need to check workspace history to determine this
+                histDictTmp=histToDict(__ws)
+                #check if workspace history has entries for:
+                # - SetGoniometer
+                # - SetUB
+                # - ConvertToMD
+                #as each of these contain params needed for the GUI
+                    
+                try:
+                    #check if the needed settings are present
+                    Goniometer=histDictTmp['SetGoniometer']
+                    UB=histDictTmp['SetUB']
+                    MD=histDictTmp['ConvertToMD']
+                    histDict=histDictTmp
+                    wsfiletmp=wsfile
+                    gotOne +=1
+                except:
+                    #case where the needed parameters for SC CalcProj not available in the workspace
+                    #skip this workspace and check next one if there are more.
+                    pass
                 
+                #check if we found more than one SC Calc Proj workspace
+                
+                print "gotOne: ",gotOne
+                
+                if gotOne > 1:
+                    #inform user that multiple SCCalcProj workspaces discovered
+                    #and using the last one found
+                    msg='Multiple SC Calc Proj workspaces discovered - using parameters from : '+__ws.name()
+                    dialog=QtGui.QMessageBox(self)
+                    dialog.setText(msg)
+                    dialog.exec_()  
+                    
+                #case we have parameters for latest SC Calc Proj workspace
+                #put params into GUI
+                if gotOne >= 1:
+                    #case to update parameters on GUI
+                    updateSCParms(self,histDict,['Slice'])
+                    #make corresponding SC tabs on top
+                    self.ui.SampleTabWidget.setCurrentIndex(1) 
+                    self.ui.ViewTabWidget.setCurrentIndex(1)	
+                    
+                    
                 
                 percentbusy=int(float(cntr)/float(Nfiles)*100)
                 self.ui.progressBarStatusProgress.setValue(percentbusy) #adjust progress bar according to % busy
@@ -800,7 +865,17 @@ class MSlice(QtGui.QMainWindow):
                 addWStoTable(table,wsName,wsfile)
                 #update table with memory size rather than file size in the Size column of the Workspace Manager
                 
-                
+            #in case for loading single crystal CalcProj workspace, also
+            #need to fill-in parameters section of GUI
+            #first need to determine how many files are selected as the params
+            #from only one file can be placed in the GUI.  At this point we are
+            #not checking to see if the params are the same for all selected
+            #SC CalcProj workspaces - leaving it to the user to ensure selected
+            #files have compatible parameters.
+            if Nfiles > 0:
+                #case to begin sorting out single crystal parameters.
+                __ws=mtd.retrieve(wsName)
+                histDict=histToDict(__ws)
                 
             table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy
@@ -1348,7 +1423,49 @@ class MSlice(QtGui.QMainWindow):
         """
 
     def pushButtonSCShowParamsSelect(self):
-        pass
+        #Utility function to transfer values from ViewSCDict into the 
+        #corresponding view fields in the Slice GUI
+        ViewSCDict=self.ui.ViewSCDict
+        
+        label=convertIndexToLabel(self,'X')    
+        if ViewSCDict[label]['from'] != '':                
+            SCSXFrom = str("%.3f" % ViewSCDict[label]['from'])
+            self.ui.lineEditSCSliceXFrom.setText(SCSXFrom)
+
+        label=convertIndexToLabel(self,'X')   
+        if ViewSCDict[label]['to'] != '':      
+            SCSXTo = str("%.3f" % ViewSCDict[label]['to'])
+            self.ui.lineEditSCSliceXTo.setText(SCSXTo)
+        
+        label=convertIndexToLabel(self,'Y')    
+        if ViewSCDict[label]['from'] != '':
+            SCSYFrom = str("%.3f" % ViewSCDict[label]['from'])
+            self.ui.lineEditSCSliceYFrom.setText(SCSYFrom)
+        
+        label=convertIndexToLabel(self,'Y')
+        if ViewSCDict[label]['to'] != '':
+            SCSYTo = str("%.3f" % ViewSCDict[label]['to'])
+            self.ui.lineEditSCSliceYTo.setText(SCSYTo)
+        
+        label=convertIndexToLabel(self,'Z')     
+        if ViewSCDict[label]['from'] != '':
+            SCSZFrom = str("%.3f" % ViewSCDict[label]['from'])
+            self.ui.lineEditSCSliceZFrom.setText(SCSZFrom)
+        
+        label=convertIndexToLabel(self,'Z')
+        if ViewSCDict[label]['to'] != '':
+            SCSZTo = str("%.3f" % ViewSCDict[label]['to'])  
+            self.ui.lineEditSCSliceZTo.setText(SCSZTo)
+        
+        label=convertIndexToLabel(self,'E')                    
+        if ViewSCDict[label]['from'] != '':
+            SCSEFrom = str("%.3f" % ViewSCDict[label]['from'])    
+            self.ui.lineEditSCSliceEFrom.setText(SCSEFrom)
+        
+        label=convertIndexToLabel(self,'E')  
+        if ViewSCDict[label]['to'] != '':
+            SCSETo = str("%.3f" % ViewSCDict[label]['to'])       
+            self.ui.lineEditSCSliceETo.setText(SCSETo)
         
     def calcXNpts(self):
         print "calcXNpts"
@@ -1417,42 +1534,61 @@ class MSlice(QtGui.QMainWindow):
                     maxx=[__ws.getXDimension().getMaximum(),__ws.getYDimension().getMaximum(),__ws.getZDimension().getMaximum(),__ws.getTDimension().getMaximum()]
                     NEntries=1
                     
-                #get values from GUI    
+                #get values from GUI and ViewSCDict
+                ViewSCDict=self.ui.ViewSCDict
+                print "ViewSCDict: ",ViewSCDict
                 if SCSXFrom =='':
-                    SCSXFrom=minn[0]
+                    #SCSXFrom=minn[0]
+                    label=convertIndexToLabel(self,'X')   
+                    print "  label: ",label                 
+                    SCSXFrom = float(ViewSCDict[label]['from'])
                 else:
                     SCSXFrom=float(SCSXFrom)
                 if SCSXTo =='':
-                    SCSXTo=maxx[0]
+                    #SCSXTo=maxx[0]
+                    label=convertIndexToLabel(self,'X')                    
+                    SCSXTo = float(ViewSCDict[label]['to'])
                 else:
                     SCSXTo=float(SCSXTo)
                 Nscx=int(round((SCSXTo-SCSXFrom)/float(SCSXStep)))
                 
                 if SCSYFrom =='':
-                    SCSYFrom=minn[1]
+                    #SCSYFrom=minn[1]
+                    label=convertIndexToLabel(self,'Y')                    
+                    SCSYFrom = float(ViewSCDict[label]['from'])
                 else:
                     SCSYFrom=float(SCSYFrom)
                 if SCSYTo =='':
-                    SCSYTo=maxx[1]
+                    #SCSYTo=maxx[1]
+                    label=convertIndexToLabel(self,'Y')                    
+                    SCSYTo = float(ViewSCDict[label]['to'])
                 else:
                     SCSYTo=float(SCSYTo)
                 Nscy=int(round((SCSYTo-SCSYFrom)/float(SCSYStep)))                    
                     
                 if SCSZFrom =='':
-                    SCSZFrom=minn[2]
+                    #SCSZFrom=minn[2]
+                    label=convertIndexToLabel(self,'Z')                    
+                    SCSZFrom = float(ViewSCDict[label]['from'])
                 else:
                     SCSZFrom=float(SCSZFrom)
                 if SCSZTo =='':
-                    SCSZTo=maxx[2]
+                    #SCSZTo=maxx[2]
+                    label=convertIndexToLabel(self,'Z')                    
+                    SCSZTo = float(ViewSCDict[label]['to'])
                 else:
                     SCSZTo=float(SCSZTo)                    
                     
                 if SCSEFrom =='':
-                    SCSEFrom=minn[3]
+                    #SCSEFrom=minn[3]
+                    label=convertIndexToLabel(self,'E')                    
+                    SCSEFrom = float(ViewSCDict[label]['from'])
                 else:
                     SCSEFrom=float(SCSEFrom)
                 if SCSETo =='':
-                    SCSETo=maxx[3]
+                    #SCSETo=maxx[3]
+                    label=convertIndexToLabel(self,'E')                    
+                    SCSETo = float(ViewSCDict[label]['to'])
                 else:
                     SCSETo=float(SCSETo)
                     
@@ -1464,24 +1600,28 @@ class MSlice(QtGui.QMainWindow):
                 nameLst.append(self.ui.comboBoxSCSliceY.currentText())
                 nameLst.append(self.ui.comboBoxSCSliceZ.currentText())
                 nameLst.append(self.ui.comboBoxSCSliceE.currentText())
+                #note that the comboBox label and that label needed by MDNormDirectSC are different - search for the case and replace with what's needed
+                nameLst=['DeltaE' if x=='E (meV)' else x for x in nameLst]
                                                                     
                 #Format: 'name,minimum,maximum,number_of_bins'
                 print "Nscx: ",Nscx,"  Nscy: ",Nscy
-                AD0=nameLst[0]+','+str(SCSXFrom)+','+str(SCSXTo)+','+str(Nscx)
-                AD1=nameLst[1]+','+str(SCSYFrom)+','+str(SCSYTo)+','+str(Nscy)
-                AD2=nameLst[2]+','+str(SCSZFrom)+','+str(SCSZTo)+','+str(1)
-                AD3='DeltaE'+','+str(SCSEFrom)+','+str(SCSETo)+','+str(1)
+                AD0=str(nameLst[0])+','+str(SCSXFrom)+','+str(SCSXTo)+','+str(Nscx)
+                AD0=AD0.replace(config.XYZUnits,'')
+                AD1=str(nameLst[1])+','+str(SCSYFrom)+','+str(SCSYTo)+','+str(Nscy)
+                AD1=AD1.replace(config.XYZUnits,'')
+                AD2=str(nameLst[2])+','+str(SCSZFrom)+','+str(SCSZTo)+','+str(1)
+                AD2=AD2.replace(config.XYZUnits,'')
+                AD3=str(nameLst[3])+','+str(SCSEFrom)+','+str(SCSETo)+','+str(10)
+                AD3=AD3.replace(config.XYZUnits,'')
                 
-                print "AD0: ",AD0
-                print "AD1: ",AD1         
-                print "AD2: ",AD2
-                print "AD3: ",AD3               
-                histoData,histoNorm=MDNormDirectSC(__ws,
-                    AlignedDim0=AD0,
-                    AlignedDim1=AD1,
-                    AlignedDim2=AD2,
-                    AlignedDim3=AD3
-                    ) 
+                print "AD0: ",AD0,'  type: ',type(AD0)
+                print "AD1: ",AD1,'  type: ',type(AD1)
+                print "AD2: ",AD2,'  type: ',type(AD2)
+                print "AD3: ",AD3,'  type: ',type(AD3)
+                print "type(__ws): ",type(__ws)
+                print "__ws: ",__ws.name
+                histoData,histoNorm=MDNormDirectSC(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3)
+                print "histoNorm Complete"
                 if wsType == 'WorkspaceGroup':
                     print "histoData.getNumberOfEntries(): ",histoData.getNumberOfEntries()
                     print "histoNorm.getNumberOfEntries(): ",histoNorm.getNumberOfEntries()
@@ -1503,7 +1643,24 @@ class MSlice(QtGui.QMainWindow):
                 #upon summing coresponding data and norm data, produce eht normalized result
                 print "histoDataSum.id(): ",histoDataSum.id()
                 print "histoNormSum.id(): ",histoNormSum.id()
-                normalized=histoDataSum/histoNormSum                      
+                normalized=histoDataSum/histoNormSum   
+                
+                #let's check for values we don't want in the normalized data...
+                # isinf : Shows which elements are positive or negative infinity
+                # isposinf : Shows which elements are positive infinity
+                # isneginf : Shows which elements are negative infinity
+                # isnan : Shows which elements are Not a Number        
+                
+                #normalizedNew=normalized
+                normArray=normalized.getSignalArray()
+                normArray.flags.writeable=True  #note that initially the array is not writeable, so change this
+                indx=np.isinf(normArray)
+                normArray[indx]=0    
+                indx=np.isnan(normArray)
+                normArray[indx]=0     
+                normArray.flags.writeable=False #now put it back to nonwriteable
+                normalized.setSignalArray(normArray)
+                
                 
                 #Envoke SliceViewer here
                 sv = SliceViewer()
@@ -2174,6 +2331,8 @@ class MSlice(QtGui.QMainWindow):
         ViewSCDict['u2']['label']=nameLst[1]
         ViewSCDict['u3']['label']=nameLst[2]
         #note that 'E' label does not change...
+        #store label changes back into the global dictionary
+        self.ui.ViewSCDict=ViewSCDict
         
         #update corresponding ViewSCData labels - X
         self.ui.comboBoxSCSliceX.setItemText(0,ViewSCDict['u1']['label'])
@@ -2198,34 +2357,47 @@ class MSlice(QtGui.QMainWindow):
         
         
     def UpdateComboSCX(self):
+        """
+        Wrapper method to perform swapping labels for 'X' comboBox
+        """
         print "** UpdateComboSCX"
-        indx = self.ui.comboBoxSCSliceX.currentIndex()
         label= str(self.ui.comboBoxSCSliceX.currentText())
-        self.UpdateViewSCData(indx,label,'u1')
+        self.UpdateViewSCData(label,'u1')
         self.ui.ViewSCDataDeBounce=False
         
     def UpdateComboSCY(self):
+        """
+        Wrapper method to perform swapping labels for 'Y' comboBox
+        """
         print "** UpdateComboSCY"
-        indx = self.ui.comboBoxSCSliceY.currentIndex()
         label= str(self.ui.comboBoxSCSliceY.currentText())
-        self.UpdateViewSCData(indx,label,'u2')
+        self.UpdateViewSCData(label,'u2')
         self.ui.ViewSCDataDeBounce=False
                 
     def UpdateComboSCZ(self):
+        """
+        Wrapper method to perform swapping labels for 'Z' comboBox
+        """
         print "** UpdateComboSCZ"
-        indx = self.ui.comboBoxSCSliceZ.currentIndex()
         label= str(self.ui.comboBoxSCSliceZ.currentText())
-        self.UpdateViewSCData(indx,label,'u3')
+        self.UpdateViewSCData(label,'u3')
         self.ui.ViewSCDataDeBounce=False
                 
     def UpdateComboSCE(self):
+        """
+        Wrapper method to perform swapping labels for 'E' comboBox
+        """
         print "** UpdateComboSCE"
-        indx = self.ui.comboBoxSCSliceE.currentIndex()
         label= str(self.ui.comboBoxSCSliceE.currentText())
-        self.UpdateViewSCData(indx,label,'E')
+        self.UpdateViewSCData(label,'E')
         self.ui.ViewSCDataDeBounce=False
                 
-    def UpdateViewSCData(self,newIndex,newLabel,newKey):
+    def UpdateViewSCData(self,newLabel,newKey):
+        """
+        Method to perform swapping single crystal comboBox labels
+        newLabel: new comboBox label
+        newKey: key to index used for the swap
+        """
         if self.ui.ViewSCDataDeBounce:
             #case we have a second update due to programmtically changing the current index - skip this one
             #print "++++++++ Debounce +++++++++"
@@ -2301,6 +2473,120 @@ class MSlice(QtGui.QMainWindow):
         CBIndx0=mtch[0]
         CBIndx1=mtch[1]
         swapSCViewParams(self,'Slice',CBIndx0,CBIndx1)
+
+    def updateSCNpts(self):
+        
+        
+        #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
+        
+        #Update X NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCSliceXFrom.text()) != '':
+            XFrom=float(str(self.ui.lineEditSCSliceXFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceXTo.text()) != '':
+            XTo=float(str(self.ui.lineEditSCSliceXTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceXStep.text()) != '':
+            XStep=float(str(self.ui.lineEditSCSliceXStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if XFrom >= XTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X From is greater than X To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if XStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+    
+        try:
+            XNpts=(XTo-XFrom)/XStep
+        
+        except:
+            #case where unable to successfully calculate XNpts
+            self.ui.labelSCNptsX.setText("Npts:   ")
+            msg="Unable to calculate 'X NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCNptsX.setText("Npts: "+str(int(XNpts)))
+            
+        if XNpts > config.SCXNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current X settings will produce a large number of values: "+str(XNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return                
+        
+    
+        #Update Y NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCSliceYFrom.text()) != '':
+            YFrom=float(str(self.ui.lineEditSCSliceYFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceYTo.text()) != '':
+            YTo=float(str(self.ui.lineEditSCSliceYTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceYStep.text()) != '':
+            YStep=float(str(self.ui.lineEditSCSliceYStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if YFrom >= YTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: Y From is greater than Y To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if YStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: Y Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+    
+        try:
+            YNpts=(YTo-YFrom)/YStep
+        
+        except:
+            #case where unable to successfully calculate YNpts
+            self.ui.labelSCNptsY.setText("Npts:   "+str(YNpts))
+            msg="Unable to calculate 'Y NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCNptsY.setText("Npts: "+str(int(YNpts)))
+            
+        if YNpts > config.SCYNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current Y settings will produce a large number of values: "+str(YNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return    
         
 
 if __name__=="__main__":

@@ -2403,25 +2403,25 @@
            <widget class="QComboBox" name="comboBoxSCSliceY">
             <property name="geometry">
              <rect>
-              <x>30</x>
+              <x>20</x>
               <y>40</y>
-              <width>101</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -2547,25 +2547,25 @@
            <widget class="QComboBox" name="comboBoxSCSliceX">
             <property name="geometry">
              <rect>
-              <x>30</x>
+              <x>20</x>
               <y>10</y>
-              <width>101</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -2613,25 +2613,25 @@
            <widget class="QComboBox" name="comboBoxSCSliceE">
             <property name="geometry">
              <rect>
-              <x>30</x>
+              <x>20</x>
               <y>100</y>
-              <width>101</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -2682,25 +2682,25 @@
            <widget class="QComboBox" name="comboBoxSCSliceZ">
             <property name="geometry">
              <rect>
-              <x>30</x>
+              <x>20</x>
               <y>70</y>
-              <width>101</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
