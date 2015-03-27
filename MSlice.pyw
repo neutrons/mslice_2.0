@@ -188,16 +188,16 @@ class MSlice(QtGui.QMainWindow):
 
         #setup callbacks for SC Cut push buttons - Plot and Oplot 
         QtCore.QObject.connect(self.ui.pushButtonSCCutPlot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCutPlotSelect)
-        QtCore.QObject.connect(self.ui.pushButtonSCCutOplot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCutOplotSelect)
+        QtCore.QObject.connect(self.ui.pushButtonSCCShowParams, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCShowParamsSelect)
 
         #setup SC Cut comboBox initial values
-        self.ui.comboBoxSCCutAlong.setCurrentIndex(1)
-        self.ui.comboBoxSCCutAlong.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
-        self.ui.comboBoxSCCutThick1.setCurrentIndex(1)
-        self.ui.comboBoxSCCutThick1_2.setCurrentIndex(2)
-        self.ui.comboBoxSCCutThick2.setCurrentIndex(3)
+        self.ui.comboBoxSCCutX.setCurrentIndex(1)
+        self.ui.comboBoxSCCutX.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
         self.ui.comboBoxSCCutY.setCurrentIndex(1)
-        self.ui.comboBoxSCCutY.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
+        self.ui.comboBoxSCCutZ.setCurrentIndex(2)
+        self.ui.comboBoxSCCutE.setCurrentIndex(3)
+        self.ui.comboBoxSCCutIntensity.setCurrentIndex(1)
+        self.ui.comboBoxSCCutIntensity.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
 
 
         #setup callbacks for Powder Cut push buttons - Plot and Oplot 
@@ -211,7 +211,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.comboBoxPowderCutAlong.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
 
         #setup callbacks for Single Crystal Slice push buttons - Show Params and Surface Slice
-        QtCore.QObject.connect(self.ui.pushButtonSCShowParams, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCShowParamsSelect)
+        QtCore.QObject.connect(self.ui.pushButtonSCSShowParams, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCSShowParamsSelect)
         QtCore.QObject.connect(self.ui.pushButtonSCSliceSurfaceSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCSSurfaceSelect) 
 
         #setup signal/slot for from/to/step changes to recalculate number of points - for X
@@ -308,68 +308,128 @@ class MSlice(QtGui.QMainWindow):
         QtCore.QObject.connect(self.ui.pushButtonSaveSCParams, QtCore.SIGNAL('clicked(bool)'),self.SaveSCParams)
         QtCore.QObject.connect(self.ui.pushButtonLoadSCParams, QtCore.SIGNAL('clicked(bool)'),self.LoadSCParams)
         QtCore.QObject.connect(self.ui.pushButtonCheckSCWorkspace, QtCore.SIGNAL('clicked(bool)'),self.CheckWorkspace)
-        
-        #Define Slice Single Crystal dictionary used for creating data to view
-        ViewSCDict={}
 
-        ViewSCDict.setdefault('u1',{})['index']='0'
-        ViewSCDict.setdefault('u1',{})['label']='[H,0,0]'+config.XYZUnits
-        ViewSCDict.setdefault('u1',{})['from']=''
-        ViewSCDict.setdefault('u1',{})['to']=''
-        ViewSCDict.setdefault('u1',{})['Intensity']=''
+        #Define Slice Single Crystal Cut Tab dictionary used for creating data to view
+        ViewSCCDict={}
+
+        ViewSCCDict.setdefault('u1',{})['index']='0'
+        ViewSCCDict.setdefault('u1',{})['label']='[H,0,0]'+config.XYZUnits
+        ViewSCCDict.setdefault('u1',{})['from']=''
+        ViewSCCDict.setdefault('u1',{})['to']=''
+        ViewSCCDict.setdefault('u1',{})['Intensity']=''
         
-        ViewSCDict.setdefault('u2',{})['index']='1'
-        ViewSCDict.setdefault('u2',{})['label']='[0,K,0]'+config.XYZUnits
-        ViewSCDict.setdefault('u2',{})['from']=''
-        ViewSCDict.setdefault('u2',{})['to']=''
-        ViewSCDict.setdefault('u2',{})['Intensity']=''
+        ViewSCCDict.setdefault('u2',{})['index']='1'
+        ViewSCCDict.setdefault('u2',{})['label']='[0,K,0]'+config.XYZUnits
+        ViewSCCDict.setdefault('u2',{})['from']=''
+        ViewSCCDict.setdefault('u2',{})['to']=''
+        ViewSCCDict.setdefault('u2',{})['Intensity']=''
         
-        ViewSCDict.setdefault('u3',{})['index']='2'
-        ViewSCDict.setdefault('u3',{})['label']='[0,0,L]'+config.XYZUnits
-        ViewSCDict.setdefault('u3',{})['from']=''
-        ViewSCDict.setdefault('u3',{})['to']=''
-        ViewSCDict.setdefault('u3',{})['Intensity']=''
+        ViewSCCDict.setdefault('u3',{})['index']='2'
+        ViewSCCDict.setdefault('u3',{})['label']='[0,0,L]'+config.XYZUnits
+        ViewSCCDict.setdefault('u3',{})['from']=''
+        ViewSCCDict.setdefault('u3',{})['to']=''
+        ViewSCCDict.setdefault('u3',{})['Intensity']=''
         
-        ViewSCDict.setdefault('E',{})['index']='3'
-        ViewSCDict.setdefault('E',{})['label']='E (meV)'
-        ViewSCDict.setdefault('E',{})['from']=''
-        ViewSCDict.setdefault('E',{})['to']=''
-        ViewSCDict.setdefault('E',{})['Intensity']=''
+        ViewSCCDict.setdefault('E',{})['index']='3'
+        ViewSCCDict.setdefault('E',{})['label']='E (meV)'
+        ViewSCCDict.setdefault('E',{})['from']=''
+        ViewSCCDict.setdefault('E',{})['to']=''
+        ViewSCCDict.setdefault('E',{})['Intensity']=''
         #make dictionary available to MSlice
-        self.ui.ViewSCDict=ViewSCDict
+        self.ui.ViewSCCDict=ViewSCCDict
         
         #Define signal/slot for when Viewing Axes change - need a connection for each line edit field in 'Viewing Axes'
-        QtCore.QObject.connect(self.ui.lineEditSCVAu1a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu1b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu1c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)        
-        QtCore.QObject.connect(self.ui.lineEditSCVAu2a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu2b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu2c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu3a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu3b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu3c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu1Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu2Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
-        QtCore.QObject.connect(self.ui.lineEditSCVAu3Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)        
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
         
         #Define signal/slot for changing View Data combo box selections
-        QtCore.QObject.connect(self.ui.comboBoxSCSliceX, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCX)
-        QtCore.QObject.connect(self.ui.comboBoxSCSliceY, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCY)
-        QtCore.QObject.connect(self.ui.comboBoxSCSliceZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCZ)
-        QtCore.QObject.connect(self.ui.comboBoxSCSliceE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCE)
-        self.ui.ViewSCDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
-        #and a second for programmatically changing the current index when updating the ViewSCDict.  Skip the second update...
+        QtCore.QObject.connect(self.ui.comboBoxSCCutX, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCX)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutY, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCY)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCZ)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCE)
+        self.ui.ViewSCCDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
+        #and a second for programmatically changing the current index when updating the ViewSCCDict.  Skip the second update...
 
         #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
-        QtCore.QObject.connect(self.ui.lineEditSCSliceXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
-        QtCore.QObject.connect(self.ui.lineEditSCSliceXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
-        QtCore.QObject.connect(self.ui.lineEditSCSliceXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
-        QtCore.QObject.connect(self.ui.lineEditSCSliceYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
-        QtCore.QObject.connect(self.ui.lineEditSCSliceYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
-        QtCore.QObject.connect(self.ui.lineEditSCSliceYStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+
+
+        
+        #Define Slice Single Crystal Slice Tab dictionary used for creating data to view
+        ViewSCSDict={}
+
+        ViewSCSDict.setdefault('u1',{})['index']='0'
+        ViewSCSDict.setdefault('u1',{})['label']='[H,0,0]'+config.XYZUnits
+        ViewSCSDict.setdefault('u1',{})['from']=''
+        ViewSCSDict.setdefault('u1',{})['to']=''
+        ViewSCSDict.setdefault('u1',{})['Intensity']=''
+        
+        ViewSCSDict.setdefault('u2',{})['index']='1'
+        ViewSCSDict.setdefault('u2',{})['label']='[0,K,0]'+config.XYZUnits
+        ViewSCSDict.setdefault('u2',{})['from']=''
+        ViewSCSDict.setdefault('u2',{})['to']=''
+        ViewSCSDict.setdefault('u2',{})['Intensity']=''
+        
+        ViewSCSDict.setdefault('u3',{})['index']='2'
+        ViewSCSDict.setdefault('u3',{})['label']='[0,0,L]'+config.XYZUnits
+        ViewSCSDict.setdefault('u3',{})['from']=''
+        ViewSCSDict.setdefault('u3',{})['to']=''
+        ViewSCSDict.setdefault('u3',{})['Intensity']=''
+        
+        ViewSCSDict.setdefault('E',{})['index']='3'
+        ViewSCSDict.setdefault('E',{})['label']='E (meV)'
+        ViewSCSDict.setdefault('E',{})['from']=''
+        ViewSCSDict.setdefault('E',{})['to']=''
+        ViewSCSDict.setdefault('E',{})['Intensity']=''
+        #make dictionary available to MSlice
+        self.ui.ViewSCSDict=ViewSCSDict
+        
+        #Define signal/slot for when Viewing Axes change - need a connection for each line edit field in 'Viewing Axes'
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)        
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        
+        #Define signal/slot for changing View Data combo box selections
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceX, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSX)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceY, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSY)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSZ)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSE)
+        self.ui.ViewSCSDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
+        #and a second for programmatically changing the current index when updating the ViewSCSDict.  Skip the second update...
+
+        #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
         
         
-        #Define Volume Single Crystal dictionary used for creating data to view
+        #Define Volume Single Crystal Volume Tab dictionary used for creating data to view
         ViewSCVDict={}
 
         ViewSCVDict.setdefault('u1',{})['index']='0'
@@ -418,7 +478,7 @@ class MSlice(QtGui.QMainWindow):
         QtCore.QObject.connect(self.ui.comboBoxSCVolZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCVZ)
         QtCore.QObject.connect(self.ui.comboBoxSCVolE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCVE)
         self.ui.ViewSCVDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
-        #and a second for programmatically changing the current index when updating the ViewSCDict.  Skip the second update...
+        #and a second for programmatically changing the current index when updating the ViewSCSDict.  Skip the second update...
 
         #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
         QtCore.QObject.connect(self.ui.lineEditSCVolXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
@@ -769,17 +829,28 @@ class MSlice(QtGui.QMainWindow):
             table.insertRow(cws_indx)
             addmemWStoTable(table,cws_out,cws_type,cws_size,cws_indx)
             addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False) #row was: pws_indx-1
+
+            #update ViewSCCDict with minn and maxx values calculated above
+            ViewSCCDict=self.ui.ViewSCCDict
+            ViewSCCDict['u1']['from']=minn[0]
+            ViewSCCDict['u1']['to']=maxx[0]            
+            ViewSCCDict['u2']['from']=minn[1]
+            ViewSCCDict['u2']['to']=maxx[1] 
+            ViewSCCDict['u3']['from']=minn[2]
+            ViewSCCDict['u3']['to']=maxx[2] 
+            ViewSCCDict['E']['from']=minn[3]
+            ViewSCCDict['E']['to']=maxx[3] 
             
-            #update ViewSCDict with minn and maxx values calculated above
-            ViewSCDict=self.ui.ViewSCDict
-            ViewSCDict['u1']['from']=minn[0]
-            ViewSCDict['u1']['to']=maxx[0]            
-            ViewSCDict['u2']['from']=minn[1]
-            ViewSCDict['u2']['to']=maxx[1] 
-            ViewSCDict['u3']['from']=minn[2]
-            ViewSCDict['u3']['to']=maxx[2] 
-            ViewSCDict['E']['from']=minn[3]
-            ViewSCDict['E']['to']=maxx[3] 
+            #update ViewSCSDict with minn and maxx values calculated above
+            ViewSCSDict=self.ui.ViewSCSDict
+            ViewSCSDict['u1']['from']=minn[0]
+            ViewSCSDict['u1']['to']=maxx[0]            
+            ViewSCSDict['u2']['from']=minn[1]
+            ViewSCSDict['u2']['to']=maxx[1] 
+            ViewSCSDict['u3']['from']=minn[2]
+            ViewSCSDict['u3']['to']=maxx[2] 
+            ViewSCSDict['E']['from']=minn[3]
+            ViewSCSDict['E']['to']=maxx[3] 
 
             #update ViewSCVDict with minn and maxx values calculated above
             ViewSCVDict=self.ui.ViewSCVDict
@@ -925,6 +996,7 @@ class MSlice(QtGui.QMainWindow):
                 #put params into GUI
                 if gotOne >= 1:
                     #case to update parameters on GUI
+                    updateSCParms(self,histDict,['Cut'])
                     updateSCParms(self,histDict,['Slice'])
                     updateSCParms(self,histDict,['Volume'])
                     #make corresponding SC tabs on top
@@ -1351,43 +1423,34 @@ class MSlice(QtGui.QMainWindow):
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Save Log")			
 
     def pushButtonSCCutPlotSelect(self):
-        print "SC Cut Plot Callback"
-        SCCAIndex=self.ui.comboBoxSCCutAlong.currentIndex()
-        SCCAFrom=self.ui.lineEditSCCutAlongFrom.text()
-        SCCATo=self.ui.lineEditSCCutAlongTo.text()		
-        SCCAStep=self.ui.lineEditSCCutAlongStep.text()
-        SCCT1Index=self.ui.comboBoxSCCutThick1.currentIndex()
-        SCCT1From=self.ui.lineEditSCCutThick1From.text()
-        SCCT1To=self.ui.lineEditSCCutThick1To.text()
-        SCCT1_2Index=self.ui.comboBoxSCCutThick1_2.currentIndex()
-        SCCT1_2From=self.ui.lineEditSCCutThick1From_2.text()
-        SCCT1_2To=self.ui.lineEditSCCutThick1To_2.text()
-        SCCT2Index=self.ui.comboBoxSCCutThick2.currentIndex()
-        SCCT2From=self.ui.lineEditSCCutThick2From.text()
-        SCCT2To=self.ui.lineEditSCCutThick2To.text()
-        SCCYIndex=self.ui.comboBoxSCCutY.currentIndex()
-        SCCYFrom=self.ui.lineEditSCCutYFrom.text()
-        SCCYTo=self.ui.lineEditSCCutYTo.text()
-        print "SC Cut Plot Values: ",SCCAIndex,SCCAFrom,SCCATo,SCCAStep,SCCT1Index,SCCT1From,SCCT1To,SCCT1_2Index,SCCT1_2From,SCCT1_2To,SCCT2Index,SCCT2From,SCCT2To,SCCYIndex,SCCYFrom,SCCYTo
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Plot Cut")				
-
-    def pushButtonSCCutOplotSelect(self):
-        print "SC Cut Oplot Callback"
-        SCCAIndex=self.ui.comboBoxSCCutAlong.currentIndex()
-        SCCAFrom=self.ui.lineEditSCCutAlongFrom.text()
-        SCCATo=self.ui.lineEditSCCutAlongTo.text()		
-        SCCAStep=self.ui.lineEditSCCutAlongStep.text()
-        SCCT1Index=self.ui.comboBoxSCCutThick1.currentIndex()
-        SCCT1From=self.ui.lineEditSCCutThick1From.text()
-        SCCT1To=self.ui.lineEditSCCutThick1To.text()
-        SCCT2Index=self.ui.comboBoxSCCutThick2.currentIndex()
-        SCCT2From=self.ui.lineEditSCCutThick2From.text()
-        SCCT2To=self.ui.lineEditSCCutThick2To.text()
-        SCCYIndex=self.ui.comboBoxSCCutY.currentIndex()
-        SCCYFrom=self.ui.lineEditSCCutYFrom.text()
-        SCCYTo=self.ui.lineEditSCCutYTo.text()
-        print "SC Cut Oplot Values: ",SCCAIndex,SCCAFrom,SCCATo,SCCAStep,SCCT1Index,SCCT1From,SCCT1To,SCCT2Index,SCCT2From,SCCT2To,SCCYIndex,SCCYFrom,SCCYTo
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Oplot Cut")				
+        print "Single Crystal Surface Slice Button pressed"
+        """
+        #now extract values from this tab
+        SCSXcomboIndex=self.ui.comboBoxSCCutX.currentIndex()
+        SCSXFrom=self.ui.lineEditSCCutXFrom.text()
+        SCSXTo=self.ui.lineEditSCCutXTo.text()
+        SCSXStep=self.ui.lineEditSCCutXStep.text()
+        SCSYcomboIndex=self.ui.comboBoxSCCutY.currentIndex()
+        SCSYFrom=self.ui.lineEditSCCutYFrom.text()
+        SCSYTo=self.ui.lineEditSCCutYTo.text()
+        SCSYStep=self.ui.lineEditSCCutYStep.text()
+        SCSZcomboIndex=self.ui.comboBoxSCCutZ.currentIndex()
+        SCSZFrom=self.ui.lineEditSCCutZFrom.text()
+        SCSZTo=self.ui.lineEditSCCutZTo.text()
+        SCSEcomboIndex=self.ui.comboBoxSCCutE.currentIndex()
+        SCSEFrom=self.ui.lineEditSCCutEFrom.text()
+        SCSETo=self.ui.lineEditSCCutETo.text()
+        SCSIntensityFrom=self.ui.lineEditSCCutIntensityFrom.text()
+        SCSIntensityTo=self.ui.lineEditSCCutIntensityTo.text()
+        SCSSmoothing=self.ui.lineEditSCCutSmoothing.text()
+        SCSEcomboIndex=self.ui.comboBoxSCCutE.currentIndex()
+        SCSThickFrom=self.ui.lineEditSCCutEFrom.text()
+        SCSThickTo=self.ui.lineEditSCCutETo.text()
+        print "SC Surface values: ",SCSXcomboIndex,SCSXFrom,SCSXTo,SCSXStep,SCSYcomboIndex,SCSYFrom,SCSYTo,SCSYStep,SCSEcomboIndex,SCSEFrom,SCSETo,SCSIntensityFrom,SCSIntensityTo,SCSSmoothing
+        print "  More SC Surface values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo
+        """
+        #**** code to extract data and perform plot placed here
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Surface Slice")				
 
 
     def pushButtonPowderCutPlotSelect(self):
@@ -1444,49 +1507,95 @@ class MSlice(QtGui.QMainWindow):
             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - No workspaces selected for powder cut plots...returning")		
         """
 
-    def pushButtonSCShowParamsSelect(self):
-        #Utility function to transfer values from ViewSCDict into the 
+    def pushButtonSCCShowParamsSelect(self):
+        #Utility function to transfer values from ViewSCCDict into the 
+        #corresponding view fields in the Cut GUI
+        ViewSCCDict=self.ui.ViewSCCDict
+        
+        label=convertIndexToLabel(self,'X','Cut')    
+        if ViewSCCDict[label]['from'] != '':                
+            SCSXFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutXFrom.setText(SCSXFrom)
+
+        label=convertIndexToLabel(self,'X','Cut')   
+        if ViewSCCDict[label]['to'] != '':      
+            SCSXTo = str("%.3f" % ViewSCCDict[label]['to'])
+            self.ui.lineEditSCCutXTo.setText(SCSXTo)
+        
+        label=convertIndexToLabel(self,'Y','Cut')    
+        if ViewSCCDict[label]['from'] != '':
+            SCSYFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutYFrom.setText(SCSYFrom)
+        
+        label=convertIndexToLabel(self,'Y','Cut')
+        if ViewSCCDict[label]['to'] != '':
+            SCSYTo = str("%.3f" % ViewSCCDict[label]['to'])
+            self.ui.lineEditSCCutYTo.setText(SCSYTo)
+        
+        label=convertIndexToLabel(self,'Z','Cut')     
+        if ViewSCCDict[label]['from'] != '':
+            SCSZFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutZFrom.setText(SCSZFrom)
+        
+        label=convertIndexToLabel(self,'Z','Cut')
+        if ViewSCCDict[label]['to'] != '':
+            SCSZTo = str("%.3f" % ViewSCCDict[label]['to'])  
+            self.ui.lineEditSCCutZTo.setText(SCSZTo)
+        
+        label=convertIndexToLabel(self,'E','Cut')                    
+        if ViewSCCDict[label]['from'] != '':
+            SCSEFrom = str("%.3f" % ViewSCCDict[label]['from'])    
+            self.ui.lineEditSCCutEFrom.setText(SCSEFrom)
+        
+        label=convertIndexToLabel(self,'E','Cut')  
+        if ViewSCCDict[label]['to'] != '':
+            SCSETo = str("%.3f" % ViewSCCDict[label]['to'])       
+            self.ui.lineEditSCCutETo.setText(SCSETo)
+
+
+    def pushButtonSCSShowParamsSelect(self):
+        #Utility function to transfer values from ViewSCSDict into the 
         #corresponding view fields in the Slice GUI
-        ViewSCDict=self.ui.ViewSCDict
+        ViewSCSDict=self.ui.ViewSCSDict
         
         label=convertIndexToLabel(self,'X','Slice')    
-        if ViewSCDict[label]['from'] != '':                
-            SCSXFrom = str("%.3f" % ViewSCDict[label]['from'])
+        if ViewSCSDict[label]['from'] != '':                
+            SCSXFrom = str("%.3f" % ViewSCSDict[label]['from'])
             self.ui.lineEditSCSliceXFrom.setText(SCSXFrom)
 
         label=convertIndexToLabel(self,'X','Slice')   
-        if ViewSCDict[label]['to'] != '':      
-            SCSXTo = str("%.3f" % ViewSCDict[label]['to'])
+        if ViewSCSDict[label]['to'] != '':      
+            SCSXTo = str("%.3f" % ViewSCSDict[label]['to'])
             self.ui.lineEditSCSliceXTo.setText(SCSXTo)
         
         label=convertIndexToLabel(self,'Y','Slice')    
-        if ViewSCDict[label]['from'] != '':
-            SCSYFrom = str("%.3f" % ViewSCDict[label]['from'])
+        if ViewSCSDict[label]['from'] != '':
+            SCSYFrom = str("%.3f" % ViewSCSDict[label]['from'])
             self.ui.lineEditSCSliceYFrom.setText(SCSYFrom)
         
         label=convertIndexToLabel(self,'Y','Slice')
-        if ViewSCDict[label]['to'] != '':
-            SCSYTo = str("%.3f" % ViewSCDict[label]['to'])
+        if ViewSCSDict[label]['to'] != '':
+            SCSYTo = str("%.3f" % ViewSCSDict[label]['to'])
             self.ui.lineEditSCSliceYTo.setText(SCSYTo)
         
         label=convertIndexToLabel(self,'Z','Slice')     
-        if ViewSCDict[label]['from'] != '':
-            SCSZFrom = str("%.3f" % ViewSCDict[label]['from'])
+        if ViewSCSDict[label]['from'] != '':
+            SCSZFrom = str("%.3f" % ViewSCSDict[label]['from'])
             self.ui.lineEditSCSliceZFrom.setText(SCSZFrom)
         
         label=convertIndexToLabel(self,'Z','Slice')
-        if ViewSCDict[label]['to'] != '':
-            SCSZTo = str("%.3f" % ViewSCDict[label]['to'])  
+        if ViewSCSDict[label]['to'] != '':
+            SCSZTo = str("%.3f" % ViewSCSDict[label]['to'])  
             self.ui.lineEditSCSliceZTo.setText(SCSZTo)
         
         label=convertIndexToLabel(self,'E','Slice')                    
-        if ViewSCDict[label]['from'] != '':
-            SCSEFrom = str("%.3f" % ViewSCDict[label]['from'])    
+        if ViewSCSDict[label]['from'] != '':
+            SCSEFrom = str("%.3f" % ViewSCSDict[label]['from'])    
             self.ui.lineEditSCSliceEFrom.setText(SCSEFrom)
         
         label=convertIndexToLabel(self,'E','Slice')  
-        if ViewSCDict[label]['to'] != '':
-            SCSETo = str("%.3f" % ViewSCDict[label]['to'])       
+        if ViewSCSDict[label]['to'] != '':
+            SCSETo = str("%.3f" % ViewSCSDict[label]['to'])       
             self.ui.lineEditSCSliceETo.setText(SCSETo)
 
     def pushButtonSCVShowParamsSelect(self):
@@ -1596,20 +1705,20 @@ class MSlice(QtGui.QMainWindow):
                     maxx=[__ws.getXDimension().getMaximum(),__ws.getYDimension().getMaximum(),__ws.getZDimension().getMaximum(),__ws.getTDimension().getMaximum()]
                     NEntries=1
                     
-                #get values from GUI and ViewSCDict
-                ViewSCDict=self.ui.ViewSCDict
-                print "ViewSCDict: ",ViewSCDict
+                #get values from GUI and ViewSCSDict
+                ViewSCSDict=self.ui.ViewSCSDict
+                print "ViewSCSDict: ",ViewSCSDict
                 if SCSXFrom =='':
                     #SCSXFrom=minn[0]
                     label=convertIndexToLabel(self,'X','Volume')   
                     print "  label: ",label                 
-                    SCSXFrom = float(ViewSCDict[label]['from'])
+                    SCSXFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSXFrom=float(SCSXFrom)
                 if SCSXTo =='':
                     #SCSXTo=maxx[0]
                     label=convertIndexToLabel(self,'X','Volume')                    
-                    SCSXTo = float(ViewSCDict[label]['to'])
+                    SCSXTo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSXTo=float(SCSXTo)
                 Nscx=int(round((SCSXTo-SCSXFrom)/float(SCSXStep)))
@@ -1617,13 +1726,13 @@ class MSlice(QtGui.QMainWindow):
                 if SCSYFrom =='':
                     #SCSYFrom=minn[1]
                     label=convertIndexToLabel(self,'Y','Volume')                    
-                    SCSYFrom = float(ViewSCDict[label]['from'])
+                    SCSYFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSYFrom=float(SCSYFrom)
                 if SCSYTo =='':
                     #SCSYTo=maxx[1]
                     label=convertIndexToLabel(self,'Y','Volume')                    
-                    SCSYTo = float(ViewSCDict[label]['to'])
+                    SCSYTo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSYTo=float(SCSYTo)
                 Nscy=int(round((SCSYTo-SCSYFrom)/float(SCSYStep)))                    
@@ -1631,13 +1740,13 @@ class MSlice(QtGui.QMainWindow):
                 if SCSZFrom =='':
                     #SCSZFrom=minn[2]
                     label=convertIndexToLabel(self,'Z','Volume')                    
-                    SCSZFrom = float(ViewSCDict[label]['from'])
+                    SCSZFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSZFrom=float(SCSZFrom)
                 if SCSZTo =='':
                     #SCSZTo=maxx[2]
                     label=convertIndexToLabel(self,'Z','Volume')                    
-                    SCSZTo = float(ViewSCDict[label]['to'])
+                    SCSZTo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSZTo=float(SCSZTo)   
                 Nscz=int(round((SCSZTo-SCSZFrom)/float(SCSZStep)))  
@@ -1645,13 +1754,13 @@ class MSlice(QtGui.QMainWindow):
                 if SCSEFrom =='':
                     #SCSEFrom=minn[3]
                     label=convertIndexToLabel(self,'E','Volume')                    
-                    SCSEFrom = float(ViewSCDict[label]['from'])
+                    SCSEFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSEFrom=float(SCSEFrom)
                 if SCSETo =='':
                     #SCSETo=maxx[3]
                     label=convertIndexToLabel(self,'E','Volume')                    
-                    SCSETo = float(ViewSCDict[label]['to'])
+                    SCSETo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSETo=float(SCSETo)
                     
@@ -1766,6 +1875,7 @@ class MSlice(QtGui.QMainWindow):
 
     def pushButtonSCSSurfaceSelect(self):
         print "Single Crystal Surface Slice Button pressed"
+        
         #now extract values from this tab
         SCSXcomboIndex=self.ui.comboBoxSCSliceX.currentIndex()
         SCSXFrom=self.ui.lineEditSCSliceXFrom.text()
@@ -1789,6 +1899,7 @@ class MSlice(QtGui.QMainWindow):
         SCSThickTo=self.ui.lineEditSCSliceETo.text()
         print "SC Surface values: ",SCSXcomboIndex,SCSXFrom,SCSXTo,SCSXStep,SCSYcomboIndex,SCSYFrom,SCSYTo,SCSYStep,SCSEcomboIndex,SCSEFrom,SCSETo,SCSIntensityFrom,SCSIntensityTo,SCSSmoothing
         print "  More SC Surface values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo
+        
         #**** code to extract data and perform plot placed here
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Surface Slice")				
 
@@ -1823,20 +1934,20 @@ class MSlice(QtGui.QMainWindow):
                     maxx=[__ws.getXDimension().getMaximum(),__ws.getYDimension().getMaximum(),__ws.getZDimension().getMaximum(),__ws.getTDimension().getMaximum()]
                     NEntries=1
                     
-                #get values from GUI and ViewSCDict
-                ViewSCDict=self.ui.ViewSCDict
-                print "ViewSCDict: ",ViewSCDict
+                #get values from GUI and ViewSCSDict
+                ViewSCSDict=self.ui.ViewSCSDict
+                print "ViewSCSDict: ",ViewSCSDict
                 if SCSXFrom =='':
                     #SCSXFrom=minn[0]
                     label=convertIndexToLabel(self,'X','Slice')   
                     print "  label: ",label                 
-                    SCSXFrom = float(ViewSCDict[label]['from'])
+                    SCSXFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSXFrom=float(SCSXFrom)
                 if SCSXTo =='':
                     #SCSXTo=maxx[0]
                     label=convertIndexToLabel(self,'X','Slice')                    
-                    SCSXTo = float(ViewSCDict[label]['to'])
+                    SCSXTo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSXTo=float(SCSXTo)
                 Nscx=int(round((SCSXTo-SCSXFrom)/float(SCSXStep)))
@@ -1844,13 +1955,13 @@ class MSlice(QtGui.QMainWindow):
                 if SCSYFrom =='':
                     #SCSYFrom=minn[1]
                     label=convertIndexToLabel(self,'Y','Slice')                    
-                    SCSYFrom = float(ViewSCDict[label]['from'])
+                    SCSYFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSYFrom=float(SCSYFrom)
                 if SCSYTo =='':
                     #SCSYTo=maxx[1]
                     label=convertIndexToLabel(self,'Y','Slice')                    
-                    SCSYTo = float(ViewSCDict[label]['to'])
+                    SCSYTo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSYTo=float(SCSYTo)
                 Nscy=int(round((SCSYTo-SCSYFrom)/float(SCSYStep)))                    
@@ -1858,26 +1969,26 @@ class MSlice(QtGui.QMainWindow):
                 if SCSZFrom =='':
                     #SCSZFrom=minn[2]
                     label=convertIndexToLabel(self,'Z','Slice')                    
-                    SCSZFrom = float(ViewSCDict[label]['from'])
+                    SCSZFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSZFrom=float(SCSZFrom)
                 if SCSZTo =='':
                     #SCSZTo=maxx[2]
                     label=convertIndexToLabel(self,'Z','Slice')                    
-                    SCSZTo = float(ViewSCDict[label]['to'])
+                    SCSZTo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSZTo=float(SCSZTo)                    
                     
                 if SCSEFrom =='':
                     #SCSEFrom=minn[3]
                     label=convertIndexToLabel(self,'E','Slice')                    
-                    SCSEFrom = float(ViewSCDict[label]['from'])
+                    SCSEFrom = float(ViewSCSDict[label]['from'])
                 else:
                     SCSEFrom=float(SCSEFrom)
                 if SCSETo =='':
                     #SCSETo=maxx[3]
                     label=convertIndexToLabel(self,'E','Slice')                    
-                    SCSETo = float(ViewSCDict[label]['to'])
+                    SCSETo = float(ViewSCSDict[label]['to'])
                 else:
                     SCSETo=float(SCSETo)
                     
@@ -2601,9 +2712,9 @@ class MSlice(QtGui.QMainWindow):
         self.ui.lineEditSCVAu3c.setText(params_dict.get('SCVAu3c'))
         self.ui.lineEditSCVAu3Label.setText(params_dict.get('SCVAu3Label'))    
 
-    def UpdateViewSCDict(self):
-        print "In UpdateViewSCDict(self)"
-        #This method updates the ViewSCDict dictionary any time that a value
+    def UpdateViewSCCDict(self):
+        print "In UpdateViewSCCDict(self)"
+        #This method updates the ViewSCCDict dictionary any time that a value
         #is changed in the Viewing Axes field changes.  As this can be performed quickly,
         #the entire dictionary is update when a selction is made in lieu of having a
         #separate method for each of the 12 fields that can change.
@@ -2611,100 +2722,100 @@ class MSlice(QtGui.QMainWindow):
         #Note that currently only the dictionary labels are updated and that
         #other parameters are updated once SC calc projections occurs
         
-        ViewSCDict=self.ui.ViewSCDict #for convenience and readability, shorten the name 
+        ViewSCCDict=self.ui.ViewSCCDict #for convenience and readability, shorten the name 
         
         #get updated labels
         nameLst=makeSCNames(self)
         #put labels in the View dictionary
-        ViewSCDict['u1']['label']=nameLst[0]
-        ViewSCDict['u2']['label']=nameLst[1]
-        ViewSCDict['u3']['label']=nameLst[2]
+        ViewSCCDict['u1']['label']=nameLst[0]
+        ViewSCCDict['u2']['label']=nameLst[1]
+        ViewSCCDict['u3']['label']=nameLst[2]
         #note that 'E' label does not change...
         #store label changes back into the global dictionary
-        self.ui.ViewSCDict=ViewSCDict
+        self.ui.ViewSCCDict=ViewSCCDict
         
         #update corresponding ViewSCData labels - X
-        self.ui.comboBoxSCSliceX.setItemText(0,ViewSCDict['u1']['label'])
-        self.ui.comboBoxSCSliceX.setItemText(1,ViewSCDict['u2']['label'])
-        self.ui.comboBoxSCSliceX.setItemText(2,ViewSCDict['u3']['label'])
-        self.ui.comboBoxSCSliceX.setItemText(3,ViewSCDict['E']['label'])
+        self.ui.comboBoxSCCutX.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutX.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutX.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutX.setItemText(3,ViewSCCDict['E']['label'])
         #update corresponding ViewSCData labels - Y
-        self.ui.comboBoxSCSliceY.setItemText(0,ViewSCDict['u1']['label'])
-        self.ui.comboBoxSCSliceY.setItemText(1,ViewSCDict['u2']['label'])
-        self.ui.comboBoxSCSliceY.setItemText(2,ViewSCDict['u3']['label'])
-        self.ui.comboBoxSCSliceY.setItemText(3,ViewSCDict['E']['label'])
+        self.ui.comboBoxSCCutY.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutY.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutY.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutY.setItemText(3,ViewSCCDict['E']['label'])
         #update corresponding ViewSCData labels - Z
-        self.ui.comboBoxSCSliceZ.setItemText(0,ViewSCDict['u1']['label'])
-        self.ui.comboBoxSCSliceZ.setItemText(1,ViewSCDict['u2']['label'])
-        self.ui.comboBoxSCSliceZ.setItemText(2,ViewSCDict['u3']['label'])
-        self.ui.comboBoxSCSliceZ.setItemText(3,ViewSCDict['E']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(3,ViewSCCDict['E']['label'])
         #update corresponding ViewSCData labels - E
-        self.ui.comboBoxSCSliceE.setItemText(0,ViewSCDict['u1']['label'])
-        self.ui.comboBoxSCSliceE.setItemText(1,ViewSCDict['u2']['label'])
-        self.ui.comboBoxSCSliceE.setItemText(2,ViewSCDict['u3']['label'])
-        self.ui.comboBoxSCSliceE.setItemText(3,ViewSCDict['E']['label'])
+        self.ui.comboBoxSCCutE.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutE.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutE.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutE.setItemText(3,ViewSCCDict['E']['label'])
         
         
-    def UpdateComboSCX(self):
+    def UpdateComboSCCX(self):
         """
         Wrapper method to perform swapping labels for 'X' comboBox
         """
         print "** UpdateComboSCX"
-        label= str(self.ui.comboBoxSCSliceX.currentText())
-        self.UpdateViewSCData(label,'u1')
-        self.ui.ViewSCDataDeBounce=False
+        label= str(self.ui.comboBoxSCCutX.currentText())
+        self.UpdateViewSCCData(label,'u1')
+        self.ui.ViewSCCDataDeBounce=False
         
-    def UpdateComboSCY(self):
+    def UpdateComboSCCY(self):
         """
         Wrapper method to perform swapping labels for 'Y' comboBox
         """
         print "** UpdateComboSCY"
-        label= str(self.ui.comboBoxSCSliceY.currentText())
-        self.UpdateViewSCData(label,'u2')
-        self.ui.ViewSCDataDeBounce=False
+        label= str(self.ui.comboBoxSCCutY.currentText())
+        self.UpdateViewSCCData(label,'u2')
+        self.ui.ViewSCCDataDeBounce=False
                 
-    def UpdateComboSCZ(self):
+    def UpdateComboSCCZ(self):
         """
         Wrapper method to perform swapping labels for 'Z' comboBox
         """
         print "** UpdateComboSCZ"
-        label= str(self.ui.comboBoxSCSliceZ.currentText())
-        self.UpdateViewSCData(label,'u3')
-        self.ui.ViewSCDataDeBounce=False
+        label= str(self.ui.comboBoxSCCutZ.currentText())
+        self.UpdateViewSCCData(label,'u3')
+        self.ui.ViewSCCDataDeBounce=False
                 
-    def UpdateComboSCE(self):
+    def UpdateComboSCCE(self):
         """
         Wrapper method to perform swapping labels for 'E' comboBox
         """
         print "** UpdateComboSCE"
-        label= str(self.ui.comboBoxSCSliceE.currentText())
-        self.UpdateViewSCData(label,'E')
-        self.ui.ViewSCDataDeBounce=False
+        label= str(self.ui.comboBoxSCCutE.currentText())
+        self.UpdateViewSCCData(label,'E')
+        self.ui.ViewSCCDataDeBounce=False
                 
-    def UpdateViewSCData(self,newLabel,newKey):
+    def UpdateViewSCCData(self,newLabel,newKey):
         """
         Method to perform swapping single crystal comboBox labels
         newLabel: new comboBox label
         newKey: key to index used for the swap
         """
-        if self.ui.ViewSCDataDeBounce:
+        if self.ui.ViewSCCDataDeBounce:
             #case we have a second update due to programmtically changing the current index - skip this one
             #print "++++++++ Debounce +++++++++"
             return
         #get labels for each comboBox - should have a duplicate at this point
         labels=[]
-        labels.append(str(self.ui.comboBoxSCSliceX.currentText()))
-        labels.append(str(self.ui.comboBoxSCSliceY.currentText()))
-        labels.append(str(self.ui.comboBoxSCSliceZ.currentText()))
-        labels.append(str(self.ui.comboBoxSCSliceE.currentText()))  
+        labels.append(str(self.ui.comboBoxSCCutX.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutY.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutZ.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutE.currentText()))  
         
         #get list of possible labels - should be no duplicates
         labelLst=[]
-        ViewSCDict=self.ui.ViewSCDict
-        labelLst.append(ViewSCDict['u1']['label'])
-        labelLst.append(ViewSCDict['u2']['label'])
-        labelLst.append(ViewSCDict['u3']['label'])
-        labelLst.append(ViewSCDict['E']['label'])    
+        ViewSCCDict=self.ui.ViewSCCDict
+        labelLst.append(ViewSCCDict['u1']['label'])
+        labelLst.append(ViewSCCDict['u2']['label'])
+        labelLst.append(ViewSCCDict['u3']['label'])
+        labelLst.append(ViewSCCDict['E']['label'])    
         
         #Let's find the missing label
         cntr=0
@@ -2731,10 +2842,10 @@ class MSlice(QtGui.QMainWindow):
         cnt=0
 
         for indx in mtch:
-            if indx != int(ViewSCDict[newKey]['index']):
+            if indx != int(ViewSCCDict[newKey]['index']):
                 updateCBIndx=indx
                 cnt+=1 #check to make sure we found an updateCBIndx
-            if indx == int(ViewSCDict[newKey]['index']):
+            if indx == int(ViewSCCDict[newKey]['index']):
                 otherIndex=indx
                 
         if cnt != 1:
@@ -2743,18 +2854,233 @@ class MSlice(QtGui.QMainWindow):
         
         #Setting the debounce flag to True enables setCurrentIndex() event generated via the code
         #below to be ignored else letting this even be processed interferes with the current processing
-        self.ui.ViewSCDataDeBounce=True 
+        self.ui.ViewSCCDataDeBounce=True 
         if updateCBIndx==0:
-            #self.ui.comboBoxSCSliceX.setItemText(oldIndex,ViewSCDict[newKey]['label'])
+            self.ui.comboBoxSCCutX.setCurrentIndex(missingIndx)
+        if updateCBIndx==1:
+            self.ui.comboBoxSCCutY.setCurrentIndex(missingIndx)
+        if updateCBIndx==2:
+            self.ui.comboBoxSCCutZ.setCurrentIndex(missingIndx)
+        if updateCBIndx==3:
+            self.ui.comboBoxSCCutE.setCurrentIndex(missingIndx)    
+            
+        #Now that we have the information for the swapped combo boxes, let's swap the corresponding parameters
+        #Will simpy swap what's in the GUI widgets
+        CBIndx0=mtch[0]
+        CBIndx1=mtch[1]
+        swapSCViewParams(self,'Cut',CBIndx0,CBIndx1)
+
+    def updateSCCNpts(self):
+        
+        
+        #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
+        
+        #Update X NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCCutXFrom.text()) != '':
+            XFrom=float(str(self.ui.lineEditSCCutXFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCCutXTo.text()) != '':
+            XTo=float(str(self.ui.lineEditSCCutXTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCCutXStep.text()) != '':
+            XStep=float(str(self.ui.lineEditSCCutXStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if XFrom >= XTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X From is greater than X To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if XStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+    
+        try:
+            XNpts=(XTo-XFrom)/XStep
+        
+        except:
+            #case where unable to successfully calculate XNpts
+            self.ui.labelSCNptsX.setText("Npts:   ")
+            msg="Unable to calculate 'X NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCNptsX.setText("Npts: "+str(int(XNpts)))
+            
+        if XNpts > config.SCXNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current X settings will produce a large number of values: "+str(XNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return                
+
+
+
+    def UpdateViewSCSDict(self):
+        print "In UpdateViewSCSDict(self)"
+        #This method updates the ViewSCSDict dictionary any time that a value
+        #is changed in the Viewing Axes field changes.  As this can be performed quickly,
+        #the entire dictionary is update when a selction is made in lieu of having a
+        #separate method for each of the 12 fields that can change.
+        
+        #Note that currently only the dictionary labels are updated and that
+        #other parameters are updated once SC calc projections occurs
+        
+        ViewSCSDict=self.ui.ViewSCSDict #for convenience and readability, shorten the name 
+        
+        #get updated labels
+        nameLst=makeSCNames(self)
+        #put labels in the View dictionary
+        ViewSCSDict['u1']['label']=nameLst[0]
+        ViewSCSDict['u2']['label']=nameLst[1]
+        ViewSCSDict['u3']['label']=nameLst[2]
+        #note that 'E' label does not change...
+        #store label changes back into the global dictionary
+        self.ui.ViewSCSDict=ViewSCSDict
+        
+        #update corresponding ViewSCData labels - X
+        self.ui.comboBoxSCSliceX.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceX.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceX.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceX.setItemText(3,ViewSCSDict['E']['label'])
+        #update corresponding ViewSCData labels - Y
+        self.ui.comboBoxSCSliceY.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceY.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceY.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceY.setItemText(3,ViewSCSDict['E']['label'])
+        #update corresponding ViewSCData labels - Z
+        self.ui.comboBoxSCSliceZ.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceZ.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceZ.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceZ.setItemText(3,ViewSCSDict['E']['label'])
+        #update corresponding ViewSCData labels - E
+        self.ui.comboBoxSCSliceE.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceE.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceE.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceE.setItemText(3,ViewSCSDict['E']['label'])
+        
+        
+    def UpdateComboSCSX(self):
+        """
+        Wrapper method to perform swapping labels for 'X' comboBox
+        """
+        print "** UpdateComboSCX"
+        label= str(self.ui.comboBoxSCSliceX.currentText())
+        self.UpdateViewSCSData(label,'u1')
+        self.ui.ViewSCSDataDeBounce=False
+        
+    def UpdateComboSCSY(self):
+        """
+        Wrapper method to perform swapping labels for 'Y' comboBox
+        """
+        print "** UpdateComboSCY"
+        label= str(self.ui.comboBoxSCSliceY.currentText())
+        self.UpdateViewSCSData(label,'u2')
+        self.ui.ViewSCSDataDeBounce=False
+                
+    def UpdateComboSCSZ(self):
+        """
+        Wrapper method to perform swapping labels for 'Z' comboBox
+        """
+        print "** UpdateComboSCZ"
+        label= str(self.ui.comboBoxSCSliceZ.currentText())
+        self.UpdateViewSCSData(label,'u3')
+        self.ui.ViewSCSDataDeBounce=False
+                
+    def UpdateComboSCSE(self):
+        """
+        Wrapper method to perform swapping labels for 'E' comboBox
+        """
+        print "** UpdateComboSCE"
+        label= str(self.ui.comboBoxSCSliceE.currentText())
+        self.UpdateViewSCSData(label,'E')
+        self.ui.ViewSCSDataDeBounce=False
+                
+    def UpdateViewSCSData(self,newLabel,newKey):
+        """
+        Method to perform swapping single crystal comboBox labels
+        newLabel: new comboBox label
+        newKey: key to index used for the swap
+        """
+        if self.ui.ViewSCSDataDeBounce:
+            #case we have a second update due to programmtically changing the current index - skip this one
+            #print "++++++++ Debounce +++++++++"
+            return
+        #get labels for each comboBox - should have a duplicate at this point
+        labels=[]
+        labels.append(str(self.ui.comboBoxSCSliceX.currentText()))
+        labels.append(str(self.ui.comboBoxSCSliceY.currentText()))
+        labels.append(str(self.ui.comboBoxSCSliceZ.currentText()))
+        labels.append(str(self.ui.comboBoxSCSliceE.currentText()))  
+        
+        #get list of possible labels - should be no duplicates
+        labelLst=[]
+        ViewSCSDict=self.ui.ViewSCSDict
+        labelLst.append(ViewSCSDict['u1']['label'])
+        labelLst.append(ViewSCSDict['u2']['label'])
+        labelLst.append(ViewSCSDict['u3']['label'])
+        labelLst.append(ViewSCSDict['E']['label'])    
+        
+        #Let's find the missing label
+        cntr=0
+        for chkLab in labelLst:
+            tst=chkLab in labels
+            if not(tst):
+                #case we found the missing label
+                missingLab=chkLab
+                missingIndx=cntr
+            cntr+=1
+        
+        #check which labels match the one passed in
+        cnt=0
+        mtch=[]
+        for label in labels:
+            if label == newLabel:
+                mtch.append(cnt)
+            cnt+=1
+
+        if len(mtch) != 2:
+            print "Did not find the correct number of labels - 2 expected but found: ",len(mtch)
+            
+        #check which index matches the index passed in
+        cnt=0
+
+        for indx in mtch:
+            if indx != int(ViewSCSDict[newKey]['index']):
+                updateCBIndx=indx
+                cnt+=1 #check to make sure we found an updateCBIndx
+            if indx == int(ViewSCSDict[newKey]['index']):
+                otherIndex=indx
+                
+        if cnt != 1:
+            print "Did not find the correct number of indicies- 1 expected but found: ",cnt
+        #The indx we found 
+        
+        #Setting the debounce flag to True enables setCurrentIndex() event generated via the code
+        #below to be ignored else letting this even be processed interferes with the current processing
+        self.ui.ViewSCSDataDeBounce=True 
+        if updateCBIndx==0:
             self.ui.comboBoxSCSliceX.setCurrentIndex(missingIndx)
         if updateCBIndx==1:
-            #self.ui.comboBoxSCSliceY.setItemText(oldIndex,ViewSCDict[newKey]['label'])
             self.ui.comboBoxSCSliceY.setCurrentIndex(missingIndx)
         if updateCBIndx==2:
-            #self.ui.comboBoxSCSliceZ.setItemText(oldIndex,ViewSCDict[newKey]['label'])
             self.ui.comboBoxSCSliceZ.setCurrentIndex(missingIndx)
         if updateCBIndx==3:
-            #self.ui.comboBoxSCSliceE.setItemText(oldIndex,ViewSCDict[newKey]['label'])
             self.ui.comboBoxSCSliceE.setCurrentIndex(missingIndx)    
             
         #Now that we have the information for the swapped combo boxes, let's swap the corresponding parameters
@@ -2763,7 +3089,7 @@ class MSlice(QtGui.QMainWindow):
         CBIndx1=mtch[1]
         swapSCViewParams(self,'Slice',CBIndx0,CBIndx1)
 
-    def updateSCNpts(self):
+    def updateSCSNpts(self):
         
         
         #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
@@ -2879,7 +3205,7 @@ class MSlice(QtGui.QMainWindow):
 
     def UpdateViewSCVDict(self):
         print "In UpdateViewSCVDict(self)"
-        #This method updates the ViewSCDict dictionary any time that a value
+        #This method updates the ViewSCSDict dictionary any time that a value
         #is changed in the Viewing Axes field changes.  As this can be performed quickly,
         #the entire dictionary is update when a selction is made in lieu of having a
         #separate method for each of the 12 fields that can change.

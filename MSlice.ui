@@ -1795,6 +1795,7 @@
          <zorder>groupBox_2</zorder>
          <zorder>groupBox_3</zorder>
          <zorder>ViewTabWidget</zorder>
+         <zorder>ViewTabWidget</zorder>
         </widget>
        </widget>
       </item>
@@ -1810,7 +1811,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>3</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="LabelsTab_2">
          <attribute name="title">
@@ -2780,7 +2781,7 @@
              <string>Npts:</string>
             </property>
            </widget>
-           <widget class="QPushButton" name="pushButtonSCShowParams">
+           <widget class="QPushButton" name="pushButtonSCSShowParams">
             <property name="geometry">
              <rect>
               <x>520</x>
@@ -3130,7 +3131,7 @@
             <property name="geometry">
              <rect>
               <x>660</x>
-              <y>20</y>
+              <y>30</y>
               <width>71</width>
               <height>20</height>
              </rect>
@@ -3139,22 +3140,22 @@
              <string>Cut SC</string>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutYTo">
+           <widget class="QLineEdit" name="lineEditSCCutIntensityTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>310</x>
               <y>130</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutThick2To">
+           <widget class="QLineEdit" name="lineEditSCCutETo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>310</x>
               <y>100</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3162,7 +3163,7 @@
            <widget class="QLabel" name="label_176">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>160</x>
               <y>100</y>
               <width>41</width>
               <height>16</height>
@@ -3175,7 +3176,7 @@
            <widget class="QLabel" name="label_177">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>290</x>
               <y>100</y>
               <width>21</width>
               <height>16</height>
@@ -3188,7 +3189,7 @@
            <widget class="QLabel" name="label_178">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>160</x>
               <y>10</y>
               <width>41</width>
               <height>16</height>
@@ -3201,7 +3202,7 @@
            <widget class="QLabel" name="label_179">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>160</x>
               <y>130</y>
               <width>41</width>
               <height>20</height>
@@ -3214,7 +3215,7 @@
            <widget class="QLabel" name="label_180">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>290</x>
               <y>10</y>
               <width>21</width>
               <height>16</height>
@@ -3224,12 +3225,12 @@
              <string>to:</string>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutThick1To_2">
+           <widget class="QLineEdit" name="lineEditSCCutYTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>310</x>
               <y>40</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3237,7 +3238,7 @@
            <widget class="QLabel" name="label_181">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>160</x>
               <y>40</y>
               <width>41</width>
               <height>16</height>
@@ -3250,7 +3251,7 @@
            <widget class="QLabel" name="label_182">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>290</x>
               <y>40</y>
               <width>21</width>
               <height>16</height>
@@ -3263,7 +3264,7 @@
            <widget class="QLabel" name="label_183">
             <property name="geometry">
              <rect>
-              <x>470</x>
+              <x>400</x>
               <y>10</y>
               <width>41</width>
               <height>16</height>
@@ -3273,12 +3274,12 @@
              <string>step:</string>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutAlongTo">
+           <widget class="QLineEdit" name="lineEditSCCutXTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>310</x>
               <y>10</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3286,7 +3287,7 @@
            <widget class="QLabel" name="label_184">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>290</x>
               <y>130</y>
               <width>21</width>
               <height>16</height>
@@ -3296,48 +3297,48 @@
              <string>to:</string>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutAlongFrom">
+           <widget class="QLineEdit" name="lineEditSCCutXFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>200</x>
               <y>10</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutThick1From">
+           <widget class="QLineEdit" name="lineEditSCCutYFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>200</x>
               <y>40</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
            </widget>
-           <widget class="QComboBox" name="comboBoxSCCutThick1">
+           <widget class="QComboBox" name="comboBoxSCCutY">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>40</x>
               <y>40</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -3346,28 +3347,28 @@
              </property>
             </item>
            </widget>
-           <widget class="QComboBox" name="comboBoxSCCutAlong">
+           <widget class="QComboBox" name="comboBoxSCCutX">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>40</x>
               <y>10</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -3376,12 +3377,12 @@
              </property>
             </item>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutAlongStep">
+           <widget class="QLineEdit" name="lineEditSCCutXStep">
             <property name="geometry">
              <rect>
-              <x>510</x>
+              <x>440</x>
               <y>10</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3389,28 +3390,28 @@
              <string>0.035</string>
             </property>
            </widget>
-           <widget class="QComboBox" name="comboBoxSCCutThick2">
+           <widget class="QComboBox" name="comboBoxSCCutE">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>40</x>
               <y>100</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -3419,22 +3420,22 @@
              </property>
             </item>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutYFrom">
+           <widget class="QLineEdit" name="lineEditSCCutIntensityFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>200</x>
               <y>130</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutThick2From">
+           <widget class="QLineEdit" name="lineEditSCCutEFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>200</x>
               <y>100</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3442,7 +3443,7 @@
            <widget class="QLabel" name="label_185">
             <property name="geometry">
              <rect>
-              <x>35</x>
+              <x>5</x>
               <y>10</y>
               <width>31</width>
               <height>20</height>
@@ -3452,24 +3453,11 @@
              <string>along</string>
             </property>
            </widget>
-           <widget class="QPushButton" name="pushButtonSCCutOplot">
-            <property name="geometry">
-             <rect>
-              <x>460</x>
-              <y>160</y>
-              <width>101</width>
-              <height>23</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Oplot Cut</string>
-            </property>
-           </widget>
            <widget class="QPushButton" name="pushButtonSCCutPlot">
             <property name="geometry">
              <rect>
-              <x>350</x>
-              <y>160</y>
+              <x>530</x>
+              <y>130</y>
               <width>101</width>
               <height>23</height>
              </rect>
@@ -3481,7 +3469,7 @@
            <widget class="QLabel" name="label_186">
             <property name="geometry">
              <rect>
-              <x>50</x>
+              <x>20</x>
               <y>130</y>
               <width>16</width>
               <height>16</height>
@@ -3491,12 +3479,12 @@
              <string>y</string>
             </property>
            </widget>
-           <widget class="QComboBox" name="comboBoxSCCutY">
+           <widget class="QComboBox" name="comboBoxSCCutIntensity">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>40</x>
               <y>130</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
@@ -3526,22 +3514,22 @@
              </property>
             </item>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutThick1To">
+           <widget class="QLineEdit" name="lineEditSCCutZTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>310</x>
               <y>70</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
            </widget>
-           <widget class="QLineEdit" name="lineEditSCCutThick1From_2">
+           <widget class="QLineEdit" name="lineEditSCCutZFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>200</x>
               <y>70</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3549,7 +3537,7 @@
            <widget class="QLabel" name="label_187">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>290</x>
               <y>70</y>
               <width>21</width>
               <height>16</height>
@@ -3559,28 +3547,28 @@
              <string>to:</string>
             </property>
            </widget>
-           <widget class="QComboBox" name="comboBoxSCCutThick1_2">
+           <widget class="QComboBox" name="comboBoxSCCutZ">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>40</x>
               <y>70</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -3592,7 +3580,7 @@
            <widget class="QLabel" name="label_188">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>160</x>
               <y>70</y>
               <width>41</width>
               <height>16</height>
@@ -3602,7 +3590,33 @@
              <string>thick:</string>
             </property>
            </widget>
+           <widget class="QPushButton" name="pushButtonSCCShowParams">
+            <property name="geometry">
+             <rect>
+              <x>530</x>
+              <y>100</y>
+              <width>101</width>
+              <height>23</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Show Params</string>
+            </property>
+           </widget>
           </widget>
+         </widget>
+         <widget class="QLabel" name="labelSCCNptsX">
+          <property name="geometry">
+           <rect>
+            <x>530</x>
+            <y>10</y>
+            <width>91</width>
+            <height>16</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>Npts:</string>
+          </property>
          </widget>
         </widget>
         <widget class="QWidget" name="VolumeTab_2">

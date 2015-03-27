@@ -966,6 +966,81 @@ def swapSCViewParams(self,tab,CBIndx0,CBIndx1):
 
     elif tab == 'Cut':
         pass #stub for Cut tab
+        #move CBIndx0 values to tmp
+        if CBIndx0 == 0:
+            f0=self.ui.lineEditSCCutXFrom.text()
+            t0=self.ui.lineEditSCCutXTo.text()
+        elif CBIndx0 == 1:
+            f0=self.ui.lineEditSCCutYFrom.text()
+            t0=self.ui.lineEditSCCutYTo.text()            
+        elif CBIndx0 == 2:
+            f0=self.ui.lineEditSCCutZFrom.text()
+            t0=self.ui.lineEditSCCutZTo.text()
+        elif CBIndx0 == 3:
+            f0=self.ui.lineEditSCCutEFrom.text()
+            t0=self.ui.lineEditSCCutETo.text()
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+            
+        print "f0: ",f0," t0: ",t0
+
+        #then get CBIndx1 values
+        if CBIndx1 == 0:
+            f1=self.ui.lineEditSCCutXFrom.text()
+            t1=self.ui.lineEditSCCutXTo.text()
+        elif CBIndx1 == 1:
+            f1=self.ui.lineEditSCCutYFrom.text()
+            t1=self.ui.lineEditSCCutYTo.text()            
+        elif CBIndx1 == 2:
+            f1=self.ui.lineEditSCCutZFrom.text()
+            t1=self.ui.lineEditSCCutZTo.text()
+        elif CBIndx1 == 3:
+            f1=self.ui.lineEditSCCutEFrom.text()
+            t1=self.ui.lineEditSCCutETo.text()
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+            
+        print "f1: ",f1," t1: ",t1
+            
+        #now place CBIndx1 values in CBIndx0
+        if CBIndx0 == 0:
+            self.ui.lineEditSCCutXFrom.setText(f1)
+            self.ui.lineEditSCCutXTo.setText(t1)
+        elif CBIndx0 == 1:
+            self.ui.lineEditSCCutYFrom.setText(f1)
+            self.ui.lineEditSCCutYTo.setText(t1)            
+        elif CBIndx0 == 2:
+            self.ui.lineEditSCCutZFrom.setText(f1)
+            self.ui.lineEditSCCutZTo.setText(t1)
+        elif CBIndx0 == 3:
+            self.ui.lineEditSCCutEFrom.setText(f1)
+            self.ui.lineEditSCCutETo.setText(t1)
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+
+        #finally place CBIndx0 values into CBIndx1
+        if CBIndx1 == 0:
+            self.ui.lineEditSCCutXFrom.setText(f0)
+            self.ui.lineEditSCCutXTo.setText(t0)
+        elif CBIndx1 == 1:
+            self.ui.lineEditSCCutYFrom.setText(f0)
+            self.ui.lineEditSCCutYTo.setText(t0)            
+        elif CBIndx1 == 2:
+            self.ui.lineEditSCCutZFrom.setText(f0)
+            self.ui.lineEditSCCutZTo.setText(t0)
+        elif CBIndx1 == 3:
+            self.ui.lineEditSCCutEFrom.setText(f0)
+            self.ui.lineEditSCCutETo.setText(t0)
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return        
+        
+        
+        
+        
     elif tab == 'Volume':
         print "** Volume Tab Selected"
         #move CBIndx0 values to tmp
@@ -1058,9 +1133,9 @@ def convertIndexToLabel(self,comboBox,mode):
     
     if mode == 'Cut':
         #not implemented yet
-        return
+        ViewSCDict=self.ui.ViewSCCDict
     elif mode == 'Slice':
-        ViewSCDict=self.ui.ViewSCDict
+        ViewSCDict=self.ui.ViewSCSDict
     elif mode == 'Volume':
         ViewSCDict=self.ui.ViewSCVDict
     else:
@@ -1068,7 +1143,7 @@ def convertIndexToLabel(self,comboBox,mode):
     
     if comboBox == 'X':
         if mode == 'Cut':
-            pass
+            labelCB=str(self.ui.comboBoxSCCutX.currentText())
         elif mode == 'Slice':
             labelCB=str(self.ui.comboBoxSCSliceX.currentText())
         elif mode == 'Volume':
@@ -1090,7 +1165,7 @@ def convertIndexToLabel(self,comboBox,mode):
         
     elif comboBox == 'Y':
         if mode == 'Cut':
-            pass
+            labelCB=str(self.ui.comboBoxSCCutY.currentText())
         elif mode == 'Slice':
             labelCB=str(self.ui.comboBoxSCSliceY.currentText())
         elif mode == 'Volume':
@@ -1112,7 +1187,7 @@ def convertIndexToLabel(self,comboBox,mode):
                             
     elif comboBox == 'Z':
         if mode == 'Cut':
-            pass
+            labelCB=str(self.ui.comboBoxSCCutZ.currentText())
         elif mode == 'Slice':
             labelCB=str(self.ui.comboBoxSCSliceZ.currentText())
         elif mode == 'Volume':
@@ -1134,7 +1209,7 @@ def convertIndexToLabel(self,comboBox,mode):
         
     elif comboBox == 'E':
         if mode == 'Cut':
-            pass
+            labelCB=str(self.ui.comboBoxSCCutE.currentText())
         elif mode == 'Slice':
             labelCB=str(self.ui.comboBoxSCSliceE.currentText())
         elif mode == 'Volume':
@@ -1296,22 +1371,33 @@ def updateSCParms(self,histDict,modes):
     self.ui.lineEditSCVAu2Label.setText(getLabelChar(histDict,'YName'))
     self.ui.lineEditSCVAu3Label.setText(getLabelChar(histDict,'ZName'))
     
-    #can now call methods for updating ViewSCDict and for populating the 
+    #can now call methods for updating ViewSCSDict and for populating the 
     #view tabs as if the 'Calculate Projections' button was pressed
     
-    #update ViewSCDict with minn and maxx values calculated above
-    self.ui.ViewSCDict=self.ui.ViewSCDict
-    self.ui.ViewSCDict['u1']['from']=float(MinVals[0])
-    self.ui.ViewSCDict['u1']['to']=float(MaxVals[0])      
-    self.ui.ViewSCDict['u2']['from']=float(MinVals[1])
-    self.ui.ViewSCDict['u2']['to']=float(MaxVals[1])
-    self.ui.ViewSCDict['u3']['from']=float(MinVals[2])
-    self.ui.ViewSCDict['u3']['to']=float(MaxVals[2])
-    self.ui.ViewSCDict['E']['from']=float(MinVals[3])
-    self.ui.ViewSCDict['E']['to']=float(MaxVals[3])
+    #update ViewSCCDict with minn and maxx values calculated above
+
+    self.ui.ViewSCCDict['u1']['from']=float(MinVals[0])
+    self.ui.ViewSCCDict['u1']['to']=float(MaxVals[0])      
+    self.ui.ViewSCCDict['u2']['from']=float(MinVals[1])
+    self.ui.ViewSCCDict['u2']['to']=float(MaxVals[1])
+    self.ui.ViewSCCDict['u3']['from']=float(MinVals[2])
+    self.ui.ViewSCCDict['u3']['to']=float(MaxVals[2])
+    self.ui.ViewSCCDict['E']['from']=float(MinVals[3])
+    self.ui.ViewSCCDict['E']['to']=float(MaxVals[3])
+    
+    #update ViewSCSDict with minn and maxx values calculated above
+
+    self.ui.ViewSCSDict['u1']['from']=float(MinVals[0])
+    self.ui.ViewSCSDict['u1']['to']=float(MaxVals[0])      
+    self.ui.ViewSCSDict['u2']['from']=float(MinVals[1])
+    self.ui.ViewSCSDict['u2']['to']=float(MaxVals[1])
+    self.ui.ViewSCSDict['u3']['from']=float(MinVals[2])
+    self.ui.ViewSCSDict['u3']['to']=float(MaxVals[2])
+    self.ui.ViewSCSDict['E']['from']=float(MinVals[3])
+    self.ui.ViewSCSDict['E']['to']=float(MaxVals[3])
     
     #update ViewSCVDict with minn and maxx values calculated above
-    self.ui.ViewSCVDict=self.ui.ViewSCVDict
+
     self.ui.ViewSCVDict['u1']['from']=float(MinVals[0])
     self.ui.ViewSCVDict['u1']['to']=float(MaxVals[0])      
     self.ui.ViewSCVDict['u2']['from']=float(MinVals[1])
@@ -1321,8 +1407,9 @@ def updateSCParms(self,histDict,modes):
     self.ui.ViewSCVDict['E']['from']=float(MinVals[3])
     self.ui.ViewSCVDict['E']['to']=float(MaxVals[3])
     
-    #Now update ViewSCDict() and ViewSCVDict() with changes from the GUI
-    self.UpdateViewSCDict()
+    #Now update ViewSCSDict() and ViewSCVDict() with changes from the GUI
+    self.UpdateViewSCCDict()
+    self.UpdateViewSCSDict()
     self.UpdateViewSCVDict()
 
         
@@ -1360,34 +1447,5 @@ def getLabelChar(histDict,dimName):
         return ''
         
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
