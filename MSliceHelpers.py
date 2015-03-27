@@ -890,6 +890,7 @@ def swapSCViewParams(self,tab,CBIndx0,CBIndx1):
     
     
     if tab == 'Slice':
+        print "** Slice Tab Selected"
         #move CBIndx0 values to tmp
         if CBIndx0 == 0:
             f0=self.ui.lineEditSCSliceXFrom.text()
@@ -966,6 +967,79 @@ def swapSCViewParams(self,tab,CBIndx0,CBIndx1):
     elif tab == 'Cut':
         pass #stub for Cut tab
     elif tab == 'Volume':
+        print "** Volume Tab Selected"
+        #move CBIndx0 values to tmp
+        if CBIndx0 == 0:
+            f0=self.ui.lineEditSCVolXFrom.text()
+            t0=self.ui.lineEditSCVolXTo.text()
+        elif CBIndx0 == 1:
+            f0=self.ui.lineEditSCVolYFrom.text()
+            t0=self.ui.lineEditSCVolYTo.text()            
+        elif CBIndx0 == 2:
+            f0=self.ui.lineEditSCVolZFrom.text()
+            t0=self.ui.lineEditSCVolZTo.text()
+        elif CBIndx0 == 3:
+            f0=self.ui.lineEditSCVolEFrom.text()
+            t0=self.ui.lineEditSCVolETo.text()
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+            
+        print "f0: ",f0," t0: ",t0
+
+        #then get CBIndx1 values
+        if CBIndx1 == 0:
+            f1=self.ui.lineEditSCVolXFrom.text()
+            t1=self.ui.lineEditSCVolXTo.text()
+        elif CBIndx1 == 1:
+            f1=self.ui.lineEditSCVolYFrom.text()
+            t1=self.ui.lineEditSCVolYTo.text()            
+        elif CBIndx1 == 2:
+            f1=self.ui.lineEditSCVolZFrom.text()
+            t1=self.ui.lineEditSCVolZTo.text()
+        elif CBIndx1 == 3:
+            f1=self.ui.lineEditSCVolEFrom.text()
+            t1=self.ui.lineEditSCVolETo.text()
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+            
+        print "f1: ",f1," t1: ",t1
+            
+        #now place CBIndx1 values in CBIndx0
+        if CBIndx0 == 0:
+            self.ui.lineEditSCVolXFrom.setText(f1)
+            self.ui.lineEditSCVolXTo.setText(t1)
+        elif CBIndx0 == 1:
+            self.ui.lineEditSCVolYFrom.setText(f1)
+            self.ui.lineEditSCVolYTo.setText(t1)            
+        elif CBIndx0 == 2:
+            self.ui.lineEditSCVolZFrom.setText(f1)
+            self.ui.lineEditSCVolZTo.setText(t1)
+        elif CBIndx0 == 3:
+            self.ui.lineEditSCVolEFrom.setText(f1)
+            self.ui.lineEditSCVolETo.setText(t1)
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return
+
+        #finally place CBIndx0 values into CBIndx1
+        if CBIndx1 == 0:
+            self.ui.lineEditSCVolXFrom.setText(f0)
+            self.ui.lineEditSCVolXTo.setText(t0)
+        elif CBIndx1 == 1:
+            self.ui.lineEditSCVolYFrom.setText(f0)
+            self.ui.lineEditSCVolYTo.setText(t0)            
+        elif CBIndx1 == 2:
+            self.ui.lineEditSCVolZFrom.setText(f0)
+            self.ui.lineEditSCVolZTo.setText(t0)
+        elif CBIndx1 == 3:
+            self.ui.lineEditSCVolEFrom.setText(f0)
+            self.ui.lineEditSCVolETo.setText(t0)
+        else:
+            print "Unable to identify CBIndx0 - returning"
+            return        
+        
         pass #stub for Volume tab
     else:
         print "Incorrect tab identifier specified - bug in code - returning"
@@ -973,7 +1047,7 @@ def swapSCViewParams(self,tab,CBIndx0,CBIndx1):
         
         
 
-def convertIndexToLabel(self,comboBox):
+def convertIndexToLabel(self,comboBox,mode):
     """
     self is MSlice main object
     comboBox is a text string indicating which of X,Y,Z,E combo boxes are being examined
@@ -982,10 +1056,26 @@ def convertIndexToLabel(self,comboBox):
     
     """
     
-    ViewSCDict=self.ui.ViewSCDict
+    if mode == 'Cut':
+        #not implemented yet
+        return
+    elif mode == 'Slice':
+        ViewSCDict=self.ui.ViewSCDict
+    elif mode == 'Volume':
+        ViewSCDict=self.ui.ViewSCVDict
+    else:
+        print "Unknown mode"
     
     if comboBox == 'X':
-        labelCB=str(self.ui.comboBoxSCSliceX.currentText())
+        if mode == 'Cut':
+            pass
+        elif mode == 'Slice':
+            labelCB=str(self.ui.comboBoxSCSliceX.currentText())
+        elif mode == 'Volume':
+            labelCB=str(self.ui.comboBoxSCVolX.currentText())
+        else:
+            #case should not occur
+            pass
         if labelCB == ViewSCDict['u1']['label']:
             labelDict='u1'
         elif labelCB == ViewSCDict['u2']['label']:
@@ -999,7 +1089,15 @@ def convertIndexToLabel(self,comboBox):
             return
         
     elif comboBox == 'Y':
-        labelCB=str(self.ui.comboBoxSCSliceY.currentText())
+        if mode == 'Cut':
+            pass
+        elif mode == 'Slice':
+            labelCB=str(self.ui.comboBoxSCSliceY.currentText())
+        elif mode == 'Volume':
+            labelCB=str(self.ui.comboBoxSCVolY.currentText())
+        else:
+            #case should not occur
+            pass
         if labelCB == ViewSCDict['u1']['label']:
             labelDict='u1'
         elif labelCB == ViewSCDict['u2']['label']:
@@ -1013,7 +1111,15 @@ def convertIndexToLabel(self,comboBox):
             return
                             
     elif comboBox == 'Z':
-        labelCB=str(self.ui.comboBoxSCSliceZ.currentText())
+        if mode == 'Cut':
+            pass
+        elif mode == 'Slice':
+            labelCB=str(self.ui.comboBoxSCSliceZ.currentText())
+        elif mode == 'Volume':
+            labelCB=str(self.ui.comboBoxSCVolZ.currentText())
+        else:
+            #case should not occur
+            pass
         if labelCB == ViewSCDict['u1']['label']:
             labelDict='u1'
         elif labelCB == ViewSCDict['u2']['label']:
@@ -1027,7 +1133,15 @@ def convertIndexToLabel(self,comboBox):
             return            
         
     elif comboBox == 'E':
-        labelCB=str(self.ui.comboBoxSCSliceE.currentText())
+        if mode == 'Cut':
+            pass
+        elif mode == 'Slice':
+            labelCB=str(self.ui.comboBoxSCSliceE.currentText())
+        elif mode == 'Volume':
+            labelCB=str(self.ui.comboBoxSCVolE.currentText())
+        else:
+            #case should not occur
+            pass
         if labelCB == ViewSCDict['u1']['label']:
             labelDict='u1'
         elif labelCB == ViewSCDict['u2']['label']:
@@ -1196,9 +1310,20 @@ def updateSCParms(self,histDict,modes):
     self.ui.ViewSCDict['E']['from']=float(MinVals[3])
     self.ui.ViewSCDict['E']['to']=float(MaxVals[3])
     
+    #update ViewSCVDict with minn and maxx values calculated above
+    self.ui.ViewSCVDict=self.ui.ViewSCVDict
+    self.ui.ViewSCVDict['u1']['from']=float(MinVals[0])
+    self.ui.ViewSCVDict['u1']['to']=float(MaxVals[0])      
+    self.ui.ViewSCVDict['u2']['from']=float(MinVals[1])
+    self.ui.ViewSCVDict['u2']['to']=float(MaxVals[1])
+    self.ui.ViewSCVDict['u3']['from']=float(MinVals[2])
+    self.ui.ViewSCVDict['u3']['to']=float(MaxVals[2])
+    self.ui.ViewSCVDict['E']['from']=float(MinVals[3])
+    self.ui.ViewSCVDict['E']['to']=float(MaxVals[3])
     
+    #Now update ViewSCDict() and ViewSCVDict() with changes from the GUI
     self.UpdateViewSCDict()
-    
+    self.UpdateViewSCVDict()
 
         
 

@@ -1783,6 +1783,18 @@
            </property>
           </widget>
          </widget>
+         <zorder>groupBoxViewingAxes_2</zorder>
+         <zorder>groupBoxSCUnitCellLatticeParams_2</zorder>
+         <zorder>groupBoxSCCrystalOrientation_2</zorder>
+         <zorder>pushButtonSCCalcProj</zorder>
+         <zorder>groupBox_10</zorder>
+         <zorder>pushButtonSaveSCParams</zorder>
+         <zorder>pushButtonLoadSCParams</zorder>
+         <zorder>pushButtonDefaultSCParams</zorder>
+         <zorder>pushButtonCheckSCWorkspace</zorder>
+         <zorder>groupBox_2</zorder>
+         <zorder>groupBox_3</zorder>
+         <zorder>ViewTabWidget</zorder>
         </widget>
        </widget>
       </item>
@@ -1798,7 +1810,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="LabelsTab_2">
          <attribute name="title">
@@ -3630,7 +3642,7 @@
              <rect>
               <x>660</x>
               <y>20</y>
-              <width>71</width>
+              <width>61</width>
               <height>20</height>
              </rect>
             </property>
@@ -3641,7 +3653,7 @@
            <widget class="QLabel" name="label_191">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>140</x>
               <y>10</y>
               <width>41</width>
               <height>16</height>
@@ -3654,7 +3666,7 @@
            <widget class="QLabel" name="label_192">
             <property name="geometry">
              <rect>
-              <x>50</x>
+              <x>10</x>
               <y>40</y>
               <width>16</width>
               <height>16</height>
@@ -3667,7 +3679,7 @@
            <widget class="QLabel" name="label_193">
             <property name="geometry">
              <rect>
-              <x>470</x>
+              <x>380</x>
               <y>40</y>
               <width>41</width>
               <height>16</height>
@@ -3680,7 +3692,7 @@
            <widget class="QLabel" name="label_194">
             <property name="geometry">
              <rect>
-              <x>50</x>
+              <x>10</x>
               <y>10</y>
               <width>16</width>
               <height>16</height>
@@ -3693,9 +3705,9 @@
            <widget class="QLineEdit" name="lineEditSCVolYFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>180</x>
               <y>40</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3703,9 +3715,9 @@
            <widget class="QLineEdit" name="lineEditSCVolXTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>290</x>
               <y>10</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3713,9 +3725,9 @@
            <widget class="QLineEdit" name="lineEditSCVolYTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>290</x>
               <y>40</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3723,7 +3735,7 @@
            <widget class="QLabel" name="label_195">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>270</x>
               <y>130</y>
               <width>21</width>
               <height>16</height>
@@ -3736,7 +3748,7 @@
            <widget class="QLabel" name="label_196">
             <property name="geometry">
              <rect>
-              <x>470</x>
+              <x>380</x>
               <y>10</y>
               <width>41</width>
               <height>16</height>
@@ -3749,7 +3761,7 @@
            <widget class="QLabel" name="label_197">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>270</x>
               <y>10</y>
               <width>21</width>
               <height>16</height>
@@ -3762,7 +3774,7 @@
            <widget class="QLabel" name="label_198">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>140</x>
               <y>70</y>
               <width>41</width>
               <height>16</height>
@@ -3775,25 +3787,25 @@
            <widget class="QComboBox" name="comboBoxSCVolY">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>20</x>
               <y>40</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -3802,25 +3814,25 @@
              </property>
             </item>
            </widget>
-           <widget class="QPushButton" name="pushButtonSCPlotVol">
+           <widget class="QPushButton" name="pushButtonSCVolSlices">
             <property name="geometry">
              <rect>
-              <x>340</x>
-              <y>160</y>
-              <width>111</width>
+              <x>520</x>
+              <y>130</y>
+              <width>101</width>
               <height>23</height>
              </rect>
             </property>
             <property name="text">
-             <string>Plot Volume</string>
+             <string>Volume Slices</string>
             </property>
            </widget>
            <widget class="QLineEdit" name="lineEditSCVolXFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>180</x>
               <y>10</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3828,7 +3840,7 @@
            <widget class="QLabel" name="label_199">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>140</x>
               <y>40</y>
               <width>41</width>
               <height>16</height>
@@ -3841,25 +3853,25 @@
            <widget class="QComboBox" name="comboBoxSCVolZ">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>20</x>
               <y>70</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] )RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -3868,25 +3880,15 @@
              </property>
             </item>
            </widget>
-           <widget class="QPushButton" name="pushButtonSCOplotVol">
-            <property name="geometry">
-             <rect>
-              <x>474</x>
-              <y>160</y>
-              <width>101</width>
-              <height>23</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Oplot Volume</string>
-            </property>
-           </widget>
            <widget class="QLineEdit" name="lineEditSCVolSmoothing">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>180</x>
               <y>160</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3897,9 +3899,9 @@
            <widget class="QLineEdit" name="lineEditSCVolYStep">
             <property name="geometry">
              <rect>
-              <x>510</x>
+              <x>420</x>
               <y>40</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3910,7 +3912,7 @@
            <widget class="QLabel" name="label_200">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>270</x>
               <y>70</y>
               <width>21</width>
               <height>16</height>
@@ -3923,9 +3925,9 @@
            <widget class="QLineEdit" name="lineEditSCVolZTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>290</x>
               <y>70</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3933,9 +3935,9 @@
            <widget class="QLineEdit" name="lineEditSCVolIntensityFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>180</x>
               <y>130</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3943,9 +3945,9 @@
            <widget class="QLineEdit" name="lineEditSCVolZFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>180</x>
               <y>70</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3953,7 +3955,7 @@
            <widget class="QLabel" name="label_201">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>270</x>
               <y>40</y>
               <width>21</width>
               <height>16</height>
@@ -3979,9 +3981,9 @@
            <widget class="QLineEdit" name="lineEditSCVolXStep">
             <property name="geometry">
              <rect>
-              <x>510</x>
+              <x>420</x>
               <y>10</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -3992,25 +3994,25 @@
            <widget class="QComboBox" name="comboBoxSCVolX">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>20</x>
               <y>10</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -4020,6 +4022,9 @@
             </item>
            </widget>
            <widget class="QLabel" name="label_203">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="geometry">
              <rect>
               <x>70</x>
@@ -4035,9 +4040,9 @@
            <widget class="QLineEdit" name="lineEditSCVolIntensityTo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>290</x>
               <y>130</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -4045,7 +4050,7 @@
            <widget class="QLabel" name="label_204">
             <property name="geometry">
              <rect>
-              <x>50</x>
+              <x>10</x>
               <y>70</y>
               <width>16</width>
               <height>16</height>
@@ -4058,7 +4063,7 @@
            <widget class="QLabel" name="label_205">
             <property name="geometry">
              <rect>
-              <x>470</x>
+              <x>380</x>
               <y>70</y>
               <width>41</width>
               <height>16</height>
@@ -4071,9 +4076,9 @@
            <widget class="QLineEdit" name="lineEditSCVolZStep">
             <property name="geometry">
              <rect>
-              <x>510</x>
+              <x>420</x>
               <y>70</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -4084,9 +4089,9 @@
            <widget class="QLineEdit" name="lineEditSCVolEFrom">
             <property name="geometry">
              <rect>
-              <x>190</x>
+              <x>180</x>
               <y>100</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -4094,9 +4099,9 @@
            <widget class="QLineEdit" name="lineEditSCVolETo">
             <property name="geometry">
              <rect>
-              <x>340</x>
+              <x>290</x>
               <y>100</y>
-              <width>113</width>
+              <width>71</width>
               <height>20</height>
              </rect>
             </property>
@@ -4104,25 +4109,25 @@
            <widget class="QComboBox" name="comboBoxSCVolE">
             <property name="geometry">
              <rect>
-              <x>70</x>
+              <x>20</x>
               <y>100</y>
-              <width>69</width>
+              <width>111</width>
               <height>22</height>
              </rect>
             </property>
             <item>
              <property name="text">
-              <string>[H,0,0]</string>
+              <string>[H,0,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,K,0]</string>
+              <string>[0,K,0] (RLU)</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>[0,0,L]</string>
+              <string>[0,0,L] (RLU)</string>
              </property>
             </item>
             <item>
@@ -4134,7 +4139,7 @@
            <widget class="QLabel" name="label_206">
             <property name="geometry">
              <rect>
-              <x>150</x>
+              <x>140</x>
               <y>100</y>
               <width>41</width>
               <height>16</height>
@@ -4147,7 +4152,7 @@
            <widget class="QLabel" name="label_207">
             <property name="geometry">
              <rect>
-              <x>320</x>
+              <x>270</x>
               <y>100</y>
               <width>21</width>
               <height>16</height>
@@ -4157,43 +4162,57 @@
              <string>to:</string>
             </property>
            </widget>
-           <widget class="QLabel" name="label_208">
+           <widget class="QPushButton" name="pushButtonSCVShowParams">
             <property name="geometry">
              <rect>
-              <x>470</x>
-              <y>120</y>
+              <x>520</x>
+              <y>100</y>
+              <width>101</width>
+              <height>23</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Show Params</string>
+            </property>
+           </widget>
+           <widget class="QLabel" name="labelSCVNptsX">
+            <property name="geometry">
+             <rect>
+              <x>520</x>
+              <y>10</y>
               <width>91</width>
               <height>16</height>
              </rect>
             </property>
             <property name="text">
-             <string>Color Table</string>
+             <string>Npts:</string>
             </property>
            </widget>
-           <widget class="QComboBox" name="comboBoxSCVolCT">
+           <widget class="QLabel" name="labelSCVNptsY">
             <property name="geometry">
              <rect>
-              <x>560</x>
-              <y>120</y>
-              <width>111</width>
-              <height>22</height>
+              <x>520</x>
+              <y>40</y>
+              <width>91</width>
+              <height>16</height>
              </rect>
             </property>
-            <item>
-             <property name="text">
-              <string>Rainbow</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Blue-Red</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>16 Steps</string>
-             </property>
-            </item>
+            <property name="text">
+             <string>Npts:</string>
+            </property>
+           </widget>
+           <widget class="QLabel" name="labelSCVNptsZ">
+            <property name="geometry">
+             <rect>
+              <x>520</x>
+              <y>70</y>
+              <width>91</width>
+              <height>16</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Npts:</string>
+            </property>
            </widget>
           </widget>
          </widget>
