@@ -2811,7 +2811,7 @@
            </rect>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="page_9">
            <widget class="QLabel" name="label_165">
@@ -3604,19 +3604,6 @@
             </property>
            </widget>
           </widget>
-         </widget>
-         <widget class="QLabel" name="labelSCCNptsX">
-          <property name="geometry">
-           <rect>
-            <x>530</x>
-            <y>10</y>
-            <width>91</width>
-            <height>16</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Npts:</string>
-          </property>
          </widget>
         </widget>
         <widget class="QWidget" name="VolumeTab_2">

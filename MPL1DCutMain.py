@@ -1,6 +1,7 @@
 import sys, os
+import copy
 
-from MPLPowderCut import *
+from ui_MPL1DCut import *
 from PyQt4 import Qt, QtCore, QtGui
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -26,15 +27,16 @@ sys.path.append(os.environ['MANTIDPATH'])
 from mantid.simpleapi import * 
 
 from MPLPowderCutHelpers import *
+from MPLSCCutHelpers import *
 
 from LegendManager import *
 
-class MPLPowderCut(QtGui.QMainWindow):
+class MPL1DCut(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
-        self.ui = Ui_MPLPowderCutMainWindow()
+        self.ui = Ui_MPL1DCutMainWindow()
         self.ui.setupUi(self)
-        self.setWindowTitle("Powder Cut")
+        self.setWindowTitle("1D Cut")
         self.parent=parent 
         
         #establish signals and slots
@@ -87,7 +89,7 @@ class MPLPowderCut(QtGui.QMainWindow):
                 #case we just have a single workspace
                 wstotlist.append(wslist[n])
         
-        print "Total number of workspaces passed to Powder Cut: ",wstotlist
+        print "Total number of workspaces passed to 1D Cut: ",wstotlist
         #now put workspaces into workspace combo box
         Nws=len(wstotlist)
         for n in range(Nws):
@@ -106,24 +108,52 @@ class MPLPowderCut(QtGui.QMainWindow):
         
         #update Comments tab while we're working with the workspace lists
         self.getComments()        
+        
+        if self.parent.ui.mode1D == 'Powder':
+            #set stackedWidgetCut index
+            self.ui.stackedWidgetCut.setCurrentIndex(0)
+            #Data Formatting - copy powder parameters over from MSlice main application
+            self.ui.MPLlineEditPowderCutAlongFrom.setText(self.parent.ui.lineEditPowderCutAlongFrom.text())
+            self.ui.MPLlineEditPowderCutAlongTo.setText(self.parent.ui.lineEditPowderCutAlongTo.text())
+            self.ui.MPLlineEditPowderCutAlongStep.setText(self.parent.ui.lineEditPowderCutAlongStep.text())
             
-        #Data Formatting - copy parameters over from MSlice main application
-        self.ui.MPLlineEditPowderCutAlongFrom.setText(self.parent.ui.lineEditPowderCutAlongFrom.text())
-        self.ui.MPLlineEditPowderCutAlongTo.setText(self.parent.ui.lineEditPowderCutAlongTo.text())
-        self.ui.MPLlineEditPowderCutAlongStep.setText(self.parent.ui.lineEditPowderCutAlongStep.text())
-        
-        self.ui.MPLlineEditPowderCutThickFrom.setText(self.parent.ui.lineEditPowderCutThickFrom.text())
-        self.ui.MPLlineEditPowderCutThickTo.setText(self.parent.ui.lineEditPowderCutThickTo.text())
-        
-        self.ui.MPLlineEditPowderCutYFrom.setText(self.parent.ui.lineEditPowderCutYFrom.text())
-        self.ui.MPLlineEditPowderCutYTo.setText(self.parent.ui.lineEditPowderCutYTo.text())
-        
-        indx_Along=self.parent.ui.comboBoxPowderCutAlong.currentIndex()
-        indx_Thick=self.parent.ui.comboBoxPowderCutThick.currentIndex()
-        indx_Y=self.parent.ui.comboBoxPowderCutY.currentIndex()
-        self.ui.MPLcomboBoxPowderCutAlong.setCurrentIndex(indx_Along)
-        self.ui.MPLcomboBoxPowderCutThick.setCurrentIndex(indx_Thick)
-        self.ui.MPLcomboBoxPowderCutY.setCurrentIndex(indx_Y)
+            self.ui.MPLlineEditPowderCutThickFrom.setText(self.parent.ui.lineEditPowderCutThickFrom.text())
+            self.ui.MPLlineEditPowderCutThickTo.setText(self.parent.ui.lineEditPowderCutThickTo.text())
+            
+            self.ui.MPLlineEditPowderCutYFrom.setText(self.parent.ui.lineEditPowderCutYFrom.text())
+            self.ui.MPLlineEditPowderCutYTo.setText(self.parent.ui.lineEditPowderCutYTo.text())
+            
+            indx_Along=self.parent.ui.comboBoxPowderCutAlong.currentIndex()
+            indx_Thick=self.parent.ui.comboBoxPowderCutThick.currentIndex()
+            indx_Y=self.parent.ui.comboBoxPowderCutY.currentIndex()
+            self.ui.MPLcomboBoxPowderCutAlong.setCurrentIndex(indx_Along)
+            self.ui.MPLcomboBoxPowderCutThick.setCurrentIndex(indx_Thick)
+            self.ui.MPLcomboBoxPowderCutY.setCurrentIndex(indx_Y)
+        elif self.parent.ui.mode1D == 'SC':
+            #set stackedWidgetCut index
+            self.ui.stackedWidgetCut.setCurrentIndex(1)
+            #transfer MSlice main app parameters to this GUI app
+            
+            self.ui.lineEditSCCutXFrom.setText(self.parent.ui.lineEditSCCutXFrom.text())
+            self.ui.lineEditSCCutXTo.setText(self.parent.ui.lineEditSCCutXTo.text())
+            self.ui.lineEditSCCutXStep.setText(self.parent.ui.lineEditSCCutXStep.text())
+            self.ui.lineEditSCCutYFrom.setText(self.parent.ui.lineEditSCCutYFrom.text())
+            self.ui.lineEditSCCutYTo.setText(self.parent.ui.lineEditSCCutYTo.text())
+            self.ui.lineEditSCCutZFrom.setText(self.parent.ui.lineEditSCCutZFrom.text())
+            self.ui.lineEditSCCutZTo.setText(self.parent.ui.lineEditSCCutZTo.text())
+            self.ui.lineEditSCCutEFrom.setText(self.parent.ui.lineEditSCCutEFrom.text())
+            self.ui.lineEditSCCutETo.setText(self.parent.ui.lineEditSCCutETo.text())
+            self.ui.lineEditSCCutIntensityFrom.setText(self.parent.ui.lineEditSCCutIntensityFrom.text())
+            self.ui.lineEditSCCutIntensityTo.setText(self.parent.ui.lineEditSCCutIntensityTo.text())
+            self.ui.comboBoxSCCutX.setCurrentIndex(self.parent.ui.comboBoxSCCutX.currentIndex())
+            self.ui.comboBoxSCCutY.setCurrentIndex(self.parent.ui.comboBoxSCCutY.currentIndex())
+            self.ui.comboBoxSCCutZ.setCurrentIndex(self.parent.ui.comboBoxSCCutZ.currentIndex())
+            self.ui.comboBoxSCCutE.setCurrentIndex(self.parent.ui.comboBoxSCCutE.currentIndex())
+            self.ui.comboBoxSCCutIntensity.setCurrentIndex(self.parent.ui.comboBoxSCCutIntensity.currentIndex())
+        else:
+            #unsupported mode - complain"
+            print "Unsupported GUI mode - returning"
+            return
                
         #Plot Configuration
         self.ui.MPLlineEditLabelsIntensity.setText(self.parent.ui.lineEditLabelsIntensity.text())
@@ -165,8 +195,71 @@ class MPLPowderCut(QtGui.QMainWindow):
         #select Plot as the default tab
         self.ui.MPLtabWidgetPlotHistory.setCurrentIndex(0)
         
+        #perform initiations for single crystal plot cut
+        #need to deepcopy the ViewSCCDict dictionary over
+        #copying this dictionary enable each instance of MPL1DCut to operate 
+        #independently without stepping on other instances of itself
+        self.ui.ViewSCCDict=copy.deepcopy(self.parent.ui.ViewSCCDict)
+        
+        #Define signal/slot for changing View Data combo box selections
+        QtCore.QObject.connect(self.ui.comboBoxSCCutX, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCX)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutY, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCY)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCZ)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCE)
+        self.ui.ViewSCCDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
+        #and a second for programmatically changing the current index when updating the ViewSCCDict.  Skip the second update...
+
+        #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
+        QtCore.QObject.connect(self.ui.lineEditSCCutXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        #QtCore.QObject.connect(self.ui.lineEditSCCutYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        #QtCore.QObject.connect(self.ui.lineEditSCCutYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        
+        #Also need to copy comboBox labels over from Main GUI 
+        for i in range(4):
+            self.ui.comboBoxSCCutX.setItemText(i, self.parent.ui.comboBoxSCCutX.itemText(i))
+            self.ui.comboBoxSCCutY.setItemText(i, self.parent.ui.comboBoxSCCutY.itemText(i))
+            self.ui.comboBoxSCCutZ.setItemText(i, self.parent.ui.comboBoxSCCutZ.itemText(i))
+            self.ui.comboBoxSCCutE.setItemText(i, self.parent.ui.comboBoxSCCutE.itemText(i))
+        #then set the comboBoxes to the correct indicies according to the main app
+        self.ui.comboBoxSCCutX.setCurrentIndex(self.parent.ui.comboBoxSCCutX.currentIndex())
+        self.ui.comboBoxSCCutY.setCurrentIndex(self.parent.ui.comboBoxSCCutY.currentIndex())
+        self.ui.comboBoxSCCutZ.setCurrentIndex(self.parent.ui.comboBoxSCCutZ.currentIndex())
+        self.ui.comboBoxSCCutE.setCurrentIndex(self.parent.ui.comboBoxSCCutE.currentIndex())
+        
+        #copy over step size
+        self.ui.lineEditSCCutXStep.setText(self.parent.ui.lineEditSCCutXStep.text())
+        #set Bin Width as the default
+        self.ui.radioButtonSCBinWidth.setChecked(True)
+        #calculate and display the number of bins corresponding to the bin width
+                
+        self.ui.pushButtonSCCShowParams.click()
+        QtCore.QObject.connect(self.ui.comboBoxSCCutX, QtCore.SIGNAL('currentIndexChanged(int)'),self.updateSCCNpts)
+        self.updateSCCNpts()
+        QtCore.QObject.connect(self.ui.lineEditSCCutXNbins, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCBW)
+        
+        
+        #setup callbacks for SC Cut push buttons - Plot and Oplot 
+        #QtCore.QObject.connect(self.ui.pushButtonSCCutPlot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCutPlotSelect)
+        QtCore.QObject.connect(self.ui.pushButtonSCCShowParams, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCShowParamsSelect)
+        
+
+        
         #Launch plot in bringing up the application
-        self.DoPlot()
+        if self.parent.ui.mode1D == 'Powder':
+            #initiate powder plot
+            self.DoPlot()
+            pass
+        elif self.parent.ui.mode1D == 'SC':
+            #initiate SC plot
+            self.DoPlot()
+            pass
+        else:
+            #unsupported mode - complain"
+            print "Unsupported GUI mode - returning"
+            return        
+        
     
     def SelectWorkspace(self):
         #get selected workspace
@@ -196,6 +289,320 @@ class MPLPowderCut(QtGui.QMainWindow):
         self.getComments()
                 
         print "Selected Workspace: ",self.ui.MPLcurrentWS
+
+    def pushButtonSCCShowParamsSelect(self):
+        #Utility function to transfer values from ViewSCCDict into the 
+        #corresponding view fields in the Cut GUI
+        ViewSCCDict=self.ui.ViewSCCDict
+        
+        label=convertIndexToLabel(self,'X','Cut')    
+        if ViewSCCDict[label]['from'] != '':                
+            SCSXFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutXFrom.setText(SCSXFrom)
+
+        label=convertIndexToLabel(self,'X','Cut')   
+        if ViewSCCDict[label]['to'] != '':      
+            SCSXTo = str("%.3f" % ViewSCCDict[label]['to'])
+            self.ui.lineEditSCCutXTo.setText(SCSXTo)
+        
+        label=convertIndexToLabel(self,'Y','Cut')    
+        if ViewSCCDict[label]['from'] != '':
+            SCSYFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutYFrom.setText(SCSYFrom)
+        
+        label=convertIndexToLabel(self,'Y','Cut')
+        if ViewSCCDict[label]['to'] != '':
+            SCSYTo = str("%.3f" % ViewSCCDict[label]['to'])
+            self.ui.lineEditSCCutYTo.setText(SCSYTo)
+        
+        label=convertIndexToLabel(self,'Z','Cut')     
+        if ViewSCCDict[label]['from'] != '':
+            SCSZFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutZFrom.setText(SCSZFrom)
+        
+        label=convertIndexToLabel(self,'Z','Cut')
+        if ViewSCCDict[label]['to'] != '':
+            SCSZTo = str("%.3f" % ViewSCCDict[label]['to'])  
+            self.ui.lineEditSCCutZTo.setText(SCSZTo)
+        
+        label=convertIndexToLabel(self,'E','Cut')                    
+        if ViewSCCDict[label]['from'] != '':
+            SCSEFrom = str("%.3f" % ViewSCCDict[label]['from'])    
+            self.ui.lineEditSCCutEFrom.setText(SCSEFrom)
+        
+        label=convertIndexToLabel(self,'E','Cut')  
+        if ViewSCCDict[label]['to'] != '':
+            SCSETo = str("%.3f" % ViewSCCDict[label]['to'])       
+            self.ui.lineEditSCCutETo.setText(SCSETo)
+
+    def UpdateViewSCCDict(self):
+        print "In UpdateViewSCCDict(self)"
+        #This method updates the ViewSCCDict dictionary any time that a value
+        #is changed in the Viewing Axes field changes.  As this can be performed quickly,
+        #the entire dictionary is update when a selction is made in lieu of having a
+        #separate method for each of the 12 fields that can change.
+        
+        #Note that currently only the dictionary labels are updated and that
+        #other parameters are updated once SC calc projections occurs
+        
+        ViewSCCDict=self.ui.ViewSCCDict #for convenience and readability, shorten the name 
+        
+        #get updated labels
+        nameLst=makeSCNames(self)
+        #put labels in the View dictionary
+        ViewSCCDict['u1']['label']=nameLst[0]
+        ViewSCCDict['u2']['label']=nameLst[1]
+        ViewSCCDict['u3']['label']=nameLst[2]
+        #note that 'E' label does not change...
+        #store label changes back into the global dictionary
+        self.ui.ViewSCCDict=ViewSCCDict
+        
+        #update corresponding ViewSCData labels - X
+        self.ui.comboBoxSCCutX.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutX.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutX.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutX.setItemText(3,ViewSCCDict['E']['label'])
+        #update corresponding ViewSCData labels - Y
+        self.ui.comboBoxSCCutY.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutY.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutY.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutY.setItemText(3,ViewSCCDict['E']['label'])
+        #update corresponding ViewSCData labels - Z
+        self.ui.comboBoxSCCutZ.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(3,ViewSCCDict['E']['label'])
+        #update corresponding ViewSCData labels - E
+        self.ui.comboBoxSCCutE.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutE.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutE.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutE.setItemText(3,ViewSCCDict['E']['label'])
+        
+        
+    def UpdateComboSCCX(self):
+        """
+        Wrapper method to perform swapping labels for 'X' comboBox
+        """
+        print "** UpdateComboSCX"
+        label= str(self.ui.comboBoxSCCutX.currentText())
+        self.UpdateViewSCCData(label,'u1')
+        self.ui.ViewSCCDataDeBounce=False
+        
+    def UpdateComboSCCY(self):
+        """
+        Wrapper method to perform swapping labels for 'Y' comboBox
+        """
+        print "** UpdateComboSCY"
+        label= str(self.ui.comboBoxSCCutY.currentText())
+        self.UpdateViewSCCData(label,'u2')
+        self.ui.ViewSCCDataDeBounce=False
+                
+    def UpdateComboSCCZ(self):
+        """
+        Wrapper method to perform swapping labels for 'Z' comboBox
+        """
+        print "** UpdateComboSCZ"
+        label= str(self.ui.comboBoxSCCutZ.currentText())
+        self.UpdateViewSCCData(label,'u3')
+        self.ui.ViewSCCDataDeBounce=False
+                
+    def UpdateComboSCCE(self):
+        """
+        Wrapper method to perform swapping labels for 'E' comboBox
+        """
+        print "** UpdateComboSCE"
+        label= str(self.ui.comboBoxSCCutE.currentText())
+        self.UpdateViewSCCData(label,'E')
+        self.ui.ViewSCCDataDeBounce=False
+                
+    def UpdateViewSCCData(self,newLabel,newKey):
+        """
+        Method to perform swapping single crystal comboBox labels
+        newLabel: new comboBox label
+        newKey: key to index used for the swap
+        """
+        if self.ui.ViewSCCDataDeBounce:
+            #case we have a second update due to programmtically changing the current index - skip this one
+            #print "++++++++ Debounce +++++++++"
+            return
+        #get labels for each comboBox - should have a duplicate at this point
+        labels=[]
+        labels.append(str(self.ui.comboBoxSCCutX.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutY.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutZ.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutE.currentText()))  
+        
+        #get list of possible labels - should be no duplicates
+        labelLst=[]
+        ViewSCCDict=self.ui.ViewSCCDict
+        labelLst.append(ViewSCCDict['u1']['label'])
+        labelLst.append(ViewSCCDict['u2']['label'])
+        labelLst.append(ViewSCCDict['u3']['label'])
+        labelLst.append(ViewSCCDict['E']['label'])    
+        
+        #Let's find the missing label
+        cntr=0
+        for chkLab in labelLst:
+            tst=chkLab in labels
+            if not(tst):
+                #case we found the missing label
+                missingLab=chkLab
+                missingIndx=cntr
+            cntr+=1
+        
+        #check which labels match the one passed in
+        cnt=0
+        mtch=[]
+        for label in labels:
+            if label == newLabel:
+                mtch.append(cnt)
+            cnt+=1
+
+        if len(mtch) != 2:
+            print "Did not find the correct number of labels - 2 expected but found: ",len(mtch)
+            
+        #check which index matches the index passed in
+        cnt=0
+
+        for indx in mtch:
+            if indx != int(ViewSCCDict[newKey]['index']):
+                updateCBIndx=indx
+                cnt+=1 #check to make sure we found an updateCBIndx
+            if indx == int(ViewSCCDict[newKey]['index']):
+                otherIndex=indx
+                
+        if cnt != 1:
+            print "Did not find the correct number of indicies- 1 expected but found: ",cnt
+        #The indx we found 
+        
+        #Setting the debounce flag to True enables setCurrentIndex() event generated via the code
+        #below to be ignored else letting this even be processed interferes with the current processing
+        self.ui.ViewSCCDataDeBounce=True 
+        if updateCBIndx==0:
+            self.ui.comboBoxSCCutX.setCurrentIndex(missingIndx)
+        if updateCBIndx==1:
+            self.ui.comboBoxSCCutY.setCurrentIndex(missingIndx)
+        if updateCBIndx==2:
+            self.ui.comboBoxSCCutZ.setCurrentIndex(missingIndx)
+        if updateCBIndx==3:
+            self.ui.comboBoxSCCutE.setCurrentIndex(missingIndx)    
+            
+        #Now that we have the information for the swapped combo boxes, let's swap the corresponding parameters
+        #Will simpy swap what's in the GUI widgets
+        CBIndx0=mtch[0]
+        CBIndx1=mtch[1]
+        swapSCViewParams(self,'Cut',CBIndx0,CBIndx1)
+
+    def updateSCCNpts(self):
+        
+        
+        #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
+        
+        #Update X NPTS label
+        #get parameters:
+        
+        label=convertIndexToLabel(self,'X','Cut')    
+        if self.ui.lineEditSCCutXFrom.text() != '':
+            XFrom=float(self.ui.lineEditSCCutXFrom.text())
+        elif self.ui.ViewSCCDict[label]['from'] != '':                
+            XFrom = self.ui.ViewSCCDict[label]['from']
+        else:
+            XFrom = 0
+            
+        if self.ui.lineEditSCCutXTo.text() != '':
+            XTo=float(self.ui.lineEditSCCutXTo.text())   
+        elif self.ui.ViewSCCDict[label]['to'] != '':                
+            XTo = self.ui.ViewSCCDict[label]['to']
+        else:
+            XTo = 100        
+    
+        try:
+            XStep = float(self.ui.lineEditSCCutXStep.text())  
+        except:
+            XStep = float(XTo - XFrom)
+        
+        #Do some checking:
+        if XFrom >= XTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X From is greater than X To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+        
+        """
+        if XStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+        """
+    
+        try:
+            XNpts=(XTo-XFrom)/XStep
+        
+        except:
+            """
+            #case where unable to successfully calculate XNpts
+            self.ui.lineEditSCCutXNbins.setText("")
+            msg="Unable to calculate 'X NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+            """
+            self.ui.lineEditSCCutXNbins.setText("")
+            XNpts=0
+        else:
+            self.ui.lineEditSCCutXNbins.setText(str(int(round(XNpts))))
+            
+        if XNpts > config.SCXNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current X settings will produce a large number of values: "+str(XNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return                
+
+    def updateSCCBW(self):
+        
+        
+        #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
+        
+        #Update X NPTS label
+        #get parameters:
+        
+        if self.ui.radioButtonSCNBins.isChecked():
+            label=convertIndexToLabel(self,'X','Cut')    
+            if self.ui.lineEditSCCutXFrom.text() != '':
+                XFrom=float(self.ui.lineEditSCCutXFrom.text())
+            elif self.ui.ViewSCCDict[label]['from'] != '':                
+                XFrom = self.ui.ViewSCCDict[label]['from']
+            else:
+                #XFrom = 0
+                pass
+                
+            if self.ui.lineEditSCCutXTo.text() != '':
+                XTo=float(self.ui.lineEditSCCutXTo.text())   
+            elif self.ui.ViewSCCDict[label]['to'] != '':                
+                XTo = self.ui.ViewSCCDict[label]['to']
+            else:
+                #XTo = 100  
+                pass      
+            
+            if self.ui.lineEditSCCutXNbins.text() != '':
+                XNpts = float(self.ui.lineEditSCCutXNbins.text())
+            else:
+                #XNpts = 100
+                #self.ui.lineEditSCCutXNbins.setText(str(XNpts))
+                XNpts=1
+                pass
+            
+            XStep = (XTo - XFrom)/XNpts
+            self.ui.lineEditSCCutXStep.setText("%.3f" % XStep)
+
         
     def LegendEdit(self):
         print "Legend Edit"
@@ -261,8 +668,18 @@ class MPLPowderCut(QtGui.QMainWindow):
         
     def DoPlot(self):
         print "*************** Do Plot *********************"
-        DoPlotMSlice(self) #call to MPLPowderCutHelpers.py  
-
+        
+        
+        if self.parent.ui.mode1D == 'Powder':
+            DoPowderPlotMSlice(self) #call to MPLPowderCutHelpers.py  
+        elif self.parent.ui.mode1D == 'SC':
+            #set stackedWidgetCut index
+            print "gothere0"
+            DoSCPlotMSlice(self) #call to MPLPowderCutHelpers.py  
+        else:
+            #unsupported mode - complain"
+            print "Unsupported GUI mode - returning"
+            return
         
         
     def DoAnnotate(self):
@@ -740,16 +1157,16 @@ class MPLPowderCut(QtGui.QMainWindow):
             QtGui.QMessageBox.No, QtGui.QMessageBox.No)
 
         if reply == QtGui.QMessageBox.Yes:
-			#close application
+            #close application
             self.close()
         else:
-			#do nothing and return
+            #do nothing and return
             pass               
         
 if __name__=="__main__":
     print "MPLPC __main__"
     app = QtGui.QApplication(sys.argv)
-    MPLPC = MPLPowderCut()
+    MPLPC = MPL1DCut()
     MPLPC.show()
     sys.exit(app.exec_())
 

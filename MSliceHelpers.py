@@ -629,7 +629,7 @@ def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
 
 def addWStoTable(table,workspaceName,workspaceLocation):
     #function to add a single workspace to the workspace manager table
-	# workspaces may originate from create workspace or the list of files
+    # workspaces may originate from create workspace or the list of files
     print "addWStoTable workspaceName: ",workspaceName
     print "workspaceLocation: ",workspaceLocation
     

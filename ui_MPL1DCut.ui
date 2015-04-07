@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MPLPowderCutMainWindow</class>
- <widget class="QMainWindow" name="MPLPowderCutMainWindow">
+ <class>MPL1DCutMainWindow</class>
+ <widget class="QMainWindow" name="MPL1DCutMainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1011</width>
-    <height>811</height>
+    <width>1055</width>
+    <height>920</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1013,14 +1013,14 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>555</width>
+        <width>750</width>
         <height>131</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>491</width>
-        <height>200</height>
+        <width>750</width>
+        <height>220</height>
        </size>
       </property>
       <property name="title">
@@ -1032,416 +1032,970 @@
       <property name="checked">
        <bool>false</bool>
       </property>
-      <widget class="QLabel" name="label_66">
+      <widget class="QStackedWidget" name="stackedWidgetCut">
        <property name="geometry">
         <rect>
-         <x>90</x>
-         <y>110</y>
-         <width>21</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>y</string>
-       </property>
-      </widget>
-      <widget class="QComboBox" name="MPLcomboBoxPowderCutY">
-       <property name="geometry">
-        <rect>
-         <x>110</x>
-         <y>110</y>
-         <width>69</width>
-         <height>22</height>
-        </rect>
-       </property>
-       <item>
-        <property name="text">
-         <string>Intensity</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Energy</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>|Q|</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>2Theta</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Det Pixels</string>
-        </property>
-       </item>
-      </widget>
-      <widget class="QLabel" name="label_61">
-       <property name="geometry">
-        <rect>
-         <x>310</x>
-         <y>80</y>
-         <width>21</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>to:</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutAlongTo">
-       <property name="geometry">
-        <rect>
-         <x>330</x>
-         <y>50</y>
-         <width>71</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutYFrom">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>110</y>
-         <width>71</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutThickTo">
-       <property name="geometry">
-        <rect>
-         <x>330</x>
-         <y>80</y>
-         <width>71</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutThickFrom">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>80</y>
-         <width>71</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_62">
-       <property name="geometry">
-        <rect>
-         <x>430</x>
-         <y>80</y>
-         <width>41</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>thick:</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutAlongFrom">
-       <property name="geometry">
-        <rect>
-         <x>230</x>
-         <y>50</y>
-         <width>71</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutAlongStep">
-       <property name="geometry">
-        <rect>
-         <x>490</x>
-         <y>50</y>
-         <width>51</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_57">
-       <property name="geometry">
-        <rect>
-         <x>70</x>
-         <y>50</y>
-         <width>51</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>along</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_67">
-       <property name="geometry">
-        <rect>
-         <x>310</x>
-         <y>110</y>
-         <width>21</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>to:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_63">
-       <property name="geometry">
-        <rect>
-         <x>310</x>
-         <y>50</y>
-         <width>21</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>to:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_59">
-       <property name="geometry">
-        <rect>
-         <x>200</x>
-         <y>50</y>
-         <width>41</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>from:</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutYTo">
-       <property name="geometry">
-        <rect>
-         <x>330</x>
-         <y>110</y>
-         <width>71</width>
-         <height>20</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_58">
-       <property name="geometry">
-        <rect>
-         <x>190</x>
-         <y>110</y>
-         <width>51</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>range:</string>
-       </property>
-      </widget>
-      <widget class="QComboBox" name="MPLcomboBoxPowderCutThick">
-       <property name="geometry">
-        <rect>
-         <x>110</x>
-         <y>80</y>
-         <width>69</width>
-         <height>22</height>
-        </rect>
-       </property>
-       <item>
-        <property name="text">
-         <string>Energy</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>|Q|</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>2Theta</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Det Pixels</string>
-        </property>
-       </item>
-      </widget>
-      <widget class="QComboBox" name="MPLcomboBoxPowderCutAlong">
-       <property name="geometry">
-        <rect>
-         <x>110</x>
-         <y>50</y>
-         <width>69</width>
-         <height>22</height>
-        </rect>
-       </property>
-       <item>
-        <property name="text">
-         <string>Energy</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>|Q|</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>2Theta</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Det Pixels</string>
-        </property>
-       </item>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutAlongNbins">
-       <property name="geometry">
-        <rect>
-         <x>490</x>
-         <y>30</y>
-         <width>51</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>100</string>
-       </property>
-      </widget>
-      <widget class="QRadioButton" name="radioButtonNBins">
-       <property name="geometry">
-        <rect>
-         <x>410</x>
-         <y>30</y>
-         <width>82</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string># Bins</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-      <widget class="QRadioButton" name="radioButtonBinWidth">
-       <property name="geometry">
-        <rect>
-         <x>410</x>
-         <y>50</y>
-         <width>82</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Bin Width</string>
-       </property>
-      </widget>
-      <widget class="QSpinBox" name="MPLspinBoxAlong">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>50</y>
-         <width>51</width>
-         <height>22</height>
-        </rect>
-       </property>
-       <property name="maximum">
-        <number>99999</number>
-       </property>
-       <property name="value">
-        <number>100</number>
-       </property>
-      </widget>
-      <widget class="QSpinBox" name="MPLspinBoxThick">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>80</y>
-         <width>51</width>
-         <height>22</height>
-        </rect>
-       </property>
-       <property name="maximum">
-        <number>99999</number>
-       </property>
-       <property name="value">
-        <number>100</number>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
+         <x>20</x>
          <y>20</y>
-         <width>101</width>
-         <height>16</height>
+         <width>721</width>
+         <height>191</height>
         </rect>
        </property>
-       <property name="text">
-        <string>Num 2D Bins</string>
+       <property name="currentIndex">
+        <number>1</number>
        </property>
-      </widget>
-      <widget class="QLabel" name="label_13">
-       <property name="geometry">
-        <rect>
-         <x>410</x>
-         <y>10</y>
-         <width>131</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Num Bins - 1D Plot</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="MPLlineEditPowderCutWidth">
-       <property name="geometry">
-        <rect>
-         <x>492</x>
-         <y>80</y>
-         <width>51</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.1</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="label_60">
-       <property name="geometry">
-        <rect>
-         <x>200</x>
-         <y>80</y>
-         <width>41</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>from:</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="MPLpushButtonResetParams">
-       <property name="geometry">
-        <rect>
-         <x>410</x>
-         <y>110</y>
-         <width>131</width>
-         <height>23</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Reset Parameters</string>
-       </property>
+       <widget class="QWidget" name="page_9">
+        <widget class="QLabel" name="label_165">
+         <property name="geometry">
+          <rect>
+           <x>670</x>
+           <y>20</y>
+           <width>41</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Powder</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="MPLpushButtonResetParams">
+         <property name="geometry">
+          <rect>
+           <x>420</x>
+           <y>100</y>
+           <width>131</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Reset Parameters</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_59">
+         <property name="geometry">
+          <rect>
+           <x>210</x>
+           <y>40</y>
+           <width>41</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>from:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_67">
+         <property name="geometry">
+          <rect>
+           <x>320</x>
+           <y>100</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_61">
+         <property name="geometry">
+          <rect>
+           <x>320</x>
+           <y>70</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="MPLspinBoxAlong">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>40</y>
+           <width>51</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_58">
+         <property name="geometry">
+          <rect>
+           <x>200</x>
+           <y>100</y>
+           <width>51</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>range:</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutAlongTo">
+         <property name="geometry">
+          <rect>
+           <x>340</x>
+           <y>40</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_60">
+         <property name="geometry">
+          <rect>
+           <x>210</x>
+           <y>70</y>
+           <width>41</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>thick:</string>
+         </property>
+        </widget>
+        <widget class="QRadioButton" name="radioButtonNBins">
+         <property name="geometry">
+          <rect>
+           <x>420</x>
+           <y>20</y>
+           <width>82</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string># Bins</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_63">
+         <property name="geometry">
+          <rect>
+           <x>320</x>
+           <y>40</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="MPLspinBoxThick">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>70</y>
+           <width>51</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutThickFrom">
+         <property name="geometry">
+          <rect>
+           <x>240</x>
+           <y>70</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>10</y>
+           <width>101</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Num 2D Bins</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutAlongNbins">
+         <property name="geometry">
+          <rect>
+           <x>500</x>
+           <y>20</y>
+           <width>51</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>100</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutAlongFrom">
+         <property name="geometry">
+          <rect>
+           <x>240</x>
+           <y>40</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutYTo">
+         <property name="geometry">
+          <rect>
+           <x>340</x>
+           <y>100</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutYFrom">
+         <property name="geometry">
+          <rect>
+           <x>240</x>
+           <y>100</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutAlongStep">
+         <property name="geometry">
+          <rect>
+           <x>500</x>
+           <y>40</y>
+           <width>51</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_57">
+         <property name="geometry">
+          <rect>
+           <x>80</x>
+           <y>40</y>
+           <width>51</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>along</string>
+         </property>
+        </widget>
+        <widget class="QComboBox" name="MPLcomboBoxPowderCutAlong">
+         <property name="geometry">
+          <rect>
+           <x>120</x>
+           <y>40</y>
+           <width>69</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>Energy</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>|Q|</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>2Theta</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Det Pixels</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QComboBox" name="MPLcomboBoxPowderCutThick">
+         <property name="geometry">
+          <rect>
+           <x>120</x>
+           <y>70</y>
+           <width>69</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>Energy</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>|Q|</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>2Theta</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Det Pixels</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QLabel" name="label_66">
+         <property name="geometry">
+          <rect>
+           <x>100</x>
+           <y>100</y>
+           <width>21</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>y</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="MPLlineEditPowderCutThickTo">
+         <property name="geometry">
+          <rect>
+           <x>340</x>
+           <y>70</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QRadioButton" name="radioButtonBinWidth">
+         <property name="geometry">
+          <rect>
+           <x>420</x>
+           <y>40</y>
+           <width>82</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Bin Width</string>
+         </property>
+        </widget>
+        <widget class="QComboBox" name="MPLcomboBoxPowderCutY">
+         <property name="geometry">
+          <rect>
+           <x>120</x>
+           <y>100</y>
+           <width>69</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>Intensity</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Energy</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>|Q|</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>2Theta</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Det Pixels</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QLabel" name="label_13">
+         <property name="geometry">
+          <rect>
+           <x>420</x>
+           <y>0</y>
+           <width>131</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Num Bins - 1D Plot</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QWidget" name="page_10">
+        <widget class="QLineEdit" name="lineEditSCCutIntensityTo">
+         <property name="geometry">
+          <rect>
+           <x>400</x>
+           <y>150</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutETo">
+         <property name="geometry">
+          <rect>
+           <x>400</x>
+           <y>120</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_176">
+         <property name="geometry">
+          <rect>
+           <x>250</x>
+           <y>120</y>
+           <width>41</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>thick:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_177">
+         <property name="geometry">
+          <rect>
+           <x>380</x>
+           <y>120</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_178">
+         <property name="geometry">
+          <rect>
+           <x>250</x>
+           <y>30</y>
+           <width>41</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>from:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_179">
+         <property name="geometry">
+          <rect>
+           <x>250</x>
+           <y>150</y>
+           <width>41</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>range:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_180">
+         <property name="geometry">
+          <rect>
+           <x>380</x>
+           <y>30</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutYTo">
+         <property name="geometry">
+          <rect>
+           <x>400</x>
+           <y>60</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_181">
+         <property name="geometry">
+          <rect>
+           <x>250</x>
+           <y>60</y>
+           <width>41</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>thick:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_182">
+         <property name="geometry">
+          <rect>
+           <x>380</x>
+           <y>60</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutXTo">
+         <property name="geometry">
+          <rect>
+           <x>400</x>
+           <y>30</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_184">
+         <property name="geometry">
+          <rect>
+           <x>380</x>
+           <y>150</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutXFrom">
+         <property name="geometry">
+          <rect>
+           <x>290</x>
+           <y>30</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutYFrom">
+         <property name="geometry">
+          <rect>
+           <x>290</x>
+           <y>60</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QComboBox" name="comboBoxSCCutY">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>60</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>[H,0,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,K,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,0,L] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>E (meV)</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QComboBox" name="comboBoxSCCutX">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>30</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>[H,0,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,K,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,0,L] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>E (meV)</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QComboBox" name="comboBoxSCCutE">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>120</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>[H,0,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,K,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,0,L] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>E (meV)</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutIntensityFrom">
+         <property name="geometry">
+          <rect>
+           <x>290</x>
+           <y>150</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutEFrom">
+         <property name="geometry">
+          <rect>
+           <x>290</x>
+           <y>120</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_185">
+         <property name="geometry">
+          <rect>
+           <x>95</x>
+           <y>30</y>
+           <width>31</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>along</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_186">
+         <property name="geometry">
+          <rect>
+           <x>110</x>
+           <y>150</y>
+           <width>16</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>y</string>
+         </property>
+        </widget>
+        <widget class="QComboBox" name="comboBoxSCCutIntensity">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>150</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>Intensity</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[H,0,0]</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,K,0]</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,0,L]</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>E (meV)</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutZTo">
+         <property name="geometry">
+          <rect>
+           <x>400</x>
+           <y>90</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutZFrom">
+         <property name="geometry">
+          <rect>
+           <x>290</x>
+           <y>90</y>
+           <width>71</width>
+           <height>20</height>
+          </rect>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_187">
+         <property name="geometry">
+          <rect>
+           <x>380</x>
+           <y>90</y>
+           <width>21</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>to:</string>
+         </property>
+        </widget>
+        <widget class="QComboBox" name="comboBoxSCCutZ">
+         <property name="geometry">
+          <rect>
+           <x>130</x>
+           <y>90</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>[H,0,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,K,0] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>[0,0,L] (RLU)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>E (meV)</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QLabel" name="label_188">
+         <property name="geometry">
+          <rect>
+           <x>250</x>
+           <y>90</y>
+           <width>41</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>thick:</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_14">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>40</y>
+           <width>101</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Num 2D Bins</string>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="MPLspinBoxThick_2">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>100</y>
+           <width>51</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+        </widget>
+        <widget class="QSpinBox" name="MPLspinBoxAlong_2">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>70</y>
+           <width>51</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="maximum">
+          <number>99999</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutXStep">
+         <property name="geometry">
+          <rect>
+           <x>590</x>
+           <y>20</y>
+           <width>51</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+        <widget class="QRadioButton" name="radioButtonSCBinWidth">
+         <property name="geometry">
+          <rect>
+           <x>510</x>
+           <y>20</y>
+           <width>82</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Bin Width</string>
+         </property>
+        </widget>
+        <widget class="QRadioButton" name="radioButtonSCNBins">
+         <property name="geometry">
+          <rect>
+           <x>510</x>
+           <y>0</y>
+           <width>82</width>
+           <height>17</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string># Bins</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="pushButtonSCCShowParams">
+         <property name="geometry">
+          <rect>
+           <x>510</x>
+           <y>80</y>
+           <width>131</width>
+           <height>23</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Show Parameters</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="lineEditSCCutXNbins">
+         <property name="geometry">
+          <rect>
+           <x>590</x>
+           <y>0</y>
+           <width>51</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>100</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_15">
+         <property name="geometry">
+          <rect>
+           <x>510</x>
+           <y>-20</y>
+           <width>131</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Num Bins - 1D Plot</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_16">
+         <property name="geometry">
+          <rect>
+           <x>690</x>
+           <y>20</y>
+           <width>31</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>SC</string>
+         </property>
+        </widget>
+       </widget>
       </widget>
      </widget>
     </item>
@@ -1583,7 +2137,7 @@
        </size>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabPlot">
        <attribute name="title">
@@ -1834,7 +2388,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1011</width>
+     <width>1055</width>
      <height>21</height>
     </rect>
    </property>
@@ -1842,16 +2396,6 @@
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <tabstops>
-  <tabstop>MPLcomboBoxPowderCutAlong</tabstop>
-  <tabstop>MPLlineEditPowderCutAlongFrom</tabstop>
-  <tabstop>MPLlineEditPowderCutAlongTo</tabstop>
-  <tabstop>MPLlineEditPowderCutAlongStep</tabstop>
-  <tabstop>MPLcomboBoxPowderCutThick</tabstop>
-  <tabstop>MPLlineEditPowderCutThickFrom</tabstop>
-  <tabstop>MPLlineEditPowderCutThickTo</tabstop>
-  <tabstop>MPLcomboBoxPowderCutY</tabstop>
-  <tabstop>MPLlineEditPowderCutYFrom</tabstop>
-  <tabstop>MPLlineEditPowderCutYTo</tabstop>
   <tabstop>MPLcomboBoxActiveWorkspace</tabstop>
   <tabstop>MPLcomboBoxColor</tabstop>
   <tabstop>MPLcomboBoxLineStyle</tabstop>

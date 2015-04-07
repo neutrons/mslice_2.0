@@ -7,113 +7,11 @@ import matplotlib.pyplot as plt
 
 from PyQt4 import Qt,QtCore, QtGui
 
-def DoPlotMSlice(self):
-    
-    ws_sel=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
-    __ws=mtd.retrieve(ws_sel)	
-    NXDbins=__ws.getXDimension().getNBins()	
-    NYDbins=__ws.getYDimension().getNBins()
-    print "NXDbins: ",NXDbins,"  NYDbins: ",NYDbins
-    
-    #now check if it's a 2D or 1D workspace - need to make sure that Data Formatting is enabled for 2D and disabled for 1D
-    if NXDbins > 1 and NYDbins > 1:
-        #case for a 2D workspace - enable Data Formatting
-        print "Enabling Data Formatting"
-        self.ui.MPLgroupBoxDataFormat.setEnabled(True)
-    else:
-        # 1D case to disable Data Formatting
-        print "Disabling Data Formatting"
-        self.ui.MPLgroupBoxDataFormat.setEnabled(False)
-        aligned=set1DBinVals(self,__ws)
-        if aligned!=1:
-            #case to exit out of plotting data
-            dialog=QtGui.QMessageBox(self)
-            dialog.setText("Problem: Unaligned data thus unable to determine plot units - Returning")
-            dialog.exec_()
-            return      
-    
-    
-    #get plot info common to both 2D and 1D plots
-    #need to retrieve plot config settings to perform the plot
-    #line color
-    linecolor=str(self.ui.MPLcomboBoxColor.currentText())
-    print "line color: ",linecolor
+from MPL1DCutHelpers import *
 
-    #line style
-    sindx=self.ui.MPLcomboBoxLineStyle.currentIndex()
-    if sindx == 0:
-        style='-'
-    elif sindx == 1:
-        style='--'
-    elif sindx == 2:
-        style='-.'
-    elif sindx == 3:
-        style=':'
-    else:
-        style=''
-
-    markercolor=str(self.ui.MPLcomboBoxColorMarker.currentText())
-    print "marker color: ",markercolor
-    msindx=self.ui.MPLcomboBoxMarker.currentIndex()
-    print "marker index: ",msindx
-    if msindx == 0:
-        mstyle='o'
-    elif msindx == 1:
-        mstyle='v'
-    elif msindx == 2:
-        mstyle='^'
-    elif msindx == 3:
-        mstyle='<'
-    elif msindx == 4:
-        mstyle='>'
-    elif msindx == 5:
-        mstyle='s'
-    elif msindx == 6:
-        mstyle='p'
-    elif msindx == 7:
-        mstyle='*'
-    elif msindx == 8:
-        mstyle='h'
-    elif msindx == 9:
-        mstyle='H'
-    elif msindx == 10:
-        mstyle='+'
-    elif msindx == 11:
-        mstyle='x'
-    elif msindx == 12:
-        mstyle='D'
-    elif msindx == 13:
-        mstyle='d'
-    elif msindx == 14:
-        mstyle='|'
-    elif msindx == 15:
-        mstyle='_'
-    elif msindx == 16:
-        mstyle='.'
-    elif msindx == 17:
-        mstyle=','
-    elif msindx == 18:
-        mstyle=''
-    else:
-        mstyle=''            
+def DoPowderPlotMSlice(self):
     
-    print "mstyle: ",mstyle
-
-    #get plot title
-    try:
-        plttitle=str(self.ui.MPLlineEditLabelsTitle.text())
-    except:
-        plttitle=''
-    print "plttitle: ", plttitle
-
-    try:
-        pltlegend=str(self.ui.MPLlineEditLabelsLegend.text())
-    except:
-        pltlegend=''
-    print "pltlegend: ",pltlegend
-
-    #get location placement for the legend
-    legloc=str(self.ui.MPLcomboBoxLegendPos.currentText())
+    __ws, NXDbins, NYDbins, linecolor, style, markercolor, mstyle, plttitle, pltlegend, legloc = getMPLParms(self)
     
     #query GUI for X and Y axes
     #X axis from "along" combo box
@@ -359,12 +257,25 @@ def DoPlotMSlice(self):
             print "Case unknown..."
             return
         
+        """
+        Adding this comment realzing that when initially coding a comment was
+        not given.  ad0a in this comment block adjusts Qmin and Qmax by 
+        DeltaQE/2 - not sure why this is needed as this process is not done
+        for ad0. Implications here are that DeltaQE is obtained from the GUI,
+        however this GUI field seems to be left over from when bins vs bin
+        width radio buttons were added.  Thus GUI element MPLlineEditPowderCutWidth
+        is being removed.  Once the algorithm is verified, this text block
+        should either be reinstated or removed as appropriate.
+        
         tmp=self.ui.MPLlineEditPowderCutWidth.text()
         print "tmp: ",tmp,"  type tmp: ",type(tmp)
         DeltaQE=float(str(self.ui.MPLlineEditPowderCutWidth.text()))
                         
         ad0a=xname+','+str(Qmin-DeltaQE/2)+','+str(Qmax+DeltaQE/2)+','+str(Nxabins)  #|Q|
         ad1a=yname+','+str(Emin)+','+str(Emax)+','+str(Nyabins)  # E
+        """
+        ad0a=xname+','+str(Qmin)+','+str(Qmax)+','+str(Nxabins)  #|Q|
+        ad1a=yname+','+str(Emin)+','+str(Emax)+','+str(Nyabins)  # E        
     
         print "ad0: ",ad0
         print "ad1: ",ad1
@@ -590,7 +501,7 @@ def DoPlotMSlice(self):
             ne=1
 
         print "type(__ws): ",type(__ws)
-#        self.currentPlotWS=ConvertToMatrixWorkspace(__ws)
+        #self.currentPlotWS=ConvertToMatrixWorkspace(__ws)
         __MDHflatten=MDHistoToWorkspace2D(__ws)
         __MDHflatten.setTitle(str(self.ui.MPLcomboBoxActiveWorkspace.currentText())) 
         self.currentPlotWS=__MDHflatten  #__MDHflatten needed for saving ASCII data
@@ -934,7 +845,7 @@ def getSVValues(self):
     self.ui.MPLlineEditPowderCutAlongNbins.setText(str(int(NOutBins)))
     self.ui.MPLspinBoxAlong.setValue(int(NbinsY))
     self.ui.MPLspinBoxThick.setValue(int(NbinsX))
-    self.ui.MPLlineEditPowderCutWidth.setText("%.3f" % DeltaQE)
+    #self.ui.MPLlineEditPowderCutWidth.setText("%.3f" % DeltaQE)
     
     print "BWOut: ",BWOut
     
@@ -944,10 +855,10 @@ def getSVValues(self):
     self.ui.MPLcomboBoxPowderCutY.setCurrentIndex(0)
     
     #now that we've set everything, let's call the plot!
-    DoPlotMSlice(self)
+    DoPowderPlotMSlice(self)
 
 def set1DBinVals(self,__ws):
-    #first check if we have a valie workspace
+    #first check if we have a valid workspace
     try:
         #if the workspace has a name, it's an existing workspace
         __ws.name()

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'MSlice.ui'
+# Form implementation generated from reading ui file 'ui_MSlice.ui'
 #
-# Created: Fri Mar 27 14:07:01 2015
+# Created: Mon Apr 06 11:10:46 2015
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -949,9 +949,6 @@ class Ui_MainWindow(object):
         self.pushButtonSCCShowParams.setGeometry(QtCore.QRect(530, 100, 101, 23))
         self.pushButtonSCCShowParams.setObjectName(_fromUtf8("pushButtonSCCShowParams"))
         self.stackedWidgetCut.addWidget(self.page_10)
-        self.labelSCCNptsX = QtGui.QLabel(self.CutTab_2)
-        self.labelSCCNptsX.setGeometry(QtCore.QRect(530, 10, 91, 16))
-        self.labelSCCNptsX.setObjectName(_fromUtf8("labelSCCNptsX"))
         self.ViewTabWidget.addTab(self.CutTab_2, _fromUtf8(""))
         self.VolumeTab_2 = QtGui.QWidget()
         self.VolumeTab_2.setObjectName(_fromUtf8("VolumeTab_2"))
@@ -1234,7 +1231,7 @@ class Ui_MainWindow(object):
         self.SampleTabWidget.setCurrentIndex(1)
         self.ViewTabWidget.setCurrentIndex(1)
         self.stackedWidgetSlice.setCurrentIndex(1)
-        self.stackedWidgetCut.setCurrentIndex(1)
+        self.stackedWidgetCut.setCurrentIndex(0)
         self.stackedWidgetVolume.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -1493,7 +1490,6 @@ class Ui_MainWindow(object):
         self.comboBoxSCCutZ.setItemText(3, QtGui.QApplication.translate("MainWindow", "E (meV)", None, QtGui.QApplication.UnicodeUTF8))
         self.label_188.setText(QtGui.QApplication.translate("MainWindow", "thick:", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButtonSCCShowParams.setText(QtGui.QApplication.translate("MainWindow", "Show Params", None, QtGui.QApplication.UnicodeUTF8))
-        self.labelSCCNptsX.setText(QtGui.QApplication.translate("MainWindow", "Npts:", None, QtGui.QApplication.UnicodeUTF8))
         self.ViewTabWidget.setTabText(self.ViewTabWidget.indexOf(self.CutTab_2), QtGui.QApplication.translate("MainWindow", "Cut", None, QtGui.QApplication.UnicodeUTF8))
         self.label_189.setText(QtGui.QApplication.translate("MainWindow", "Volume Powder", None, QtGui.QApplication.UnicodeUTF8))
         self.label_190.setText(QtGui.QApplication.translate("MainWindow", "Volume SC", None, QtGui.QApplication.UnicodeUTF8))

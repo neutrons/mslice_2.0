@@ -35,7 +35,7 @@
 import sys, os, time
 from os.path import expanduser
 from PyQt4 import Qt, QtCore, QtGui
-from MSlice import *  # .py file created from the .ui file produced by PyQt corresponding to the .pyw file used to instantiate the GUI
+from ui_MSlice import *  # .py file created from the .ui file produced by PyQt corresponding to the .pyw file used to instantiate the GUI
 
 import psutil
 import numpy as np
@@ -49,7 +49,7 @@ from pylab import *
 from MSliceHelpers import *  #getReduceAlgFromWorkspace, getWorkspaceMemSize
 #import h5py 
 from WorkspaceComposerMain import *
-from MPLPowderCutMain import *
+from MPL1DCutMain import *
 
 
 #import SliceViewer (here it assumes local module as a Mantid produced module for this does not exist)
@@ -65,9 +65,9 @@ class MSlice(QtGui.QMainWindow):
     
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
-        self.setWindowTitle("Mantid MSlice")
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.setWindowTitle("Mantid MSlice")
         #define things needed for later
         self.ui.numActiveWorkspaces=0  #number of workspaces loaded into memory
         self.ui.activeWSNames=[]       #names of these workspaces
@@ -958,16 +958,19 @@ class MSlice(QtGui.QMainWindow):
                 #make sure workspaces are available at the python level
                 __ws=mtd.retrieve(wsName)
                 print "** type(__ws): ",type(__ws)
-                #check if the workspace just loaded is a single crystal CalcProj workspace
-                #need to check workspace history to determine this
-                histDictTmp=histToDict(__ws)
-                #check if workspace history has entries for:
-                # - SetGoniometer
-                # - SetUB
-                # - ConvertToMD
-                #as each of these contain params needed for the GUI
+
                     
                 try:
+                    #If this try clause runs successfully, this is a single crystal file.
+                    #In that case, need to fill the histDict structure
+                    #check if the workspace just loaded is a single crystal CalcProj workspace
+                    #need to check workspace history to determine this
+                    histDictTmp=histToDict(__ws)
+                    #check if workspace history has entries for:
+                    # - SetGoniometer
+                    # - SetUB
+                    # - ConvertToMD
+                    #as each of these contain params needed for the GUI
                     #check if the needed settings are present
                     Goniometer=histDictTmp['SetGoniometer']
                     UB=histDictTmp['SetUB']
@@ -976,14 +979,14 @@ class MSlice(QtGui.QMainWindow):
                     wsfiletmp=wsfile
                     gotOne +=1
                 except:
+                    #If this except clause is run, then it's assumed this is a powder file
                     #case where the needed parameters for SC CalcProj not available in the workspace
                     #skip this workspace and check next one if there are more.
                     pass
                 
                 #check if we found more than one SC Calc Proj workspace
                 
-                print "gotOne: ",gotOne
-                
+                #gotOne variable indicates the number of single crystal workspaces discovered
                 if gotOne > 1:
                     #inform user that multiple SCCalcProj workspaces discovered
                     #and using the last one found
@@ -1013,18 +1016,6 @@ class MSlice(QtGui.QMainWindow):
                 self.ui.StatusText.append("  Loading workspace:"+str(wsName))
                 addWStoTable(table,wsName,wsfile)
                 #update table with memory size rather than file size in the Size column of the Workspace Manager
-                
-            #in case for loading single crystal CalcProj workspace, also
-            #need to fill-in parameters section of GUI
-            #first need to determine how many files are selected as the params
-            #from only one file can be placed in the GUI.  At this point we are
-            #not checking to see if the params are the same for all selected
-            #SC CalcProj workspaces - leaving it to the user to ensure selected
-            #files have compatible parameters.
-            if Nfiles > 0:
-                #case to begin sorting out single crystal parameters.
-                __ws=mtd.retrieve(wsName)
-                histDict=histToDict(__ws)
                 
             table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy
@@ -1450,6 +1441,38 @@ class MSlice(QtGui.QMainWindow):
         print "  More SC Surface values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo
         """
         #**** code to extract data and perform plot placed here
+        
+        #get list of selected workspaces from the workspace manager
+        table=self.ui.tableWidgetWorkspaces
+        Nrows=table.rowCount()
+        EmptyRows=0
+        wslist=[]
+        for row in range(Nrows):
+            try:
+                #using try here to check if user forgot to load data then we'd have a table with empty rows...
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
+                cbstat=cw.isChecked()
+                #check if this workspace is selected for display
+                if cbstat == True:
+                    #case where it is selected
+                    #get workspace
+                    wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
+                    print " wsitem:",wsitem
+                    print " mtd.getObjectNames():",mtd.getObjectNames()
+                    ws=mtd.retrieve(wsitem)      
+                    wslist.append(wsitem)
+            except:
+                #case where a table row is empty - can't use this one
+                EmptyRows += 1
+                
+        print "Number of empty rows: ",EmptyRows
+#        self.ui.wslist=['Hello','World']  #for debugging use...
+        self.ui.wslist=wslist
+        
+        self.ui.mode1D='SC'
+        self.MPLPC_win = MPL1DCut(self)			
+        self.MPLPC_win.show() 
+        
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Surface Slice")				
 
 
@@ -1496,8 +1519,8 @@ class MSlice(QtGui.QMainWindow):
         print "Number of empty rows: ",EmptyRows
 #        self.ui.wslist=['Hello','World']  #for debugging use...
         self.ui.wslist=wslist
-        
-        self.MPLPC_win = MPLPowderCut(self)				
+        self.ui.mode1D='Powder'
+        self.MPLPC_win = MPL1DCut(self)				
         self.MPLPC_win.show() 
         """
         if wslist != []:
@@ -2011,7 +2034,7 @@ class MSlice(QtGui.QMainWindow):
                 AD1=AD1.replace(config.XYZUnits,'')
                 AD2=str(nameLst[2])+','+str(SCSZFrom)+','+str(SCSZTo)+','+str(1)
                 AD2=AD2.replace(config.XYZUnits,'')
-                AD3=str(nameLst[3])+','+str(SCSEFrom)+','+str(SCSETo)+','+str(10)
+                AD3=str(nameLst[3])+','+str(SCSEFrom)+','+str(SCSETo)+','+str(1)
                 AD3=AD3.replace(config.XYZUnits,'')
                 
                 print "AD0: ",AD0,'  type: ',type(AD0)
