@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 
 from PyQt4 import Qt,QtCore, QtGui
 
-from MPL1DCutHelpers import *
 
 def DoPowderPlotMSlice(self):
-    
+    #Not sure why, but it was necessary to include MPL1DCutHelpers inside this function definition for it to be found
+    from MPL1DCutHelpers import *
     __ws, NXDbins, NYDbins, linecolor, style, markercolor, mstyle, plttitle, pltlegend, legloc = getMPLParms(self)
     
     #query GUI for X and Y axes
@@ -581,165 +581,7 @@ def DoPowderPlotMSlice(self):
         self.doOPlot=False
 
     
-def getSVValues(self):
-    """
-    Function to get the values from the Slice Viewer and provide them to the MPL tools
-    
-    """
-    wsNames=mtd.getObjectNames()
-    cntws=0    #line workspace counter
-    lcnt=-1    #workspace counter (not crazy with this choice of variable name here)
-    indxws=-1  #index of line workspace
-    cntws2=0   #rebinned workspace counter
-    wslst=[]   #list to contain base workspace names to be used in case multiple sliceviewers can be imported from
-    for tws in wsNames:
-        lcnt+=1
-        pos=tws.find('_line') #look for line workspaces created by SliceViewer
-        if pos > 0:
-            #case we found a line workspace
-            cntws+=1
-            indxws=lcnt
-            #extract base workspacename and append this to the list
-            tmpbase=tws.split('_line')
-            wslst.append(tmpbase[0])
-            
-        pos2=tws.find('_rebinned') #look for line workspaces created by SliceViewer
-        if pos2 > 0:
-            #case we found a rebinned workspace
-            cntws2+=1
-            indxws2=lcnt
-
-    #now check for problems
-    if lcnt < 0 or cntws == 0 or indxws < 0:
-        #case with a problem
-        print "Unable to locate a line workspace"
-        print "Current Mantid workspaces: ",mtd.getObjectNames()
-        dialog=QtGui.QMessageBox(self)
-        dialog.setText("No workspaces from Slice Viewer Available - Returning to Powder Cut GUI")
-        dialog.exec_()
-        return
-    else:
-        pass
-    if cntws > 1:
-        print "Ambiguous case where more than one line workspace was discovered"
-        print "wslst: ",wslst
-        #wsSel is a base workspace name, not a line workspace name
-        wsSel,ok = QtGui.QInputDialog.getItem(self,"Available Workspaces","Select from the list:",wslst)
-        if ok==False:
-            #case where a selction was cancelled - exit out of method 
-            print "No workspace selected - returning"
-            return
-        print "Selected Workspace: ",wsSel," OK/Cancel: ",ok
-        
-        wsSel=str(wsSel)  #convert from QString to string
-        wsLine=wsSel+'_line'
-        wsReb=wsSel+'_rebinned'
-        
-        """
-        #in this case, check which workspaces are selected in the Workspace Manager and take the
-        #corresponding _line workspace
-        table=self.ui.tableWidgetWorkspaces 
-        #need to determine which workspaces are selected 
-        Nrows=table.rowCount()
-        wslst=[]  #to contain the list of currently selected workspaces
-        for row in range(Nrows):
-            cw=table.cellWidget(row,self.WSM_SelectCol) 
-            cbstat=cw.isChecked()
-            if cbstat:
-                wslst.append(str(table.item(row,self.WSM_WorkspaceCol).text()))
-        #now from the list of selected workspaces, check which one has a corresponding "_line" workspace
-        #we now have wsNames with the complete list of Mantid workspaces 
-        #we also constructed wslst which contains the list of selected workspaces
-        #so we need to iterate thru one list to see if any workspaces are contained in the other list
-        for ws in wslst:
-            if any(ws in w for w in wsNames):
-                #if true, we've found the workspace from Workspace Manager that corresponds to Slice Viewer
-                #Need to check if Slice Viewer can take more than one workspace in at a time as this case may 
-                #need to be handled more carefully
-                wsSel=ws  
-        """
-        
-    else:
-        #case with just a single _line workspace
-        wsLine=wsNames[indxws]
-        wsSel=wsLine.split('_line')
-        wsSel=wsSel[0] #convert from list to str 
-        wsReb=wsSel+'_rebinned'
-        
-    """
-    In getting to this point, we assume:
-        wsSel is the original workspace selected in MSlice Workspace Manager
-        wsLine is the corresponding line workspace
-        both are string names for the workspaces
-    """
-        
-    #At this point we currently assume that we have one selected workspace and one corresponding _line workspace
-    print "  wsSel:  ",wsSel," workspace exists: ",mtd.doesExist(wsSel)
-    print "  wsLine: ",wsLine," workspace exists: ",mtd.doesExist(wsLine)
-    print "  available workspaces: ",mtd.getObjectNames()
-    #Need to retrieve these workspaces from the Mantid layer
-    try:
-        #verify that the _line workspace exists 
-        __lws=mtd.retrieve(wsLine)
-    except:
-        #else handle that it does not
-        dialog=QtGui.QMessageBox(self)
-        dialog.setText("Missing _line workspace - try running Slice Viewer again - returning")
-        dialog.exec_()
-        return          
-    
-    #use the rebinned workspace to get the 2D binning parameters
-    __rws=mtd.retrieve(wsReb)
-    NbinsX=__rws.getXDimension().getNBins()
-    NbinsY=__rws.getYDimension().getNBins()
-    
-    """
-    #used to debug externally using this workspace
-    print "** type(__lws): ",type(__lws)
-    SaveMD(__lws,Filename='C:\Users\mid\Documents\Mantid\Powder\zrh_1000_line.nxs')
-    """
-    
-    if wsSel !='':
-        #get the number of output bins
-        NOutBins=__lws.getSignalArray().size
-        #now determine the bin width size
-        mx=__lws.getXDimension().getMaximum()
-        mn=__lws.getXDimension().getMinimum()
-        BWOut=(mx-mn)/NOutBins
-        
-        print "** BWOut XMAX: ",__lws.getXDimension().getMaximum()
-        print "** BWOut XMIN: ",__lws.getXDimension().getMinimum()
-        print "** BWOut YMAX: ",__lws.getYDimension().getMaximum()
-        print "** BWOut YMIN: ",__lws.getYDimension().getMinimum()
-
-    else:
-        #case where the base workspace did't surface properly...warn and return
-        dialog=QtGui.QMessageBox(self)
-        dialog.setText("Unable to identify a base workspace name from line workspace - Returning")
-        dialog.exec_()
-        return            
-                
-
-    
-    #first verify the rebinned workspace is not already on the MPL list of workspaces 
-    #and if not insert the rebinned workspace into the list
-    #  Getting the list of workspaces in the MPL combobox:
-    NMPLCombo=self.ui.MPLcomboBoxActiveWorkspace.count()
-    if NMPLCombo >0:
-        #case where there are more than 0 workspaces in the list
-        wsMPLCombo=[str(self.ui.MPLcomboBoxActiveWorkspace.itemText(i)) for i in range(NMPLCombo)]
-        indx=wsMPLCombo.index(wsSel)
-        print " wsMPLCombo: ",wsMPLCombo
-    #now check if wsSel is already on the list
-    if any(wsSel in w for w in wsMPLCombo):
-        #case where it's already in the list so set this 2D workspace as the 
-        #current workspace in the MPL workspace selection combo box
-        self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(indx)
-        pass
-    else:
-        #case to add the workspace to the list
-        self.ui.MPLcomboBoxActiveWorkspace.insertItem(NMPLCombo,wsSel)
-        self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(NMPLCombo)
+def getSVValuesPowder(self,__lws):
 
     h=__lws.getHistory()
     ah=h.getAlgorithmHistories()
@@ -843,8 +685,8 @@ def getSVValues(self):
     self.ui.MPLlineEditPowderCutThickTo.setText("%.3f" % Qmax)   
     self.ui.MPLlineEditPowderCutAlongStep.setText("%.2f" % BWOut)
     self.ui.MPLlineEditPowderCutAlongNbins.setText(str(int(NOutBins)))
-    self.ui.MPLspinBoxAlong.setValue(int(NbinsY))
-    self.ui.MPLspinBoxThick.setValue(int(NbinsX))
+    #self.ui.MPLspinBoxAlong.setValue(int(NbinsY))
+    #self.ui.MPLspinBoxThick.setValue(int(NbinsX))
     #self.ui.MPLlineEditPowderCutWidth.setText("%.3f" % DeltaQE)
     
     print "BWOut: ",BWOut
@@ -858,6 +700,16 @@ def getSVValues(self):
     DoPowderPlotMSlice(self)
 
 def set1DBinVals(self,__ws):
+    #Upon adding support for single crystal, it was realized that this function
+    #is only relevant to powder data. However calls are made to this function
+    #via SavePlotWS(self.ui.MPLcomboBoxActiveWorkspace.setCurrentIndex(Nws)) 
+    #which has a signal setup in MPL1DCutMain.py to call SelectWorkspace 
+    #which in turn calls set1DBinVals()
+    
+    #Note that in it's current form, set1DBinVals() should NOT be called
+    #for processing single crystal data.
+    
+    
     #first check if we have a valid workspace
     try:
         #if the workspace has a name, it's an existing workspace

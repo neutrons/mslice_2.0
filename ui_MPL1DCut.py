@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_MPL1DCut.ui'
 #
-# Created: Tue Apr 07 11:32:42 2015
+# Created: Wed Apr 08 14:51:12 2015
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!

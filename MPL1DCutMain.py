@@ -28,6 +28,7 @@ from mantid.simpleapi import *
 
 from MPLPowderCutHelpers import *
 from MPLSCCutHelpers import *
+from MPL1DCutHelpers import *
 
 from LegendManager import *
 
@@ -110,6 +111,10 @@ class MPL1DCut(QtGui.QMainWindow):
         self.getComments()        
         
         if self.parent.ui.mode1D == 'Powder':
+            
+            #parent mode could change, set the mode for this current GUI
+            self.ui.mode='Powder'
+            
             #set stackedWidgetCut index
             self.ui.stackedWidgetCut.setCurrentIndex(0)
             #Data Formatting - copy powder parameters over from MSlice main application
@@ -130,6 +135,10 @@ class MPL1DCut(QtGui.QMainWindow):
             self.ui.MPLcomboBoxPowderCutThick.setCurrentIndex(indx_Thick)
             self.ui.MPLcomboBoxPowderCutY.setCurrentIndex(indx_Y)
         elif self.parent.ui.mode1D == 'SC':
+            
+            #parent mode could change, set the mode for this current GUI
+            self.ui.mode='SC'
+            
             #set stackedWidgetCut index
             self.ui.stackedWidgetCut.setCurrentIndex(1)
             #transfer MSlice main app parameters to this GUI app
@@ -262,6 +271,10 @@ class MPL1DCut(QtGui.QMainWindow):
         
     
     def SelectWorkspace(self):
+        #Note that this method is called if current index is changed for
+        #MPLcomboBoxActiveWorkspace, such as when adding a workspace to the 
+        #MPL dropdown list of available 1D workspaces
+        
         #get selected workspace
         wsindx=self.ui.MPLcomboBoxActiveWorkspace.currentIndex()
         self.ui.MPLcurrentWS=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
@@ -283,7 +296,8 @@ class MPL1DCut(QtGui.QMainWindow):
                 # 1D case to disable Data Formatting
                 print "Disabling Data Formatting"
                 self.ui.MPLgroupBoxDataFormat.setEnabled(False)
-                set1DBinVals(self,__ws)
+                #set1DBinVals(self,__ws) #commented out temporarily - needed for placing powder params on MPL GUI
+                self.pushButtonSCCShowParamsSelect()
         
         #update the selected workspace label in the comments tab
         self.getComments()
@@ -670,17 +684,16 @@ class MPL1DCut(QtGui.QMainWindow):
         print "*************** Do Plot *********************"
         
         
-        if self.parent.ui.mode1D == 'Powder':
+        if self.ui.mode == 'Powder':
             DoPowderPlotMSlice(self) #call to MPLPowderCutHelpers.py  
-        elif self.parent.ui.mode1D == 'SC':
+        elif self.ui.mode == 'SC':
             #set stackedWidgetCut index
-            print "gothere0"
             DoSCPlotMSlice(self) #call to MPLPowderCutHelpers.py  
         else:
             #unsupported mode - complain"
             print "Unsupported GUI mode - returning"
             return
-        
+
         
     def DoAnnotate(self):
         self.doAnnotate=True

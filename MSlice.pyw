@@ -2042,7 +2042,9 @@ class MSlice(QtGui.QMainWindow):
                 print "AD2: ",AD2,'  type: ',type(AD2)
                 print "AD3: ",AD3,'  type: ',type(AD3)
                 print "type(__ws): ",type(__ws)
-                print "__ws: ",__ws.name
+                print "__ws: ",__ws.name()
+                #comment block represents new way to use MDNormDirectSC 
+                """
                 histoData,histoNorm=MDNormDirectSC(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3)
                 print "histoNorm Complete"
                 if wsType == 'WorkspaceGroup':
@@ -2063,17 +2065,14 @@ class MSlice(QtGui.QMainWindow):
                     histoDataSum=histoData
                     histoNormSum=histoNorm
                     
-                #upon summing coresponding data and norm data, produce eht normalized result
-                print "histoDataSum.id(): ",histoDataSum.id()
-                print "histoNormSum.id(): ",histoNormSum.id()
                 normalized=histoDataSum/histoNormSum   
                 
+                #Experienced an issue where Slice Viewer was crashing due to -inf (we think), so check the data and replace values
                 #let's check for values we don't want in the normalized data...
                 # isinf : Shows which elements are positive or negative infinity
                 # isposinf : Shows which elements are positive infinity
                 # isneginf : Shows which elements are negative infinity
-                # isnan : Shows which elements are Not a Number        
-                
+                # isnan : Shows which elements are Not a Number  
                 #normalizedNew=normalized
                 normArray=normalized.getSignalArray()
                 normArray.flags.writeable=True  #note that initially the array is not writeable, so change this
@@ -2084,11 +2083,36 @@ class MSlice(QtGui.QMainWindow):
                 normArray.flags.writeable=False #now put it back to nonwriteable
                 normalized.setSignalArray(normArray)
                 
+                #upon summing coresponding data and norm data, produce the normalized result
+                print "histoDataSum.id(): ",histoDataSum.id()
+                print "histoNormSum.id(): ",histoNormSum.id()
+                normalized=histoDataSum/histoNormSum  
+                
+                #sv.LoadData('normalized',label)
+                
+                """
+                
+                #For now, still need to use BinMD() instead of MDNormDirectSC as in the above commented out block
+                wsType=__ws.id()
+                print " wsType: ",wsType
+                if wsType == 'WorkspaceGroup':
+                    print " ** Group workspace"
+                    #Note that MergeMD automatically handles group workspaces
+                    #Needs a comma separated list of workspace names
+                    __mws=MergeMD(__ws)
+                else:
+                    print " ** Single workspace"
+                    __mws=__ws
+                __ows=__ws.name()+'_histo'
+                BinMD(InputWorkspace=__mws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
+                #make new output workspace available to python
+                mtd.retrieve(__ows)
                 
                 #Envoke SliceViewer here
                 sv = SliceViewer()
                 label='MSlice SC SliceViewer'                
-                sv.LoadData('normalized',label)
+                #sv.LoadData(str(__ows.name()),label)
+                sv.LoadData(__ows,label)
                 xydim=None
                 slicepoint=None
                 colormin=None
@@ -2098,8 +2122,6 @@ class MSlice(QtGui.QMainWindow):
                 normalization=0
                 sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
                 sv.Show()
-                
-                
                 
                 #determine workspace type
                 #stubbing this part out for now...
@@ -2657,8 +2679,8 @@ class MSlice(QtGui.QMainWindow):
                             'SCCOvx':SCCOvx,
                             'SCCOvy':SCCOvy,                        
                             'SCCOvz':SCCOvz,     
-                            'SCCOPsi':SCCOPsi,                        
-                            'SCCOMN':SCCOMN,                        
+                            'SCGSPsi':SCCOPsi,                        
+                            'SCGSMN':SCCOMN,                        
                             'SCVAu1a':SCVAu1a,                    
                             'SCVAu1b':SCVAu1b,                        
                             'SCVAu1c':SCVAu1c,                        
@@ -2673,6 +2695,7 @@ class MSlice(QtGui.QMainWindow):
                             'SCVAu3Label':SCVAu3Label                                                
                         }}
                         
+        #view key:value pairs for debug
         params_dict=params_dict_root.get('root') 
         for key,value in params_dict.items():
             print "key: ",key,"  value: ",value, " type(value): ",type(value)
@@ -2718,8 +2741,8 @@ class MSlice(QtGui.QMainWindow):
         self.ui.lineEditSCCOvx.setText(params_dict.get('SCCOvx'))
         self.ui.lineEditSCCOvy.setText(params_dict.get('SCCOvy'))
         self.ui.lineEditSCCOvz.setText(params_dict.get('SCCOvz'))
-        self.ui.lineEditSCCOPsi.setText(params_dict.get('SCCOPsi'))		
-        self.ui.lineEditSCCOName.setText(params_dict.get('SCCOMN'))		
+        self.ui.lineEditSCCOPsi.setText(params_dict.get('SCGSPsi'))		
+        self.ui.lineEditSCCOName.setText(params_dict.get('SCGSMN'))		
         
         #Viewing Angle
         self.ui.lineEditSCVAu1a.setText(params_dict.get('SCVAu1a'))

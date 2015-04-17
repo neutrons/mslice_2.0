@@ -1294,6 +1294,9 @@ def histToDict(ws):
     else:
         TName=TName+config.XYZUnits
     histDict.setdefault('Names',{})['TName']=TName
+    
+    print "** histDict: "
+    print histDict
 
     return histDict
 
@@ -1367,10 +1370,29 @@ def updateSCParms(self,histDict,modes):
     
     #set Viewing Axes Labels
     #need to extract each label from its corresponding dimensional name
+    #FIXME - just checking XName, YName, and ZName is too simplistic as any of
+    #these could harbor the energy string "E (meV)"
+    #Though this approach seems to work when processing using the View Axes
+    #labels to create the strings in the combobox cut/slice/vol tabs.  However
+    #reversing from the strings created and placed in the workspace history
+    #may not follow the assumed convention here. 
+    #Suspect that the needed approach here would be to examine Uproj, Vproj, and
+    #Wproj contained in ConvertToMD history to determine labels (such as [H,H,0]), 
+    #then examine MDNormDirectSC history to see the order of these strings so 
+    #that the comboBox indicies can be set accordingly. But thinking more about
+    #this, it appears that Uproj, Vproj, and Wproj do not have to be unique thus
+    #one may not be able to deduce the correct order of the labels from using these.
+    #Another approach may be to just clear the cut/slice/vol tabs when these
+    #cases occur.
     self.ui.lineEditSCVAu1Label.setText(getLabelChar(histDict,'XName'))
     self.ui.lineEditSCVAu2Label.setText(getLabelChar(histDict,'YName'))
     self.ui.lineEditSCVAu3Label.setText(getLabelChar(histDict,'ZName'))
-    
+
+    print "*****************"
+    print "histDict: "
+    print histDict
+    print "*****************"
+   
     #can now call methods for updating ViewSCSDict and for populating the 
     #view tabs as if the 'Calculate Projections' button was pressed
     

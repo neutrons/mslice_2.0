@@ -27,3 +27,6 @@ SCYNpts=10000
 XYZUnits=' (RLU)'
 SCSStep = 0.035
 SCVStep = 0.050
+
+#Replace inf and -inf with following values
+REPVAL=float('nan')
