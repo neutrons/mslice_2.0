@@ -802,12 +802,33 @@ class MSlice(QtGui.QMainWindow):
             Vproj=str(SCVAu2a)+','+str(SCVAu2b)+','+str(SCVAu2c)
             Wproj=str(SCVAu3a)+','+str(SCVAu3b)+','+str(SCVAu3c)
             ConvertToMD(InputWorkspace=cws,OutputWorkspace=cws_out,QDimensions='Q3D',QConversionScales='HKL',MinValues=minn,MaxValues=maxx,Uproj=Uproj,Vproj=Vproj,Wproj=Wproj,PreprocDetectorsWS='')
+            cws_out_name=cws_out
+            cws_out=mtd.retrieve(cws_out)
+            wsType=cws_out.id()
+            print " wsType: ",wsType
+            if wsType == 'WorkspaceGroup':
+                print " ** Group workspace"
+                #Note that MergeMD automatically handles group workspaces
+                #Needs a comma separated list of workspace names
+                #check the number of files within the workspace group - MergeMD needs at least two
+                if len(cws_out) == 1:
+                    cws_out=cws_out[0]
+                else:
+                    MergeMD(cws_out,OutputWorkspace=cws_out_name)
+                    cws_out=mtd.retrieve(cws_out_name)
+            else:
+                print " ** Single workspace"
+                cws_out=cws_out
+            
+            
             #
             #**************************************************************************
     
             #once outputworkspace exists, add it back to the table
-            placeholderws=mtd.retrieve(cws_out)
             cws_type='Single Crystal Calc Proj'
+            """
+            placeholderws=mtd.retrieve(cws_out)
+            
             
             #to determine memory size, must add sizes of each workspace in the group as the group workspace itself does not provide the composite size
             #also note that memory size can differ from disk size - will consider if/how to address this later
@@ -821,13 +842,23 @@ class MSlice(QtGui.QMainWindow):
                 sz=0.0
                 for i in range(Nws):
                     sz+=float(placeholderws[i].getMemorySize())
+            """        
+                    
+            sz=cws_out.getMemorySize() #MergeMD workspace is a single workspace
             cws_size=str(float(int(sz/float(1024*1024)*10))/10)+' MB'
             cws_indx=Nrows#+NumSelWorkspaces #here this should be equivalent to Nrows+1
             print "cws_out: ",cws_out
             print "cws_type: ",cws_type
             print "cws_size: ",cws_size
             table.insertRow(cws_indx)
-            addmemWStoTable(table,cws_out,cws_type,cws_size,cws_indx)
+            
+            """
+            print "** Debug ** - save WS "
+            SaveMD(cws_out,Filename='Z:/data/HYS/BarryWinn/tmp/tmp_SCProj.nxs')
+            #SaveNexus(cws_out,Filename='Z:/data/HYS/BarryWinn/tmp/tmp1_SCProj.nxs')
+            """
+                        
+            addmemWStoTable(table,cws_out_name,cws_type,cws_size,cws_indx)
             addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False) #row was: pws_indx-1
 
             #update ViewSCCDict with minn and maxx values calculated above
@@ -866,6 +897,11 @@ class MSlice(QtGui.QMainWindow):
             
         except Exception as e:
             #parse error messages and provide info to user
+            
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            #print(exc_type, fname, exc_tb.tb_lineno)
+            
             etype=e.__class__.__name__
             #exception types found here: https://docs.python.org/3/library/exceptions.html 
             
@@ -890,7 +926,8 @@ class MSlice(QtGui.QMainWindow):
             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+msg1)	
             
             #Compile the entire message from substrings created above and present it to the user
-            msg="Type: "+etype+" - "+msg0+" - "+syserr
+            msg="File: "+fname+" Line: "+str(exc_tb.tb_lineno)+" "
+            msg=msg+"Type: "+etype+" - "+msg0+" - "+syserr
             dialog=QtGui.QMessageBox(self)
             dialog.setText("Non-Fatal Error: "+msg)
             dialog.exec_()  
@@ -954,34 +991,53 @@ class MSlice(QtGui.QMainWindow):
                 basename=os.path.basename(str(wsfile))
                 fileparts=os.path.splitext(basename)
                 wsName=fileparts[0]
+                """
+                At this point, it turns out that SaveMD only saves the last workspace
+                in a group.  Realizing this, it is necessary for the group event workspace
+                save to save each MDWorkspace individually and retrieve them in a similar fashion
+                creating the group around these to produce the MD group workspace.
+                
+                Unfortunately in the case for Load(), one does not know the type
+                of data until Load() makes an attempt to read the data.  As load of
+                a group of MD workspaces will not function propery, it is necessary
+                to intercept the Load() function and determine the proper operations.  
+                For other workspace types, Load() automatically determines the proper
+                load mechanism, but for an MDEvent group workspace, it is necessary 
+                for a layer to manage proper loading
+                """
                 Load(Filename=str(wsfile),OutputWorkspace=wsName)
+
                 #make sure workspaces are available at the python level
                 __ws=mtd.retrieve(wsName)
                 print "** type(__ws): ",type(__ws)
 
-                    
+                
                 try:
                     #If this try clause runs successfully, this is a single crystal file.
                     #In that case, need to fill the histDict structure
                     #check if the workspace just loaded is a single crystal CalcProj workspace
                     #need to check workspace history to determine this
-                    histDictTmp=histToDict(__ws)
+                    
+                    histDict=histToDict(__ws)
+                    print "histDict: "
+                    print histDict
                     #check if workspace history has entries for:
                     # - SetGoniometer
                     # - SetUB
                     # - ConvertToMD
                     #as each of these contain params needed for the GUI
-                    #check if the needed settings are present
-                    Goniometer=histDictTmp['SetGoniometer']
-                    UB=histDictTmp['SetUB']
-                    MD=histDictTmp['ConvertToMD']
-                    histDict=histDictTmp
-                    wsfiletmp=wsfile
-                    gotOne +=1
+                    #check if the needed settings are present - will fall out of this try if they are not present (not using the values here, just checking)
+                    Goniometer=histDict['SetGoniometer']
+                    UB=histDict['SetUB']
+                    MD=histDict['ConvertToMD']
+                    gotOne +=1 #currently not checking for more than one single crystal file
+        
+                    
                 except:
                     #If this except clause is run, then it's assumed this is a powder file
                     #case where the needed parameters for SC CalcProj not available in the workspace
                     #skip this workspace and check next one if there are more.
+                    print "** not a SC Workspace **"
                     pass
                 
                 #check if we found more than one SC Calc Proj workspace
@@ -1020,6 +1076,46 @@ class MSlice(QtGui.QMainWindow):
             table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy
             
+        elif self.ui.radioButtonGroupSelected.isChecked():  
+            #edit existing workspace group using the workspace group editor
+            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Calling Workspace Composer Edit Workspace")
+            #first need to determine which workspace selected in the workspace manager
+            table=self.ui.tableWidgetWorkspaces
+            #first let's clean up empty rows
+            Nrows=table.rowCount()
+            selrow=[]
+            for row in range(Nrows):
+                #get checkbox status            
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
+                try:
+                    cbstat=cw.isChecked()
+                    print "row: ",row," cbstat: ",cbstat
+                    if cbstat == True:
+                        #case to identify selected row number
+                        selrow.append(row)
+                except AttributeError:
+                    #case where rows have been deleted and nothing do check or do
+                    print "unexpected case"
+
+            #once done checking selects, determine:
+            # if none were selected
+            # if more than one were selected
+            # or just one was selected
+            if len(selrow) >= 0:
+                #preferred case - just do it
+                print "type WSMIndex: ",type(self.ui.WSMIndex)
+                for row in selrow:
+                    self.ui.WSMIndex.append(row)   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
+                    self.ui.GWSName.append(str(table.item(row,config.WSM_WorkspaceCol).text()))
+                self.child_win = WorkspaceComposer(self)
+                self.child_win.ui.radioButtonGroupWS.setChecked(True) #select group workspace
+                self.child_win.ui.lineEditGroupName.setText('NewGroup')
+                self.child_win.show()                    
+                
+            else:
+                print "this case not anticipated...doing nothing"   
+
+
         elif self.ui.radioButtonComposeSelected.isChecked():  
             #edit existing workspace group using the workspace group editor
             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Calling Workspace Composer Edit Workspace")
@@ -1127,16 +1223,36 @@ class MSlice(QtGui.QMainWindow):
                 print "Workspace Save: ",wspathname
                 
                 if wspathname != '':
-                    #now save workspace to nexus file
+                    #now save workspace to a file
                     self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Saving Workspace: "+str(wsname))
                     stws=str(type(mtd.retrieve(wsname))) #get the type of workspace, convert to string
                     print "stws: ",stws
-                    if (('MatrixWorkspace' in stws) or ('IEventWorkspace' in stws)):
+                    if ('MatrixWorkspace' in stws):
                         #case for "standard" 2D workspace
+                        #note that group workspace may contain various types of workspaces but here we're not currently supporting saving MD workspaces in a group
+                        print " ** SaveNexus 1**"
                         SaveNexus(wsname,wspathname)
-                    else:
+                    elif ('IEventWorkspace' in stws):
+                        print " ** SaveMD 2**"
+                        SaveMD(wsname,wspathname)     
+                    elif ('MDEventWorkspace' in stws):
                         #case for MD workspace
-                        SaveMD(wsname,wspathname)
+                        print " ** SaveMD 3**"
+                        SaveMD(wsname,wspathname)     
+                    elif ('WorkspaceGroup' in stws):
+                        #case to save a group workspace but need to determine which save format to use:
+                        __tmpws=mtd.retrieve(wsname)
+                        if 'Workspace2D' in __tmpws[0].id():
+                            print " ** SaveNexus 4**"
+                            #Workspace2D to save
+                            SaveNexus(wsname,wspathname)
+                        elif 'MDEventWorkspace' in __tmpws[0].id():
+                            print " ** SaveMD **5"
+                            SaveMD(wsname,wspathname)    
+                    else:
+                        #unable to resolve workspace type - try generic SaveNexus...
+                        SaveNexus(wsname,wspathname)
+                        
                     table.item(row,config.WSM_SavedCol).setText('Yes')
                     
                     
@@ -1414,7 +1530,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Save Log")			
 
     def pushButtonSCCutPlotSelect(self):
-        print "Single Crystal Surface Slice Button pressed"
+        print "Single Crystal Cut Plot Button pressed"
         """
         #now extract values from this tab
         SCSXcomboIndex=self.ui.comboBoxSCCutX.currentIndex()
@@ -1473,7 +1589,7 @@ class MSlice(QtGui.QMainWindow):
         self.MPLPC_win = MPL1DCut(self)			
         self.MPLPC_win.show() 
         
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Surface Slice")				
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Cut Plot Select")				
 
 
     def pushButtonPowderCutPlotSelect(self):
@@ -1670,7 +1786,7 @@ class MSlice(QtGui.QMainWindow):
     def pushButtonSCVolSlicesSelect(self):
         #method to call the sliceviewer to visualize the data volume
         
-        print "Single Crystal Surface Slice Button pressed"
+        print "Single Crystal Volume Button pressed"
         #now extract values from this tab
         SCSXcomboIndex=self.ui.comboBoxSCVolX.currentIndex()
         SCSXFrom=self.ui.lineEditSCVolXFrom.text()
@@ -1695,7 +1811,7 @@ class MSlice(QtGui.QMainWindow):
         SCSThickTo=self.ui.lineEditSCVolETo.text()
 
         #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Surface Slice")				
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Volume Slice")				
 
         #determine which workspaces have been selected
         table=self.ui.tableWidgetWorkspaces
@@ -1728,20 +1844,20 @@ class MSlice(QtGui.QMainWindow):
                     maxx=[__ws.getXDimension().getMaximum(),__ws.getYDimension().getMaximum(),__ws.getZDimension().getMaximum(),__ws.getTDimension().getMaximum()]
                     NEntries=1
                     
-                #get values from GUI and ViewSCSDict
-                ViewSCSDict=self.ui.ViewSCSDict
-                print "ViewSCSDict: ",ViewSCSDict
+                #get values from GUI and ViewSCVDict
+                ViewSCVDict=self.ui.ViewSCVDict
+                print "ViewSCVDict: ",ViewSCVDict
                 if SCSXFrom =='':
                     #SCSXFrom=minn[0]
                     label=convertIndexToLabel(self,'X','Volume')   
                     print "  label: ",label                 
-                    SCSXFrom = float(ViewSCSDict[label]['from'])
+                    SCSXFrom = float(ViewSCVDict[label]['from'])
                 else:
                     SCSXFrom=float(SCSXFrom)
                 if SCSXTo =='':
                     #SCSXTo=maxx[0]
                     label=convertIndexToLabel(self,'X','Volume')                    
-                    SCSXTo = float(ViewSCSDict[label]['to'])
+                    SCSXTo = float(ViewSCVDict[label]['to'])
                 else:
                     SCSXTo=float(SCSXTo)
                 Nscx=int(round((SCSXTo-SCSXFrom)/float(SCSXStep)))
@@ -1749,13 +1865,13 @@ class MSlice(QtGui.QMainWindow):
                 if SCSYFrom =='':
                     #SCSYFrom=minn[1]
                     label=convertIndexToLabel(self,'Y','Volume')                    
-                    SCSYFrom = float(ViewSCSDict[label]['from'])
+                    SCSYFrom = float(ViewSCVDict[label]['from'])
                 else:
                     SCSYFrom=float(SCSYFrom)
                 if SCSYTo =='':
                     #SCSYTo=maxx[1]
                     label=convertIndexToLabel(self,'Y','Volume')                    
-                    SCSYTo = float(ViewSCSDict[label]['to'])
+                    SCSYTo = float(ViewSCVDict[label]['to'])
                 else:
                     SCSYTo=float(SCSYTo)
                 Nscy=int(round((SCSYTo-SCSYFrom)/float(SCSYStep)))                    
@@ -1763,13 +1879,13 @@ class MSlice(QtGui.QMainWindow):
                 if SCSZFrom =='':
                     #SCSZFrom=minn[2]
                     label=convertIndexToLabel(self,'Z','Volume')                    
-                    SCSZFrom = float(ViewSCSDict[label]['from'])
+                    SCSZFrom = float(ViewSCVDict[label]['from'])
                 else:
                     SCSZFrom=float(SCSZFrom)
                 if SCSZTo =='':
                     #SCSZTo=maxx[2]
                     label=convertIndexToLabel(self,'Z','Volume')                    
-                    SCSZTo = float(ViewSCSDict[label]['to'])
+                    SCSZTo = float(ViewSCVDict[label]['to'])
                 else:
                     SCSZTo=float(SCSZTo)   
                 Nscz=int(round((SCSZTo-SCSZFrom)/float(SCSZStep)))  
@@ -1777,13 +1893,13 @@ class MSlice(QtGui.QMainWindow):
                 if SCSEFrom =='':
                     #SCSEFrom=minn[3]
                     label=convertIndexToLabel(self,'E','Volume')                    
-                    SCSEFrom = float(ViewSCSDict[label]['from'])
+                    SCSEFrom = float(ViewSCVDict[label]['from'])
                 else:
                     SCSEFrom=float(SCSEFrom)
                 if SCSETo =='':
                     #SCSETo=maxx[3]
                     label=convertIndexToLabel(self,'E','Volume')                    
-                    SCSETo = float(ViewSCSDict[label]['to'])
+                    SCSETo = float(ViewSCVDict[label]['to'])
                 else:
                     SCSETo=float(SCSETo)
                     
@@ -1791,10 +1907,10 @@ class MSlice(QtGui.QMainWindow):
                 #nameLst=makeSCNames(self)
                 #Extract names from Slice View combo boxes
                 nameLst=[]
-                nameLst.append(self.ui.comboBoxSCSliceX.currentText())
-                nameLst.append(self.ui.comboBoxSCSliceY.currentText())
-                nameLst.append(self.ui.comboBoxSCSliceZ.currentText())
-                nameLst.append(self.ui.comboBoxSCSliceE.currentText())
+                nameLst.append(self.ui.comboBoxSCVolX.currentText())
+                nameLst.append(self.ui.comboBoxSCVolY.currentText())
+                nameLst.append(self.ui.comboBoxSCVolZ.currentText())
+                nameLst.append(self.ui.comboBoxSCVolE.currentText())
                 #note that the comboBox label and that label needed by MDNormDirectSC are different - search for the case and replace with what's needed
                 nameLst=['DeltaE' if x=='E (meV)' else x for x in nameLst]
                                                                     
@@ -1815,6 +1931,15 @@ class MSlice(QtGui.QMainWindow):
                 print "AD3: ",AD3,'  type: ',type(AD3)
                 print "type(__ws): ",type(__ws)
                 print "__ws: ",__ws.name
+                
+                
+                
+                """
+                The following code block was implemented to use MDNormDirectSC.
+                However this algorithm is not yet ready to handle non-orthogonal 
+                cuts so BinMD will still be used for now.
+                """
+                """
                 histoData,histoNorm=MDNormDirectSC(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3)
                 print "histoNorm Complete"
                 if wsType == 'WorkspaceGroup':
@@ -1870,7 +1995,29 @@ class MSlice(QtGui.QMainWindow):
                 normalization=0
                 sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
                 sv.Show()
+                """
                 
+                #For now, still need to use BinMD() instead of MDNormDirectSC as in the above commented out block
+
+                __ows=__ws.name()+'_histo'
+                BinMD(InputWorkspace=__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
+                #make new output workspace available to python
+                mtd.retrieve(__ows)
+                
+                #Envoke SliceViewer here
+                sv = SliceViewer()
+                label='MSlice SC SliceViewer - Volume View'                
+                #sv.LoadData(str(__ows.name()),label)
+                sv.LoadData(__ows,label)
+                xydim=None
+                slicepoint=None
+                colormin=None
+                colormax=None
+                colorscalelog=False
+                limits=None
+                normalization=0
+                sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
+                sv.Show()                
                 
                 
                 #determine workspace type
@@ -2093,18 +2240,8 @@ class MSlice(QtGui.QMainWindow):
                 """
                 
                 #For now, still need to use BinMD() instead of MDNormDirectSC as in the above commented out block
-                wsType=__ws.id()
-                print " wsType: ",wsType
-                if wsType == 'WorkspaceGroup':
-                    print " ** Group workspace"
-                    #Note that MergeMD automatically handles group workspaces
-                    #Needs a comma separated list of workspace names
-                    __mws=MergeMD(__ws)
-                else:
-                    print " ** Single workspace"
-                    __mws=__ws
                 __ows=__ws.name()+'_histo'
-                BinMD(InputWorkspace=__mws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
+                BinMD(InputWorkspace=__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
                 #make new output workspace available to python
                 mtd.retrieve(__ows)
                 

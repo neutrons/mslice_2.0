@@ -8,8 +8,17 @@ def getMPLParms(self):
     #get selected workspace from 1D Cut MPL app
     ws_sel=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
     __ws=mtd.retrieve(ws_sel)	
-    NXDbins=__ws.getXDimension().getNBins()	
-    NYDbins=__ws.getYDimension().getNBins()
+    
+    if 'Group' in __ws.id():
+        #case for a group workspace
+        NXDbins=__ws[0].getXDimension().getNBins()	
+        NYDbins=__ws[0].getYDimension().getNBins()
+    else:
+        #case for an individual workspace
+        NXDbins=__ws.getXDimension().getNBins()	
+        NYDbins=__ws.getYDimension().getNBins()        
+    
+
     print "NXDbins: ",NXDbins,"  NYDbins: ",NYDbins
     
     #now check if it's a 2D or 1D workspace - need to make sure that Data Formatting is enabled for 2D and disabled for 1D

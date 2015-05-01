@@ -82,13 +82,18 @@ class MPL1DCut(QtGui.QMainWindow):
         wstotlist=[]
         for n in range(Nws):
             __tmpws=mtd.retrieve(wslist[n])
+            wstotlist.append(wslist[n])
+            
+            """
+            #believe this code block is a vestage for when workspaces within a group were processed separately. 
             if 'Group' in str(type(__tmpws)):
             #case to get all workspace names from the group
                 for __ws in __tmpws:
-                    wstotlist.append(__ws)
+                    wstotlist.append(__ws.name())
             else:
                 #case we just have a single workspace
                 wstotlist.append(wslist[n])
+            """
         
         print "Total number of workspaces passed to 1D Cut: ",wstotlist
         #now put workspaces into workspace combo box

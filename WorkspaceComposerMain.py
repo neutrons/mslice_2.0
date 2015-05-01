@@ -16,7 +16,7 @@
 ################################################################################
 
 import sys,os,time
-from WorkspaceComposer import *
+from ui_WorkspaceComposer import *
 from PyQt4 import Qt, QtCore, QtGui
 #import h5py 
 from MSliceHelpers import getReduceAlgFromWorkspace 

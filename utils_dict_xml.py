@@ -29,8 +29,15 @@ some_dict={'root':{'sape': 4139, 'guido': 4127, 'jack': 4098}}
 """
 
 def xmltodict(element):
-    if not isinstance(element, ElementTree.Element):
-        raise ValueError("must pass xml.etree.ElementTree.Element object")
+    """
+    Experience shows that the following isinstance() check crashes for some reason
+    under RHEL 6.  This being the case, the test is made optional now
+    """
+    try:
+        if not isinstance(element, ElementTree.Element):
+            raise ValueError("must pass xml.etree.ElementTree.Element object")
+    except:
+        pass
 
     def xmltodict_handler(parent_element):
         result = dict()

@@ -88,7 +88,7 @@
              <bool>false</bool>
             </attribute>
             <attribute name="horizontalHeaderCascadingSectionResizes">
-             <bool>false</bool>
+             <bool>true</bool>
             </attribute>
             <attribute name="horizontalHeaderDefaultSectionSize">
              <number>100</number>
@@ -97,7 +97,7 @@
              <bool>true</bool>
             </attribute>
             <attribute name="horizontalHeaderStretchLastSection">
-             <bool>false</bool>
+             <bool>true</bool>
             </attribute>
             <attribute name="verticalHeaderVisible">
              <bool>false</bool>
@@ -166,7 +166,7 @@
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>22</width>
+              <width>5</width>
               <height>20</height>
              </size>
             </property>
@@ -176,7 +176,7 @@
            <widget class="QGroupBox" name="groupBox">
             <property name="minimumSize">
              <size>
-              <width>161</width>
+              <width>180</width>
               <height>191</height>
              </size>
             </property>
@@ -187,7 +187,7 @@
              <property name="geometry">
               <rect>
                <x>20</x>
-               <y>160</y>
+               <y>180</y>
                <width>131</width>
                <height>23</height>
               </rect>
@@ -200,7 +200,7 @@
              <property name="geometry">
               <rect>
                <x>20</x>
-               <y>80</y>
+               <y>100</y>
                <width>131</width>
                <height>17</height>
               </rect>
@@ -213,7 +213,7 @@
              <property name="geometry">
               <rect>
                <x>20</x>
-               <y>100</y>
+               <y>120</y>
                <width>151</width>
                <height>17</height>
               </rect>
@@ -248,7 +248,7 @@
              <property name="geometry">
               <rect>
                <x>20</x>
-               <y>60</y>
+               <y>80</y>
                <width>141</width>
                <height>17</height>
               </rect>
@@ -261,7 +261,7 @@
              <property name="geometry">
               <rect>
                <x>20</x>
-               <y>40</y>
+               <y>60</y>
                <width>141</width>
                <height>17</height>
               </rect>
@@ -274,13 +274,26 @@
              <property name="geometry">
               <rect>
                <x>20</x>
-               <y>120</y>
+               <y>140</y>
                <width>171</width>
                <height>17</height>
               </rect>
              </property>
              <property name="text">
               <string>Remove Selected</string>
+             </property>
+            </widget>
+            <widget class="QRadioButton" name="radioButtonGroupSelected">
+             <property name="geometry">
+              <rect>
+               <x>20</x>
+               <y>40</y>
+               <width>141</width>
+               <height>17</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Group  Workspaces</string>
              </property>
             </widget>
            </widget>
@@ -1783,19 +1796,6 @@
            </property>
           </widget>
          </widget>
-         <zorder>groupBoxViewingAxes_2</zorder>
-         <zorder>groupBoxSCUnitCellLatticeParams_2</zorder>
-         <zorder>groupBoxSCCrystalOrientation_2</zorder>
-         <zorder>pushButtonSCCalcProj</zorder>
-         <zorder>groupBox_10</zorder>
-         <zorder>pushButtonSaveSCParams</zorder>
-         <zorder>pushButtonLoadSCParams</zorder>
-         <zorder>pushButtonDefaultSCParams</zorder>
-         <zorder>pushButtonCheckSCWorkspace</zorder>
-         <zorder>groupBox_2</zorder>
-         <zorder>groupBox_3</zorder>
-         <zorder>ViewTabWidget</zorder>
-         <zorder>ViewTabWidget</zorder>
         </widget>
        </widget>
       </item>
@@ -2811,7 +2811,7 @@
            </rect>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="page_9">
            <widget class="QLabel" name="label_165">

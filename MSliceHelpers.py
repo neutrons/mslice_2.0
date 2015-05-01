@@ -26,6 +26,7 @@ sys.path.append(os.environ['MANTIDPATH'])
 from mantid.simpleapi import *
 import config
 from PyQt4 import Qt, QtCore, QtGui
+import errno
 
 def getLastAlgFromH5Workspace(H5Workspace,**kwargs):
     """
@@ -474,6 +475,9 @@ def getReduceAlgFromWorkspace(Workspace,**kwargs):
 
 def getWorkspaceMemSize(workspaceName):
 
+    print "workspaceName: ",workspaceName
+    print "available workspaces: ",mtd.getObjectNames()
+    
     ws=mtd.retrieve(workspaceName)
     if 'Group' in str(type(ws)):
         #case where the workspace is a group workspace
@@ -534,7 +538,7 @@ def constantUpdateActor(self):
     totalmemstr='Max Mem: '+str(totalmem)+' GB'
 #        print "Total Mem str: ",totalmemstr
     self.ui.labelMaxMem.setText(totalmemstr)
-				
+
 def getHomeDir():
         if sys.platform == 'win32':
             home = os.path.expanduser("~")
@@ -595,6 +599,7 @@ def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
     #Overriding wstype and just using the workspace ID here
     ws=mtd.retrieve(wsname)
     wstype=ws.id()
+    print "wstype: ",wstype
     
     if wstype == '':
         wstype = 'unknown'
@@ -1242,58 +1247,136 @@ def histToDict(ws):
     Utility to extract the history from a workspace and place it within a
     dictionary.  The resulting dictionary is returned to the calling program
     """
-    
+    print "In histToDict"
+    #define the empty dictionary
     histDict={}
-    #NEntries=len(ws.getHistory().getAlgorithmHistories())
-    NEntries=ws.getHistory().size()
-    subDicts=[] #list of dictionary names within the main dictionary
-    cntr=0
-    for i in range(NEntries):
-                NTags=len(ws.getHistory().getAlgorithmHistories()[i].getProperties())
-                print ws.getHistory().getAlgorithmHistories()[i].name()
-                entry=ws.getHistory().getAlgorithmHistories()[i].name()
-                #histories can contain multiple entries with duplicate names.  
-                #However the latest duplicate name will be the one that survies
-                #placement into the dictionary.  To avoid this issue, check each
-                #dictionary label to see if it has been used before and if so,
-                #add an index counter value to the name to keep it unique.
-                #Not doing this will append all of the key/value pairs into the
-                #original dictionary declaration.
-                if entry in subDicts:
-                    entry=entry+str(cntr) #append a unique identifier to this subDict
-                    cntr+=1 #increment counter
-                subDicts.append(entry) #put new subDict in list
-                #place each key/value pair into the corresponding subDict
-                for j in range(NTags):
-                    name=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name()
-                    value=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value()
-                    histDict.setdefault(entry,{})[name]=value
-
-    #Get combo box labels - also add them to histDict
-    XName=ws.getXDimension().getName()
-    if XName == 'DeltaE':
-        XName = 'E (meV)'
+    
+    #Need to determine if workspace is a single workspace or MergedMD workspace
+    #as the history dictionary is filled out differently in these cases
+                    
+    NHist=ws.getHistory().size()
+    gotOne=0
+    for i in range(NHist):
+        if 'MergeMD' in ws.getHistory().getAlgorithmHistories()[i].name():
+            gotOne +=1
+    print "gotOne: ",gotOne
+                    
+    if gotOne > 0:
+        #case we have a single crystal workspace (assumes that MergeMD was part of processing for single crystal file)
+        #information in this case is in various locations thus histDict is created manually as name:value pairs
+        """
+        #Update Unit Cell Lattice Parameters
+        a = '%.2f' % float(histDict['SetUB']['a'])
+        b = '%.2f' % float(histDict['SetUB']['b'])
+        c = '%.2f' % float(histDict['SetUB']['c'])
+        alpha = '%.2f' % float(histDict['SetUB']['alpha'])
+        beta = '%.2f' % float(histDict['SetUB']['beta'])
+        gamma ='%.2f' % float(histDict['SetUB']['gamma'])
+        uvec = histDict['SetUB']['u'].split(',')
+        vvec = histDict['SetUB']['v'].split(',')
+    
+        #Get Goniometer settings
+        Axis0=histDict['SetGoniometer']['Axis0'].split(',')
+        Axis1=histDict['SetGoniometer']['Axis1'].split(',')
+    
+        #Get Viewing axes info
+        Uproj=histDict['ConvertToMD']['Uproj'].split(',')
+        Vproj=histDict['ConvertToMD']['Vproj'].split(',')
+        Wproj=histDict['ConvertToMD']['Wproj'].split(',')
+    
+        #Get min/max values
+        MinVals=histDict['ConvertToMD']['MinValues'].split(',')
+        MaxVals=histDict['ConvertToMD']['MaxValues'].split(',')         
+        """
+        
+        histDict.setdefault('SetUB',{})['a']=str(ws.getExperimentInfo(0).sample().getOrientedLattice().a())
+        histDict.setdefault('SetUB',{})['b']=str(ws.getExperimentInfo(0).sample().getOrientedLattice().b())
+        histDict.setdefault('SetUB',{})['c']=str(ws.getExperimentInfo(0).sample().getOrientedLattice().c())
+        histDict.setdefault('SetUB',{})['alpha']=str(ws.getExperimentInfo(0).sample().getOrientedLattice().alpha())
+        histDict.setdefault('SetUB',{})['beta']=str(ws.getExperimentInfo(0).sample().getOrientedLattice().beta())
+        histDict.setdefault('SetUB',{})['gamma']=str(ws.getExperimentInfo(0).sample().getOrientedLattice().gamma())
+        uVecLst=str(ws.getExperimentInfo(0).sample().getOrientedLattice().getuVector()).replace('[','').replace(']','').split(',')
+        uVec=[round(float(uVecLst[0])),round(float(uVecLst[1])),round(float(uVecLst[2]))]
+        histDict.setdefault('SetUB',{})['u']=str(uVec[0])+','+str(uVec[1])+','+str(uVec[2])
+        vVecLst=str(ws.getExperimentInfo(0).sample().getOrientedLattice().getvVector()).replace('[','').replace(']','').split(',')
+        vVec=[round(float(vVecLst[0])),round(float(vVecLst[1])),round(float(vVecLst[2]))]
+        histDict.setdefault('SetUB',{})['v']=str(vVec[0])+','+str(vVec[1])+','+str(vVec[2])
+        
+        #these two currently not available when reading in a Single Crystal MergeMD workspace - keep the placeholders
+        histDict.setdefault('SetGoniometer',{})['Axis0']=" "
+        histDict.setdefault('SetGoniometer',{})['Axis1']=" "
+        
+        P=ws.getExperimentInfo(0).run()["W_matrix"].value #projection matrix
+        histDict.setdefault('ConvertToMD',{})['Uproj']=str(P[0])+','+str(P[3])+','+str(P[6])
+        histDict.setdefault('ConvertToMD',{})['Vproj']=str(P[1])+','+str(P[4])+','+str(P[7])
+        histDict.setdefault('ConvertToMD',{})['Wproj']=str(P[2])+','+str(P[5])+','+str(P[8])
+        Mn0=ws.getDimension(0).getMinimum()
+        Mn1=ws.getDimension(1).getMinimum()
+        Mn2=ws.getDimension(2).getMinimum()
+        Mn3=ws.getDimension(3).getMinimum()
+        Mx0=ws.getDimension(0).getMaximum()
+        Mx1=ws.getDimension(1).getMaximum()
+        Mx2=ws.getDimension(2).getMaximum()
+        Mx3=ws.getDimension(3).getMaximum()
+        histDict.setdefault('ConvertToMD',{})['MinValues']=str(Mn0)+','+str(Mn1)+','+str(Mn2)+','+str(Mn3)
+        histDict.setdefault('ConvertToMD',{})['MaxValues']=str(Mx0)+','+str(Mx1)+','+str(Mx2)+','+str(Mx3)
+        
     else:
-        XName=XName+config.XYZUnits
-    histDict.setdefault('Names',{})['XName']=XName
-    YName=ws.getYDimension().getName()
-    if YName == 'DeltaE':
-        YName = 'E (meV)'
-    else:
-        YName=YName+config.XYZUnits
-    histDict.setdefault('Names',{})['YName']=YName
-    ZName=ws.getZDimension().getName()
-    if ZName == 'DeltaE':
-        ZName = 'E (meV)'
-    else:
-        ZName=ZName+config.XYZUnits
-    histDict.setdefault('Names',{})['ZName']=ZName
-    TName=ws.getTDimension().getName()
-    if TName == 'DeltaE':
-        TName = 'E (meV)'
-    else:
-        TName=TName+config.XYZUnits
-    histDict.setdefault('Names',{})['TName']=TName
+        #case for other workspace types - assuming single workspace
+        #NEntries=len(ws.getHistory().getAlgorithmHistories())
+        NEntries=ws.getHistory().size()
+        subDicts=[] #list of dictionary names within the main dictionary
+        cntr=0
+        for i in range(NEntries):
+            NTags=len(ws.getHistory().getAlgorithmHistories()[i].getProperties())
+            print ws.getHistory().getAlgorithmHistories()[i].name()
+            entry=ws.getHistory().getAlgorithmHistories()[i].name()
+            #histories can contain multiple entries with duplicate names.  
+            #However the latest duplicate name will be the one that survies
+            #placement into the dictionary.  To avoid this issue, check each
+            #dictionary label to see if it has been used before and if so,
+            #add an index counter value to the name to keep it unique.
+            #Not doing this will append all of the key/value pairs into the
+            #original dictionary declaration.
+            if entry in subDicts:
+                entry=entry+str(cntr) #append a unique identifier to this subDict
+                cntr+=1 #increment counter
+            subDicts.append(entry) #put new subDict in list
+            #place each key/value pair into the corresponding subDict
+            for j in range(NTags):
+                name=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].name()
+                value=ws.getHistory().getAlgorithmHistories()[i].getProperties()[j].value()
+                histDict.setdefault(entry,{})[name]=value
+    
+    try:
+        #not all workspaces that get here will have getDimension() info, so check for it
+        #Get combo box labels - also add them to histDict
+        XName=ws.getXDimension().getName()
+        if XName == 'DeltaE':
+            XName = 'E (meV)'
+        else:
+            XName=XName+config.XYZUnits
+        histDict.setdefault('Names',{})['XName']=XName
+        YName=ws.getYDimension().getName()
+        if YName == 'DeltaE':
+            YName = 'E (meV)'
+        else:
+            YName=YName+config.XYZUnits
+        histDict.setdefault('Names',{})['YName']=YName
+        ZName=ws.getZDimension().getName()
+        if ZName == 'DeltaE':
+            ZName = 'E (meV)'
+        else:
+            ZName=ZName+config.XYZUnits
+        histDict.setdefault('Names',{})['ZName']=ZName
+        TName=ws.getTDimension().getName()
+        if TName == 'DeltaE':
+            TName = 'E (meV)'
+        else:
+            TName=TName+config.XYZUnits
+        histDict.setdefault('Names',{})['TName']=TName
+    except:
+        pass
     
     print "** histDict: "
     print histDict
@@ -1384,14 +1467,32 @@ def updateSCParms(self,histDict,modes):
     #one may not be able to deduce the correct order of the labels from using these.
     #Another approach may be to just clear the cut/slice/vol tabs when these
     #cases occur.
-    self.ui.lineEditSCVAu1Label.setText(getLabelChar(histDict,'XName'))
-    self.ui.lineEditSCVAu2Label.setText(getLabelChar(histDict,'YName'))
-    self.ui.lineEditSCVAu3Label.setText(getLabelChar(histDict,'ZName'))
+    
+    #check if we have values we can extract from BinMD having been run
+    try:
+        labels = convertNamesToViewAxesLabels(histDict)
+        """
+        self.ui.lineEditSCVAu1Label.setText(getLabelChar(histDict,'XName'))
+        self.ui.lineEditSCVAu2Label.setText(getLabelChar(histDict,'YName'))
+        self.ui.lineEditSCVAu3Label.setText(getLabelChar(histDict,'ZName'))
+        """
+
+    except:
+        #BinMD related parameters not present - skip
+        labels = convertProjToViewAxesLabels(histDict)
+        
+        
+    self.ui.lineEditSCVAu1Label.setText(labels[0])
+    self.ui.lineEditSCVAu2Label.setText(labels[1])
+    self.ui.lineEditSCVAu3Label.setText(labels[2])
 
     print "*****************"
     print "histDict: "
     print histDict
     print "*****************"
+    
+    print "labels: ",labels
+    
    
     #can now call methods for updating ViewSCSDict and for populating the 
     #view tabs as if the 'Calculate Projections' button was pressed
@@ -1470,4 +1571,293 @@ def getLabelChar(histDict,dimName):
         
     
 
+def convertNamesToViewAxesLabels(histDict):
+    #function to extract X,Y,Z,T names from history dictionary and use these
+    #to update the MSlice GUI View Axes labels.
+    
+    #View axis info indicates the order for the labels based upon
+    #the values in Uproj, Vproj, and Wproj.  These projection vectors can be 
+    #used to reverse engineer from the X,Y,Z, and TName info which label
+    #corresponds to which projection vector.
+    #For example, Uproj = 1,1,0 would indicate that the Name with [H,H,0] would
+    #be associated with label H.  Keeping in mind that [H,H,0] might be in any
+    #of the 4 names depending upon how the user saved the file.
+     
+    #Get Viewing axes info - will produce a list in the form of: ['1', '1', '0']
+    Uproj=histDict['ConvertToMD']['Uproj'].split(',')
+    Vproj=histDict['ConvertToMD']['Vproj'].split(',')
+    Wproj=histDict['ConvertToMD']['Wproj'].split(',')   
+    proj=[]
+    proj.append(Uproj)
+    proj.append(Vproj)
+    proj.append(Wproj)
+    Nproj=len(proj)
+    #for the purposes of matching things, we will restrict projection values to
+    # 1, -1, and 0
+    for i in range(Nproj):
+        for k in range(len(proj[i])):
+            if float(proj[i][k]) > 0:
+                proj[i][k] = int(1)
+            elif float(proj[i][k]) < 0:
+                proj[i][k] = int(-1)
+            else:
+                proj[i][k] = 0
+        proj[i] = str(proj[i]) #convert to string to use for match checking later
+    #at this point, have projections in terms of +1,-1, and 0
+    
+    #Get AlignedDim0-3 - will produce a string in the form of:
+    #'[0,0,L],-6.49,6.49,1' - only want the 0,0,L part
+    
+    print "histDict['BinMD']: "
+    print histDict['BinMD']
+    
+    #use the most recent BinMD entry in the dictionary
+    #Note that BinMD has an incrementing count value appended to each instance of the BinMD name contained in the history
+    BinMDbase='BinMD'
+    binCntr=-1
+    while True:
+        binCntr+=1
+        if binCntr == 0:
+            BinMD=BinMDbase
+        else:
+            BinMD=BinMDbase+str(binCntr)
+        try:
+            tmp=histDict[BinMD]
+        except:
+            break            
+    
+    #need to unwind the counter given that the try failed yet the counter still increments before the try is executed
+    binCntr-=1
+    if binCntr == 0:
+        BinMD=BinMDbase
+    else:
+        BinMD=BinMDbase+str(binCntr)
+    
+    
+    lst=[]
+    lst.append(histDict[BinMD]['AlignedDim0'])
+    lst.append(histDict[BinMD]['AlignedDim1'])
+    lst.append(histDict[BinMD]['AlignedDim2'])
+    lst.append(histDict[BinMD]['AlignedDim3'])
+    
+    print "lst: ",lst
+    
+    Nlst=len(lst)
+    ADlst=[]
+    Lablst=[]
+    for i in range(Nlst):
+        ADsublst=[]
+        val=lst[i]
+        try:
+            c1=val.index('[')
+            c2=val.index(']')
+        except:
+            #case AlignedDim is for energy and not HKL so skip this one
+            pass
+        else:
+            #run the following code when the corresponding 'try' works
+            ADstr=val[c1+1:c2] #extract the portion between []
+            ADstr=ADstr.split(',') #make the string into a list such as ['0', '0', 'L']
+            
+            if 'H' in ADstr:
+                Lablst.append('H')
+            elif 'K' in ADstr:
+                Lablst.append('K')
+            elif 'L' in ADstr:
+                Lablst.append('L')
+            else:
+                #case should not happen - checking if it does
+                Lablst.append(' ')
+                
+            for k in range(Nproj):
+                #now check which projection most closely matches the AlignedDim strings
+                if ADstr[k] == '0':
+                    ADsublst.append(0)
+                elif ADstr[k] == '0.0':
+                    ADsublst.append(0)
+                elif '-' in ADstr[k]:
+                    ADsublst.append(-1)
+                else:
+                    ADsublst.append(1)
+        if ADsublst != []:
+            ADlst.append(str(ADsublst))
+            
+    #At this point should have sets of strings to check which proj matches which AlignedDim
+    labels=[]
+    for i in range(Nproj):
+        for j in range(Nlst-1):
+            if proj[i] == ADlst[j]:
+                #found a match!
+                labels.append(Lablst[j])
+                break
+    """
+    print "**  **  **  "
+    print "ADlst: "
+    print ADlst
+    print "proj: "
+    print proj
+    print "Labels: ",labels
+    """
+    return labels
+            
+    
+def convertProjToViewAxesLabels(histDict):
+    #function to extract X,Y,Z,T names from history dictionary and use these
+    #to update the MSlice GUI View Axes labels.
+    
+    #View axis info indicates the order for the labels based upon
+    #the values in Uproj, Vproj, and Wproj.  These projection vectors can be 
+    #used to reverse engineer from the X,Y,Z, and TName info which label
+    #corresponds to which projection vector.
+    #For example, Uproj = 1,1,0 would indicate that the Name with [H,H,0] would
+    #be associated with label H.  Keeping in mind that [H,H,0] might be in any
+    #of the 4 names depending upon how the user saved the file.
+     
+    #Get Viewing axes info - will produce a list in the form of: ['1', '1', '0']
+    Uproj=histDict['ConvertToMD']['Uproj'].split(',')
+    Vproj=histDict['ConvertToMD']['Vproj'].split(',')
+    Wproj=histDict['ConvertToMD']['Wproj'].split(',')   
+    proj=[]
+    proj.append(Uproj)
+    proj.append(Vproj)
+    proj.append(Wproj)
+    Nproj=len(proj)
+    #for the purposes of matching things, we will restrict projection values to
+    # 1, -1, and 0
+    for i in range(Nproj):
+        for k in range(len(proj[i])):
+            if float(proj[i][k]) > 0:
+                proj[i][k] = int(1)
+            elif float(proj[i][k]) < 0:
+                proj[i][k] = int(-1)
+            else:
+                proj[i][k] = 0
+    #at this point, have projections in terms of +1,-1, and 0    
 
+    tstLabels=['H','K','L']
+    labels=[]
+
+    for i in range(Nproj):
+        for k in range(len(proj[i])):
+            if proj[i][k] != 0 and tstLabels[k] != 'X':
+                labels.append(tstLabels[k])
+                tstLabels[k]='X'
+                break
+                
+    return labels
+
+    
+def SaveMDGrp(grpMDWS,filename):
+    """
+    The current version of SaveMD() will only save the last workspace in a group of 
+    MD workspaces.  This being the case, it is necessary to save each workspace
+    individually then recreate the group MD workspace upon the load process.
+    
+    This function takes a group workspace comprised of MD workspaces and saves 
+    the corresponding workspaces to disk.  To help manage, a subdirectory is
+    created with the base name of the workspace to be saved and the individual
+    workspaces are located within this subdirectory.
+    
+    To support future plug-n-play with an eventual SaveMD() algorithm that will
+    properly handle a group of MDEvent workspaces, an empty workspace will be 
+    written as a placehlolder workspace and upon it's discovery by SaveMDGrp(),
+    it will seek the corresponding subdirectory to locate the data. Thus a 
+    corresponding subdirectory is also created along with the empty workspace.
+    
+    Note that filename will (probably) include the .nxs extension.  The base name
+    is derived and used to locate the subdirectory and each workspace to save.
+    
+    """
+    
+    print "grpMDWS.name(): ",grpMDWS.name()
+    
+    #verify composition of the workspace as a group of MD workspaces
+    if 'WorkspaceGroup' in grpMDWS.id():
+        #case we have a group workspace
+        #then determine the workspace types
+        Ngws=len(grpMDWS)
+        print "Ngws: ",Ngws
+        for i in range(Ngws):
+            if 'MDEventWorkspace' not in grpMDWS[i].id():
+                #one of the workspaces in the group is not an MDEventworkspace
+                #inform user and exit out in this case
+                dialog=QtGui.QMessageBox()
+                dialog.setText("Group contains one or more non-MDEvent workspaces - Returning as all must be MDEvent workspaces")
+                dialog.exec_()  
+                return
+        #getting to this point indicates we have the a group of MDEventworkspaces to save
+        
+        #create an empty MDEvent workspace to be a placeholder
+        tmpMDWS=CreateMDWorkspace(Dimensions=1,Names="EmptyMDWS",Extents=[0,1],Units=[' '])
+        #then save it to disk
+        SaveMD(tmpMDWS,filename)
+        #can check for this workspace as follows:
+        #tmpMDWS.getDimension(0).getName() == 'EmptyMDWS'
+        
+        #get filename parts then create the subdirectory
+        (prefix, sep, suffix) = filename.rpartition('.')
+        
+        try:
+            os.makedirs(prefix)
+        except OSError as exception:
+            print "exception.errno: ",exception.errno
+            if exception.errno != errno.EEXIST:
+                raise
+            else:
+                print "Directory %s already exists." % prefix
+        #at this point, a directory should exist we can write data to
+        grpMDWSName=grpMDWS.name()
+        for i in range(Ngws):
+            #fname=prefix+grpMDWSName+"_"+str(i)+'.nxs'
+            #use workspace names within the group workspace to create the filenames
+            fname='./'+prefix+"/"+grpMDWS[i].name()+'.nxs'
+            #fname='./'+grpMDWS[i].name()+'.nxs'
+            print "grpMDWS[i].name(): ",grpMDWS[i].name()
+            print "fname: ",fname
+            SaveMD(grpMDWS[i],Filename=fname)
+    
+    
+    else:
+        
+        dialog=QtGui.QMessageBox()
+        dialog.setText("Not a WorkspaceGroup - Returning")
+        dialog.exec_()      
+    
+    
+def LoadMDGrp(grpMDWSName,filename):
+    #companion function to SaveMDGrp()
+    
+    #LoadMDGrp checks that the supplied workspace is empty (as would be expected)
+    #if so, then:
+    #  - it reads in all of the workspaces
+    #  - creates a group from these workspaces
+    (prefix, sep, suffix) = filename.rpartition('.')
+    chk = LoadMD(Filename=filename)
+    if chk.getDimension(0).getName() == 'EmptyMDWS':
+        #then case the placeholder workspace was discovered
+        #seek to the corresponding subdirectory with the MD workspaces and read these in
+        wslst = os.listdir(prefix)
+        Nlst=len(wslst)
+        for i in range(Nlst):
+            LoadMD(wslst[i],OutputWorkspace=wslst[i])
+            
+        #once all workspaces have been loaded, then create the group workspace
+        GroupWorkspaces(wslst,OutputWorkspace=grpMDWSName)
+        
+        return grpMDWSName
+        
+        
+    else:
+        dialog=QtGui.QMessageBox()
+        dialog.setText("Incorrect workspace type discovered - Returning")
+        dialog.exec_()           
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

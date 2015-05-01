@@ -8,16 +8,11 @@ from MSliceHelpers import *
 def DoSCPlotMSlice(self):
     #Not sure why, but it was necessary to include MPL1DCutHelpers inside this function definition for it to be found
     from MPL1DCutHelpers import *
+    
+    #get parameters from 1D cut GUI
     __ws, NXDbins, NYDbins, linecolor, style, markercolor, mstyle, plttitle, pltlegend, legloc = getMPLParms(self)
     
-    #make some test data
-    #xaxis=range(100)
-    #sigsum=range(100)
-    
-    #produce 1D Cut data:
-    # self.ui.normalized=normalized
-    # self.ui.histoDataSum=histoDataSum
-    # self.ui.histoNormSum=histoNormSum
+    #cut the workspace
     produce1DCut(self,__ws)
     #note that __ws not used in this function past this point
     
@@ -251,7 +246,7 @@ def produce1DCut(self,__ws):
     print "AD2: ",AD2,'  type: ',type(AD2)
     print "AD3: ",AD3,'  type: ',type(AD3)
     print "type(__ws): ",type(__ws)
-    print "__ws: ",__ws.name
+    print "__ws: ",__ws.name()
 
     #make call to Mantid algorithms
     __wsHisto = alg1DCut(__ws,AD0,AD1,AD2,AD3,self) 
@@ -265,10 +260,20 @@ def alg1DCut(__ws,AD0,AD1,AD2,AD3,obj):
     #Final 1D cut algorithm implemented here utilizing Mantid algorithms
     #This function is formatted to facilitate it being unit tested
     
+    #here __ws is a single workspace, either always was a single workspace or it was merged into one
+    
     #to adapt this function to work with either 2D or 1D workspaces, must first
     #check workspace dimensionallity
-    NXDbins=__ws.getXDimension().getNBins()	
-    NYDbins=__ws.getYDimension().getNBins()
+    
+    if 'Group' in __ws.id():
+        #case for a group workspace
+        NXDbins=__ws[0].getXDimension().getNBins()	
+        NYDbins=__ws[0].getYDimension().getNBins()
+    else:
+        #case for an individual workspace
+        NXDbins=__ws.getXDimension().getNBins()	
+        NYDbins=__ws.getYDimension().getNBins() 
+    
     print "NXDbins: ",NXDbins,"  NYDbins: ",NYDbins
     
     
@@ -320,7 +325,6 @@ def alg1DCut(__ws,AD0,AD1,AD2,AD3,obj):
     BinMD method for calculating workspaces to use with SliceViewer
     
     """
-    
     __ows=__ws.name()+'_histo'
     BinMD(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
     __wsHisto = mtd.retrieve(__ows)
