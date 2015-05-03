@@ -10,16 +10,23 @@ def DoSCPlotMSlice(self):
     from MPL1DCutHelpers import *
     
     #get parameters from 1D cut GUI
-    __ws, NXDbins, NYDbins, linecolor, style, markercolor, mstyle, plttitle, pltlegend, legloc = getMPLParms(self)
-    
+    __wstmp, NXDbins, NYDbins, linecolor, style, markercolor, mstyle, plttitle, pltlegend, legloc = getMPLParms(self)
+    #FIXME
+    #Found in Linux version that plot cut seemed to be stepping on the 
+    #workspace used by sliceviewer.  To circumvent this problem, passing a 
+    #clone workspace to the cut tool - seems to work for now but maybe worth
+    #a second look sometime.
+    __ws=CloneWorkspace(__wstmp)
     #cut the workspace
     produce1DCut(self,__ws)
     #note that __ws not used in this function past this point
     
     if self.ui.checkBoxUseNorm.isChecked():
         sigsum=self.ui.histoDataSum.getSignalArray()/self.ui.histoDataSum.getNumEventsArray()
+        normsum=self.ui.histoDataSum.getNumEventsArray()
     else:
         sigsum=self.ui.histoDataSum.getSignalArray()
+        normsum=1
 
     #During each plotting pass, update ASCII data available to be saved to file
     createASCII(self)
@@ -73,6 +80,7 @@ def DoSCPlotMSlice(self):
         if self.ui.checkBoxErrorBars.isChecked():
             #case to add errorbars
             errcolor=str(self.ui.MPLcomboBoxErrorColor.currentText())
+            
             ebar=2.0*np.sqrt(self.ui.histoDataSum.getErrorSquaredArray())/normsum
             plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='',label='_nolegend_')
             #seems to be a bug in errorbar that does not respect the color of the line so just replot the line once errorbar is done
@@ -249,14 +257,14 @@ def produce1DCut(self,__ws):
     print "__ws: ",__ws.name()
 
     #make call to Mantid algorithms
-    __wsHisto = alg1DCut(__ws,AD0,AD1,AD2,AD3,self) 
+    __wsHisto = alg1DCut(__ws,AD0,AD1,AD2,AD3) 
     print " __wsHisto.name(): ",__wsHisto.name()
         
     #save results in the object
     self.ui.histoDataSum=__wsHisto
 
         
-def alg1DCut(__ws,AD0,AD1,AD2,AD3,obj):
+def alg1DCut(__ws,AD0,AD1,AD2,AD3):
     #Final 1D cut algorithm implemented here utilizing Mantid algorithms
     #This function is formatted to facilitate it being unit tested
     
@@ -453,6 +461,7 @@ def getSVValuesSC(self,__lws):
             shrtstr=aditem[indx1+2:]
             shrtstr=shrtstr.split(',')
             adlstparse.append([name+config.XYZUnits,shrtstr[0],shrtstr[1],shrtstr[2]])
+            #FIXME
             #Note - attempted to utilize user selected region values from Slice Viewer here, 
             #however the values in the file do not seem to correspond to the values 
             #on the screen from SliceViewer.  So for now, just showing full range
@@ -499,15 +508,16 @@ def fill1DCutGUIParms(self,params):
     self.ui.comboBoxSCCutE.setItemText(3,params[3][0])
     self.ui.comboBoxSCCutE.setCurrentIndex(3)
     
-    #Update Line Edit controls
-    self.ui.lineEditSCCutXFrom.setText(params[0][1])
-    self.ui.lineEditSCCutXTo.setText(params[0][2])
-    self.ui.lineEditSCCutYFrom.setText(params[1][1])
-    self.ui.lineEditSCCutYTo.setText(params[1][2])
-    self.ui.lineEditSCCutZFrom.setText(params[2][1])
-    self.ui.lineEditSCCutZTo.setText(params[2][2])
-    self.ui.lineEditSCCutEFrom.setText(params[3][1])
-    self.ui.lineEditSCCutETo.setText(params[3][2])
+    #Update Line Edit controls - limit number of significant digits 
+    sigdig=3 #later this can be made a config.py parameter if desired
+    self.ui.lineEditSCCutXFrom.setText(str(round(float(params[0][1]),sigdig)))
+    self.ui.lineEditSCCutXTo.setText(str(round(float(params[0][2]),sigdig)))
+    self.ui.lineEditSCCutYFrom.setText(str(round(float(params[1][1]),sigdig)))
+    self.ui.lineEditSCCutYTo.setText(str(round(float(params[1][2]),sigdig)))
+    self.ui.lineEditSCCutZFrom.setText(str(round(float(params[2][1]),sigdig)))
+    self.ui.lineEditSCCutZTo.setText(str(round(float(params[2][2]),sigdig)))
+    self.ui.lineEditSCCutEFrom.setText(str(round(float(params[3][1]),sigdig)))
+    self.ui.lineEditSCCutETo.setText(str(round(float(params[3][2]),sigdig)))
     #currently not implementing intensity
     #self.ui.lineEditSCCutIntensityFrom.setText()
     #self.ui.lineEditSCCutIntensityTo.setText()
