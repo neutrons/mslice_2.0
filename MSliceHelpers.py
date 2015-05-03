@@ -753,46 +753,39 @@ def makeSCNames(self):
     print "type str(self.ui.lineEditSCVAu1a.text()): ",type(str(self.ui.lineEditSCVAu1a.text()))
     print "str(self.ui.lineEditSCVAu1a.text()): ",str(self.ui.lineEditSCVAu1a.text())
     
+    def filterLabel(uin,uLabel):
+        #helper function to clean numeric text for combo box labels
+        #assumes that uin is text
+        # - convert to float with 1 decimal place, then do checks
+        uinTmp=str(round(float(uin),1))
+
+        #define checks
+        #1 and -1 are special cases, just want the labels to show up in
+        #these cases and not the ones themselves
+        if uinTmp == '1.0':
+            uout=''
+        elif uinTmp == '-1.0':
+            uout='-'
+        else:
+            uout=uinTmp
+        uout=uout.replace('.0','') #remove any training empty digits
+        #zeros not to have Label characters
+        if uinTmp == '0.0':
+            uout='0'
+        else:
+            uout=str(uout)+str(uLabel)
+
+        return uout
+    
+    
     u1a=str(self.ui.lineEditSCVAu1a.text())
     u1b=str(self.ui.lineEditSCVAu1b.text())
     u1c=str(self.ui.lineEditSCVAu1c.text())
     u1Label=str(self.ui.lineEditSCVAu1Label.text())
     print "***** u1a: ",u1a,"  u1b: ",u1b,"  u1c: ",u1c,"  u1Label: ",u1Label
-    
-    if u1a == '1':
-        lab1a=''
-    elif u1a == '-1':
-        lab1a='-'
-    else:
-        lab1a=u1a
-    if u1a == '0':
-        lab1a=str(lab1a)
-    else:
-        lab1a=str(lab1a)+str(u1Label)
-    print "lab1a: ",lab1a,"  u1Label: ",u1Label
-    print "lab1a: ",lab1a
-    if u1b == '1':
-        lab1b=''
-    elif u1b == '-1':
-        lab1b='-'
-    else:
-        lab1b=u1b
-    if u1b == '0':
-        lab1b=str(lab1b)
-    else:
-        lab1b=str(lab1b)+str(u1Label)
-    print "lab1b: ",lab1b
-    if u1c == '1':
-        lab1c=''
-    elif u1c == '-1':
-        lab1c='-'
-    else:
-        lab1c=u1c
-    if u1c == '0':
-        lab1c=str(lab1c)
-    else:
-        lab1c=str(lab1c)+str(u1Label)
-    print "lab1c: ",lab1c
+    lab1a = filterLabel(u1a,u1Label)
+    lab1b = filterLabel(u1b,u1Label)
+    lab1c = filterLabel(u1c,u1Label)    
     u1Name='['+lab1a+','+lab1b+','+lab1c+']'+ config.XYZUnits
     print "u1Name: ",u1Name
 
@@ -800,37 +793,9 @@ def makeSCNames(self):
     u2b=str(self.ui.lineEditSCVAu2b.text())
     u2c=str(self.ui.lineEditSCVAu2c.text())
     u2Label=str(self.ui.lineEditSCVAu2Label.text())
-    if u2a == '1':
-        lab2a=''
-    elif u2a == '-1':
-        lab2a='-'
-    else:
-        lab2a=u2a
-    if u2a == '0':
-        lab2a=str(lab2a)
-    else:
-        lab2a=str(lab2a)+str(u2Label)
-    if u2b == '1':
-        lab2b=''
-    elif u2b == '-1':
-        lab2b='-'
-    else:
-        lab2b=u2b
-    if u2b == '0':
-        lab2b=str(lab2b)
-    else:
-        lab2b=str(lab2b)+str(u2Label)
-    if u2c == '1':
-        lab2c=''
-    elif u2c == '-1':
-        lab2c='-'
-    else:
-        lab2c=u2c
-    if u2c == '0':
-        lab2c=str(lab2c)
-    else:
-        lab2c=str(lab2c)+str(u2Label)
-
+    lab2a = filterLabel(u2a,u2Label)
+    lab2b = filterLabel(u2b,u2Label)
+    lab2c = filterLabel(u2c,u2Label)
     u2Name='['+lab2a+','+lab2b+','+lab2c+']'+config.XYZUnits
     print "u2Name: ",u2Name
             
@@ -838,36 +803,9 @@ def makeSCNames(self):
     u3b=str(self.ui.lineEditSCVAu3b.text())
     u3c=str(self.ui.lineEditSCVAu3c.text())
     u3Label=str(self.ui.lineEditSCVAu3Label.text())
-    if u3a == '1':
-        lab3a=''
-    elif u3a == '-1':
-        lab3a='-'
-    else:
-        lab3a=u3a
-    if u3a == '0':
-        lab3a=str(lab3a)
-    else:
-        lab3a=str(lab3a)+str(u3Label)
-    if u3b == '1':
-        lab3b=''
-    elif u3b == '-1':
-        lab3b='-'
-    else:
-        lab3b=u3b
-    if u3b == '0':
-        lab3b=str(lab3b)
-    else:
-        lab3b=str(lab3b)+str(u3Label)
-    if u3c == '1':
-        lab3c=''
-    elif u3c == '-1':
-        lab3c='-'
-    else:
-        lab3c=u3c
-    if u3c == '0':
-        lab3c=str(lab3c)
-    else:
-        lab3c=str(lab3c)+str(u3Label)
+    lab3a = filterLabel(u3a,u3Label)
+    lab3b = filterLabel(u3b,u3Label)
+    lab3c = filterLabel(u3c,u3Label)    
     u3Name='['+lab3a+','+lab3b+','+lab3c+']'+config.XYZUnits
     print "u3Name: ",u3Name
     
