@@ -27,6 +27,8 @@ from mantid.simpleapi import *
 import config
 from PyQt4 import Qt, QtCore, QtGui
 import errno
+import matplotlib.pyplot as plt
+import numpy as np
 
 def getLastAlgFromH5Workspace(H5Workspace,**kwargs):
     """
@@ -1313,7 +1315,10 @@ def histToDict(ws):
         else:
             TName=TName+config.XYZUnits
         histDict.setdefault('Names',{})['TName']=TName
-    except:
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno)
         pass
     
     print "** histDict: "
@@ -1472,7 +1477,6 @@ def updateSCParms(self,histDict,modes):
     self.UpdateViewSCCDict()
     self.UpdateViewSCSDict()
     self.UpdateViewSCVDict()
-
         
 
 def getLabelChar(histDict,dimName):
@@ -1791,11 +1795,68 @@ def LoadMDGrp(grpMDWSName,filename):
         dialog.exec_()           
     
     
+def plot1Dplot(ws,compFilename):
+    """
+    This function is called as part of the MSlice.pyc load process when a 1D workspace is discovered
+    
+    """
+    print "Workspace name: ",ws.name()
+    print "Companion File Name: ",compFilename
     
     
+    """
+    FIXME - observing that NumEventsArray is returning a list of NaNs.  
+    Due to this, the error squared array for the SavePlotWS function in MPL1DCutHelpers.py
+    will contain ebar rather than error2 as we can pre-compute this result however
+    the user needs to be wary of the misnomer between the array name in the 1D workspace
+    and how it's used here.
     
+    #get signal and error squared array from the workspace
+    #assumes that signal and error data have already been normalized
+    NumEventsArray=ws.getNumEventsArray()
     
+    print "NumEventsArray: "
+    print NumEventsArray
+    """
+
+    NumEventsArray=ws.getNumEventsArray()    
+    signal=ws.getSignalArray()/NumEventsArray
+    error2=ws.getErrorSquaredArray()
+    ebar=2.0*np.sqrt(error2)/NumEventsArray #define error to span two sigma
+
+    print "Signal:"
+    print signal
+    print ""
+    print "ebar: "
+    print ebar
+    print ""
+    print "NumEventsArray: "
+    print NumEventsArray
+
+    #calculation should be same as: DoSCPlotMSlice() in MPLSCCutHelpers.py
     
+    #ebar=2.0*np.sqrt(self.ui.histoDataSum.getErrorSquaredArray())/normsum
+    #ebar=2.0*np.sqrt(error2)/NumEventsArray
     
+    #get dimension extents of these data
+    """
+    Following code example from MPL1DCutMain.py SavePlotWS():
+    __MDH1Dcompact=CreateMDHistoWorkspace(signal,error,Dimensionality=Ndims,Extents=extents,\
+                    NumberOfEvents=numEvents,NumberOfBins=numBins,Names=names,Units=units)    
+    """
     
+    numBins=float(ws.getDimension(0).getNBins())
+    xaxis=(float(ws.getDimension(0).getMaximum()) - float(ws.getDimension(0).getMinimum()))*np.arange(0,1,1.0/numBins) +\
+            float(ws.getDimension(0).getMinimum())
+
+        
+    fig=plt.figure()
+    ax=plt.subplot(111)
+    
+    #plt.plot(signal) #debug check signal array
+    #plt.plot(xaxis) #debug check xaxis
+    plt.errorbar(xaxis,signal,yerr=ebar,xerr=False,ecolor='r',fmt='',label='_nolegend_')    
+
+    
+    plt.show()
     

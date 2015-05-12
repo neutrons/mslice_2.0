@@ -1005,10 +1005,33 @@ class MSlice(QtGui.QMainWindow):
                 load mechanism, but for an MDEvent group workspace, it is necessary 
                 for a layer to manage proper loading
                 """
-                Load(Filename=str(wsfile),OutputWorkspace=wsName)
-
+                wsfile=str(wsfile)
+                Load(Filename=wsfile,OutputWorkspace=wsName)
+                
                 #make sure workspaces are available at the python level
                 __ws=mtd.retrieve(wsName)
+                
+                #check if the file has a companion .xml file of the same base filename
+                #if so, this indicates a 1D workspace and the workspace will be
+                #tossed to the 1D plot display program and will exit out of
+                #this method
+                
+                basefname=os.path.splitext(wsfile)
+                compFilename=basefname[0]+'.xml'
+                chkCompFile=os.path.isfile(compFilename)
+                if chkCompFile == True:
+                    #case we have a 1D mantid workspace and its companion xml file
+                    plot1Dplot(__ws,compFilename)
+                    #plot the data and return to the main program
+                    return
+                
+                try:
+                    #see if we can reduce the workspace memory footprint some
+                    keepLst=['goniometer','Ei','run_number','run_start','run_title','start_time','Filename','DirectInelasticReductionNormalisedBy','a1b','a1l','a1r','a1sd','a2b','a2l','a2r','a2sd','a2t']
+                    #RemoveLogs(__ws,KeepLogs=keepLst)
+                except:
+                    #if not, just move on.
+                    pass
                 print "** type(__ws): ",type(__ws)
 
                 
@@ -1033,7 +1056,10 @@ class MSlice(QtGui.QMainWindow):
                     gotOne +=1 #currently not checking for more than one single crystal file
         
                     
-                except:
+                except Exception as e:
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                    print(exc_type, fname, exc_tb.tb_lineno)
                     #If this except clause is run, then it's assumed this is a powder file
                     #case where the needed parameters for SC CalcProj not available in the workspace
                     #skip this workspace and check next one if there are more.
@@ -2802,6 +2828,7 @@ class MSlice(QtGui.QMainWindow):
         SCVAu3c=str(self.ui.lineEditSCVAu3c.text())
         SCVAu3Label=str(self.ui.lineEditSCVAu3Label.text())
         
+        """
         #pack variables into a dictionary
         params_dict_root={'root':{
                             'SCUCa':SCUCa,
@@ -2830,6 +2857,37 @@ class MSlice(QtGui.QMainWindow):
                             'SCVAu3b':SCVAu3b,                        
                             'SCVAu3c':SCVAu3c,                        
                             'SCVAu3Label':SCVAu3Label                                                
+                        }}
+        """
+                        
+        #pack variables into a dictionary
+        params_dict_root={'root':{
+                            'a':SCUCa,
+                            'b':SCUCb,
+                            'c':SCUCc,
+                            'alpha':SCUCalpha,                   
+                            'beta':SCUCbeta,                                          
+                            'gamma':SCUCgamma,                
+                            'ux':SCCOux,
+                            'uy':SCCOuy,                        
+                            'uz':SCCOuz,            
+                            'vx':SCCOvx,
+                            'vy':SCCOvy,                        
+                            'vz':SCCOvz,     
+                            'Psi':SCCOPsi,                        
+                            'MN':SCCOMN,                        
+                            'u1a':SCVAu1a,                    
+                            'u1b':SCVAu1b,                        
+                            'u1c':SCVAu1c,                        
+                            'u1Label':SCVAu1Label,
+                            'u2a':SCVAu2a,                       
+                            'u2b':SCVAu2b,                        
+                            'u2c':SCVAu2c,                        
+                            'u2Label':SCVAu2Label,                        
+                            'u3a':SCVAu3a,
+                            'u3b':SCVAu3b,                        
+                            'u3c':SCVAu3c,                        
+                            'u3Label':SCVAu3Label                                                
                         }}
                         
         #view key:value pairs for debug
@@ -2864,36 +2922,36 @@ class MSlice(QtGui.QMainWindow):
                 params_dict[key]=''
         
         #Unit Cell Parameters:
-        self.ui.lineEditUCa.setText(params_dict.get('SCUCa'))
-        self.ui.lineEditUCb.setText(params_dict.get('SCUCb'))
-        self.ui.lineEditUCc.setText(params_dict.get('SCUCc'))
-        self.ui.lineEditUCalpha.setText(params_dict.get('SCUCalpha'))
-        self.ui.lineEditUCbeta.setText(params_dict.get('SCUCbeta'))
-        self.ui.lineEditUCgamma.setText(params_dict.get('SCUCgamma'))
+        self.ui.lineEditUCa.setText(params_dict.get('a'))
+        self.ui.lineEditUCb.setText(params_dict.get('b'))
+        self.ui.lineEditUCc.setText(params_dict.get('c'))
+        self.ui.lineEditUCalpha.setText(params_dict.get('alpha'))
+        self.ui.lineEditUCbeta.setText(params_dict.get('beta'))
+        self.ui.lineEditUCgamma.setText(params_dict.get('gamma'))
         
         #Crystal Orientations:
-        self.ui.lineEditSCCOux.setText(params_dict.get('SCCOux'))
-        self.ui.lineEditSCCOuy.setText(params_dict.get('SCCOuy'))
-        self.ui.lineEditSCCOuz.setText(params_dict.get('SCCOuz'))
-        self.ui.lineEditSCCOvx.setText(params_dict.get('SCCOvx'))
-        self.ui.lineEditSCCOvy.setText(params_dict.get('SCCOvy'))
-        self.ui.lineEditSCCOvz.setText(params_dict.get('SCCOvz'))
-        self.ui.lineEditSCCOPsi.setText(params_dict.get('SCGSPsi'))		
-        self.ui.lineEditSCCOName.setText(params_dict.get('SCGSMN'))		
+        self.ui.lineEditSCCOux.setText(params_dict.get('ux'))
+        self.ui.lineEditSCCOuy.setText(params_dict.get('uy'))
+        self.ui.lineEditSCCOuz.setText(params_dict.get('uz'))
+        self.ui.lineEditSCCOvx.setText(params_dict.get('vx'))
+        self.ui.lineEditSCCOvy.setText(params_dict.get('vy'))
+        self.ui.lineEditSCCOvz.setText(params_dict.get('vz'))
+        self.ui.lineEditSCCOPsi.setText(params_dict.get('Psi'))		
+        self.ui.lineEditSCCOName.setText(params_dict.get('MN'))		
         
         #Viewing Angle
-        self.ui.lineEditSCVAu1a.setText(params_dict.get('SCVAu1a'))
-        self.ui.lineEditSCVAu1b.setText(params_dict.get('SCVAu1b'))
-        self.ui.lineEditSCVAu1c.setText(params_dict.get('SCVAu1c'))
-        self.ui.lineEditSCVAu1Label.setText(params_dict.get('SCVAu1Label'))
-        self.ui.lineEditSCVAu2a.setText(params_dict.get('SCVAu2a'))
-        self.ui.lineEditSCVAu2b.setText(params_dict.get('SCVAu2b'))
-        self.ui.lineEditSCVAu2c.setText(params_dict.get('SCVAu2c'))
-        self.ui.lineEditSCVAu2Label.setText(params_dict.get('SCVAu2Label'))
-        self.ui.lineEditSCVAu3a.setText(params_dict.get('SCVAu3a'))
-        self.ui.lineEditSCVAu3b.setText(params_dict.get('SCVAu3b'))
-        self.ui.lineEditSCVAu3c.setText(params_dict.get('SCVAu3c'))
-        self.ui.lineEditSCVAu3Label.setText(params_dict.get('SCVAu3Label'))    
+        self.ui.lineEditSCVAu1a.setText(params_dict.get('u1a'))
+        self.ui.lineEditSCVAu1b.setText(params_dict.get('u1b'))
+        self.ui.lineEditSCVAu1c.setText(params_dict.get('u1c'))
+        self.ui.lineEditSCVAu1Label.setText(params_dict.get('u1Label'))
+        self.ui.lineEditSCVAu2a.setText(params_dict.get('u2a'))
+        self.ui.lineEditSCVAu2b.setText(params_dict.get('u2b'))
+        self.ui.lineEditSCVAu2c.setText(params_dict.get('u2c'))
+        self.ui.lineEditSCVAu2Label.setText(params_dict.get('u2Label'))
+        self.ui.lineEditSCVAu3a.setText(params_dict.get('u3a'))
+        self.ui.lineEditSCVAu3b.setText(params_dict.get('u3b'))
+        self.ui.lineEditSCVAu3c.setText(params_dict.get('u3c'))
+        self.ui.lineEditSCVAu3Label.setText(params_dict.get('u3Label'))    
 
     def UpdateViewSCCDict(self):
         print "In UpdateViewSCCDict(self)"

@@ -705,6 +705,18 @@ class WorkspaceComposer(QtGui.QMainWindow):
                             WSFile=str(table.item(row,const.WGE_LocationCol).text())
                             print "Loading file: ",WSFile
                             Load(Filename=WSFile,OutputWorkspace=itemStr)
+                            
+                            """
+                            #try and reduce the file size by reducing the number of log entries
+                            try:
+                                #see if we can reduce the workspace memory footprint some
+                                __ws=mtd.retrieve(itemStr)
+                                RemoveLogs(__ws)
+                            except:
+                                #if not, just move on.
+                                pass
+                            """
+                            
                             #now make workspace available at the python level
                             exec("%s = mtd.retrieve(%r)" % (itemStr,itemStr))     
                             #then update the in-memory column

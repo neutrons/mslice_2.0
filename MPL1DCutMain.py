@@ -933,6 +933,53 @@ class MPL1DCut(QtGui.QMainWindow):
             #case where there is no 1D workspace to save
             print "No 1D workspace to save - returning"
             return
+            
+        #Normalize signal and error squared by NumEventsArray
+        NumEventsArray=__MDH1D.getNumEventsArray()
+        signal=__MDH1D.getSignalArray()
+        error2=__MDH1D.getErrorSquaredArray()
+        error=np.sqrt(error2)
+        ebar=2.0*np.sqrt(error2)/NumEventsArray
+
+        Ndims=4
+        extents=str(__MDH1D.getXDimension().getMinimum())+','+str(__MDH1D.getXDimension().getMaximum())+\
+                    ','+str(__MDH1D.getYDimension().getMinimum())+','+str(__MDH1D.getYDimension().getMaximum())+\
+                    ','+str(__MDH1D.getZDimension().getMinimum())+','+str(__MDH1D.getZDimension().getMaximum())+\
+                    ','+str(__MDH1D.getTDimension().getMinimum())+','+str(__MDH1D.getTDimension().getMaximum())
+        numBins=str(__MDH1D.getXDimension().getNBins())+',1,1,1'
+        names=[__MDH1D.getXDimension().getName(),__MDH1D.getYDimension().getName(),__MDH1D.getZDimension().getName(),__MDH1D.getTDimension().getName()]
+        #names='a,b,c,d'
+        units=[__MDH1D.getXDimension().getUnits(),__MDH1D.getYDimension().getUnits(),__MDH1D.getZDimension().getUnits(),__MDH1D.getTDimension().getUnits()]
+        
+        print "Ndims: ",Ndims
+        print "extents: ",extents
+        print "numBins: ",numBins
+        print "names: ",names
+        print "units: ",units
+        
+        
+        #extract history data for this workspace:
+        histDict=histToDict(__MDH1D)
+        print "histDict: "
+        print histDict
+
+        """
+        Important note!
+        bug in CreateMDHistoWorkspace for using NumberOfEvents property prior to mantid 3.4
+        """
+        #case to create a compact 1D workspace
+        __MDH1Dcompact=CreateMDHistoWorkspace(signal,error,Dimensionality=Ndims,Extents=extents,\
+                        NumberOfEvents=NumEventsArray,\
+                        NumberOfBins=numBins,Names=names,Units=units)
+        #note that CreateMDHistoWorkspace() takes errors in and the resultant workspace
+        #returns squared error array - need to take this into account
+        #also note that need to use a 3.4 or later build of mantid in order to be able to use
+        #the NumberOfEvents input array as prior versions do not recognize this field
+        
+        #uncomment the following line to use the full 1D workspace in place of the compact one
+        #__MDH1Dcompact = __MDH1D
+
+        
         #create a workspace save name based upon the workspace name in the Select Workspace pull down menu
         wsName=str(self.ui.MPLcomboBoxActiveWorkspace.currentText())
         wsName=wsName+'_1D'
@@ -953,23 +1000,27 @@ class MPL1DCut(QtGui.QMainWindow):
             tmp=tmp.split('.')
             wsName=tmp[0] 
             #then need to update the workspace name to match the requested workspace name
-            mtd.addOrReplace(wsName,__MDH1D)
+            mtd.addOrReplace(wsName,__MDH1Dcompact)
             print "** fsavename: ",fsavename
             if fsavename != '':
                 #case to save workspace
-                print "Saving workspace: ",__MDH1D.name()
-                print "  Workspace ID: ",__MDH1D.id()
+                print "Saving workspace: ",__MDH1Dcompact.name()
+                print "  Workspace ID: ",__MDH1Dcompact.id()
                 try:
                     #first try to save as MD workspace
-                    SaveMD(__MDH1D,Filename=fsavename) #save workspace
+                    SaveMD(__MDH1Dcompact,Filename=fsavename) #save workspace
                 except:
                     try:
                         #if saving as MD fails, try SaveNexus
-                        SaveNexus(__MDH1D,Filename=fsavename) #save workspace
+                        SaveNexus(__MDH1Dcompact,Filename=fsavename) #save workspace
                     except:
                         #otherwise - give up...
                         print "Unable to successfully save workspace - returning"
                         return
+                
+                basefname=os.path.splitext(fsavename)
+                compFilename=basefname[0]+'.xml'
+                write1DCompanionFile(histDict,compFilename)
     
                 Load(fsavename,OutputWorkspace=ws) #loading workspace back in under new name is easiest way (I know) to associate the workspace with the name
             else:

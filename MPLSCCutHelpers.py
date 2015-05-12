@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import time
 import config
 from MSliceHelpers import *
-
+from utils_dict_xml import *
 
 def DoSCPlotMSlice(self):
     #Not sure why, but it was necessary to include MPL1DCutHelpers inside this function definition for it to be found
@@ -54,7 +54,8 @@ def DoSCPlotMSlice(self):
     
     XAxisStr=name+" "+units
     for i in range(4):
-        print "  "+self.ui.histoDataSum.getDimension(i).getName()
+        #print "  "+self.ui.histoDataSum.getDimension(i).getName()
+        pass
     YAxisStr='Signal'
     print " XAxisStr: ",XAxisStr
 
@@ -81,6 +82,8 @@ def DoSCPlotMSlice(self):
             #case to add errorbars
             errcolor=str(self.ui.MPLcomboBoxErrorColor.currentText())
             
+            #The variance has units of Data^2, while the mean and std have the same units as Data
+            #thus take sqrt of data before normalizing
             ebar=2.0*np.sqrt(self.ui.histoDataSum.getErrorSquaredArray())/normsum
             plt.errorbar(xaxis,sigsum,yerr=ebar,xerr=False,ecolor=errcolor,fmt='',label='_nolegend_')
             #seems to be a bug in errorbar that does not respect the color of the line so just replot the line once errorbar is done
@@ -333,11 +336,27 @@ def alg1DCut(__ws,AD0,AD1,AD2,AD3):
     BinMD method for calculating workspaces to use with SliceViewer
     
     """
+
+    #now check the dimensionality
+    
     __ows=__ws.name()+'_histo'
-    BinMD(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
-    __wsHisto = mtd.retrieve(__ows)
+    NXbins=__ws.getXDimension().getNBins()
+    NYbins=__ws.getYDimension().getNBins()
+    print "NXbins: ",NXbins,"  NYbins: ",NYbins
+    if NXbins > 1 and NYbins > 1:
+        #case for a MD workspace - perform BinMD to create the 1D data set
+        #requires BinMD to be run
+        BinMD(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
+        __wsHisto = mtd.retrieve(__ows)
+    else:
+        #case where BinMD has alread been done previously
+        print "Bypassing BinMD"
+        __wsHisto=__ws
+
+
     
     return __wsHisto
+
     
 def createASCII(self):
     #using the current 1D workspace, create an ASCII data set to save
@@ -558,7 +577,71 @@ def fill1DCutGUIParms(self,params):
     pass
     
 
+def write1DCompanionFile(histDict,filename):
+    
+    #function to take a history dictionary and produce an XML file from it
+    #that is compatible with the SC parameters xml file format
 
+    Uproj=histDict['ConvertToMD']['Uproj'].split(',')
+    Vproj=histDict['ConvertToMD']['Vproj'].split(',')
+    Wproj=histDict['ConvertToMD']['Wproj'].split(',')   
+
+    u=histDict['SetUB']['u'].split(',')
+    v=histDict['SetUB']['v'].split(',')
+
+    u1=histDict['ConvertToMD']['Uproj'].split(',')
+    u2=histDict['ConvertToMD']['Vproj'].split(',')
+    u3=histDict['ConvertToMD']['Wproj'].split(',')
+
+    minVals=histDict['ConvertToMD']['MinValues'].split(',')
+    maxVals=histDict['ConvertToMD']['MaxValues'].split(',')
+
+    #pack variables into a dictionary
+    params_dict_root={'root':{
+                        'a':histDict['SetUB']['a'],
+                        'b':histDict['SetUB']['b'],
+                        'c':histDict['SetUB']['c'],
+                        'alpha':histDict['SetUB']['alpha'],                   
+                        'beta':histDict['SetUB']['beta'],                                          
+                        'gamma':histDict['SetUB']['gamma'],                
+                        'ux':u[0],
+                        'uy':u[1],                        
+                        'uz':u[2],            
+                        'vx':v[0],
+                        'vy':v[1],                        
+                        'vz':v[2],     
+                        'Psi':'',                        
+                        'MN':'',                        
+                        'u1a':u1[0],                    
+                        'u1b':u1[1],                        
+                        'u1c':u1[2],                        
+                        'u1Label':'',
+                        'u2a':u2[0],                       
+                        'u2b':u2[1],                        
+                        'u2c':u2[2],                        
+                        'u2Label':'',                        
+                        'u3a':u3[0],
+                        'u3b':u3[1],                        
+                        'u3c':u3[2],                        
+                        'u3Label':'',
+                        'minValX':minVals[0],
+                        'minValY':minVals[1],
+                        'minValZ':minVals[2],
+                        'minValT':minVals[3],        
+                        'maxValX':maxVals[0],
+                        'maxValY':maxVals[1],
+                        'maxValZ':maxVals[2],
+                        'maxValT':maxVals[3],   
+                        'XName':histDict['Names']['XName'],
+                        'YName':histDict['Names']['YName'],
+                        'XName':histDict['Names']['ZName'],
+                        'TName':histDict['Names']['TName']
+                    }}
+
+    dicttoxmlfile(params_dict_root, filename)
+    
+    
+    
 
 
 
