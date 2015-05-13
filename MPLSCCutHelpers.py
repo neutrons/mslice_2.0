@@ -634,7 +634,7 @@ def write1DCompanionFile(histDict,filename):
                         'maxValT':maxVals[3],   
                         'XName':histDict['Names']['XName'],
                         'YName':histDict['Names']['YName'],
-                        'XName':histDict['Names']['ZName'],
+                        'ZName':histDict['Names']['ZName'],
                         'TName':histDict['Names']['TName']
                     }}
 
