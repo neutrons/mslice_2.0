@@ -10,11 +10,15 @@ except AttributeError:
 #ignore potential matplotlib backend selection warnings as the backend may already be selected when running via mantidplot
 import warnings
 warnings.filterwarnings('ignore',category=UserWarning)
+"""
+#backend_qt4 should alreadt be loaded from the main MSLice app
 import matplotlib
 if matplotlib.get_backend() != 'QT4Agg':
     matplotlib.use('QT4Agg')
+"""
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -69,6 +73,12 @@ class MPL1DCut(QtGui.QMainWindow):
         QtCore.QObject.connect(self.ui.MPLcheckBoxReadOnly, QtCore.SIGNAL(_fromUtf8("clicked(bool)")), self.ReadOnly)
         
         QtCore.QObject.connect(self.ui.MPLcomboBoxActiveWorkspace, QtCore.SIGNAL(_fromUtf8("currentIndexChanged(int)")), self.SelectWorkspace)
+        
+        #change show error bars text using greek char for sigma
+        #need to set the Greek characters using unicode format as the global style sheet seems to be overriding setting the font for these labels.
+        SYMBOLIC_BASE = 880  #offset into the unicode font set to the Symbolic, or in this case, Greek and Coptic alphabet - see here: http://www.alanwood.net/unicode/fontsbyrange.html 
+        self.ui.checkBoxErrorBars.setText('Show Error Bars as +'+unichr(SYMBOLIC_BASE + 83)+' and -'+unichr(SYMBOLIC_BASE + 83))
+        self.ui.checkBoxErrorBars.setChecked(True)
         
         #now that the widget has been established, copy over values from MSlice
         #Workspace List and insert them into the MPLcomboBoxActiveWorkspace combo box
@@ -184,7 +194,11 @@ class MPL1DCut(QtGui.QMainWindow):
         self.shadowFigure = plt.figure()
         plt.figure(self.shadowFigure.number)
         self.figure = plt.figure()
-
+        #format the drawing area size
+        plt.gcf().subplots_adjust(bottom=0.15)
+        plt.gcf().subplots_adjust(left=0.13)
+        plt.gcf().subplots_adjust(right=0.95)
+        plt.subplot(111).grid(True)
         
         # this is the Canvas Widget that displays the `figure`
         # it takes the `figure` instance as a parameter to __init__
@@ -819,10 +833,111 @@ class MPL1DCut(QtGui.QMainWindow):
             
     def PopPlot(self):
         
-        self.shadowCanvas.setVisible(True)
-        self.shadowFigure = plt.figure()
-        self.shadowCanvas=FigureCanvas(self.shadowFigure)
+        
+
+        """
+        ax=plt.subplot(211)
+        plt.figure(self.shadowFigure.number)
+        #plt.figure()
+        #format the drawing area
+        #plt.subplot(211)
+        plt.gcf().subplots_adjust(bottom=-0.25)
+        plt.gcf().subplots_adjust(left=0.12)
+        plt.gcf().subplots_adjust(right=0.95) 
+        
+        ax2=plt.subplot(212)
+        ax2.axis('off')
+        #axes fraction 0,0 is lower left of axes and 1,1 is upper right
+        #x offset between text on the same row
+        xoff0 = 0
+        xoff1 = 0.5
+        
+        yoff = 0.096 #global offset in y axis direction
+        
+        #dx0 and dx1 
+        dx0 = 0   #dx0 gives start position in the row for the first row text block
+        dx1 = 0 #dx1 gives start position in the row for the second row text block
+        
+        #dy0 and dy1
+        dy0 = 0 #dy0 starts at zero
+        dy1 = -0.05 #dy1 times row number gives y offset between rows
+        
+        plt.subplot(212)
+        plt.annotate('Some Text',(dx0+xoff0,dy0*0),(dx1+xoff0,dy1*0+yoff),textcoords='axes fraction')
+        
+
+        """
+
+        plt.gcf().subplots_adjust(bottom=0.25)
+        plt.gcf().subplots_adjust(left=0.12)
+        plt.gcf().subplots_adjust(right=0.95)   
+        #plt.annotate('Some Text',(0,0),(0,-0.25),textcoords='axes fraction')
+        
+        #display data ranges:
+        name0=str(self.ui.histoDataSum.getDimension(0).getName())
+        mn0=str(round(float(str(self.ui.histoDataSum.getDimension(0).getMinimum())),3))
+        mx0=str(round(float(str(self.ui.histoDataSum.getDimension(0).getMaximum())),3))
+        name1=str(self.ui.histoDataSum.getDimension(1).getName())
+        mn1=str(round(float(str(self.ui.histoDataSum.getDimension(1).getMinimum())),3))
+        mx1=str(round(float(str(self.ui.histoDataSum.getDimension(1).getMaximum())),3))
+        name2=str(self.ui.histoDataSum.getDimension(2).getName())
+        mn2=str(round(float(str(self.ui.histoDataSum.getDimension(2).getMinimum())),3))
+        mx2=str(round(float(str(self.ui.histoDataSum.getDimension(2).getMaximum())),3))
+        name3=str(self.ui.histoDataSum.getDimension(3).getName())
+        mn3=str(round(float(str(self.ui.histoDataSum.getDimension(3).getMinimum())),3))
+        mx3=str(round(float(str(self.ui.histoDataSum.getDimension(3).getMaximum())),3))
+        
+        dy1 = -0.05  #spacing between text lines
+        
+        """
+        print 4 blocks of text with each block formatted as:
+        name
+        min val
+        max val
+        """
+        xoff = 0.25 #offset between the text blocks
+        xa=0.04 #minor tuning of text placement
+
+        plt.annotate(name0,(0,0),(0+xa,-0.25+0*dy1),textcoords='axes fraction')
+        plt.annotate(mn0,(0,0),(0+xa,-0.25+1*dy1),textcoords='axes fraction')        
+        plt.annotate(mx0,(0,0),(0+xa,-0.25+2*dy1),textcoords='axes fraction')    
+        
+        plt.annotate(name1,(0,0),(1*xoff+xa,-0.25+0*dy1),textcoords='axes fraction')
+        plt.annotate(mn1,(0,0),(1*xoff+xa,-0.25+1*dy1),textcoords='axes fraction')        
+        plt.annotate(mx1,(0,0),(1*xoff+xa,-0.25+2*dy1),textcoords='axes fraction')    
+        
+        plt.annotate(name2,(0,0),(2*xoff+xa,-0.25+0*dy1),textcoords='axes fraction')
+        plt.annotate(mn2,(0,0),(2*xoff+xa,-0.25+1*dy1),textcoords='axes fraction')        
+        plt.annotate(mx2,(0,0),(2*xoff+xa,-0.25+2*dy1),textcoords='axes fraction')    
+
+        plt.annotate(name3,(0,0),(3*xoff+xa,-0.25+0*dy1),textcoords='axes fraction')
+        plt.annotate(mn3,(0,0),(3*xoff+xa,-0.25+1*dy1),textcoords='axes fraction')        
+        plt.annotate(mx3,(0,0),(3*xoff+xa,-0.25+2*dy1),textcoords='axes fraction')    
+        
+        plt.draw()          
+        self.shadowFigure.canvas.draw()  
+        self.shadowCanvas.setVisible(True) 
+
+        
+        """
+        plt.subplot(211)
+        plt.figure(self.shadowFigure.number)
+        plt.subplot(212)
+        plt.figure(self.shadowFigure.number)
+        plt.subplot(212).axis('off')
+        """
+        #self.shadowFigure = plt.figure()
+        #self.shadowCanvas=FigureCanvas(self.shadowFigure)
         self.shadow_navigation_toolbar = NavigationToolbar(self.shadowCanvas, self.shadowCanvas)
+        """
+        
+        #format the drawing area
+        #plt.subplot(211)
+        plt.gcf().subplots_adjust(bottom=-0.25)
+        plt.gcf().subplots_adjust(left=0.12)
+        plt.gcf().subplots_adjust(right=0.95)        
+        """
+        
         
         self.ui.MPLpushButtonPopPlot.setEnabled(False)
         """
@@ -872,7 +987,7 @@ class MPL1DCut(QtGui.QMainWindow):
         print "type(fname): ",type(fname)
         fsavename = str(QtGui.QFileDialog.getSaveFileName(self, 'Save ASCII Data', fname,filter))
         if fsavename!='':
-            SaveAscii(__ws,fsavename) #Mantid routine to save a workspace as ascii data
+            SaveAscii(__ws,fsavename,Separator='CSV') #Mantid routine to save a workspace as ascii data
         
     def SaveHistory(self):
         #case to extract the tree widget structure and save the items to file

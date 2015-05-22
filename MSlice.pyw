@@ -50,7 +50,7 @@ from MSliceHelpers import *  #getReduceAlgFromWorkspace, getWorkspaceMemSize
 #import h5py 
 from WorkspaceComposerMain import *
 from MPL1DCutMain import *
-
+from View1D import *
 
 #import SliceViewer (here it assumes local module as a Mantid produced module for this does not exist)
 from SliceViewer import *
@@ -123,7 +123,7 @@ class MSlice(QtGui.QMainWindow):
         self.ui.comboBoxSCVAu3Direction.setCurrentIndex(1)
         
         #need to set the Greek characters using unicode format as the global style sheet seems to be overriding setting the font for these labels.
-        SYMBOLIC_BASE = 880  #offset into the unicode font set to the Symbolic, or in this case, Greek alphabet - see here: http://www.alanwood.net/unicode/fontsbyrange.html 
+        SYMBOLIC_BASE = 880  #offset into the unicode font set to the Symbolic, or in this case, Greek and Coptic alphabet - see here: http://www.alanwood.net/unicode/fontsbyrange.html 
         self.ui.labelSCUCalpha.setText(unichr(SYMBOLIC_BASE + 65)+"(*)")
         self.ui.labelSCUCbeta.setText(unichr(SYMBOLIC_BASE + 66)+"(*)")
         self.ui.labelSCUCgamma.setText(unichr(SYMBOLIC_BASE + 67)+"(*)")
@@ -1021,83 +1021,91 @@ class MSlice(QtGui.QMainWindow):
                 chkCompFile=os.path.isfile(compFilename)
                 if chkCompFile == True:
                     #case we have a 1D mantid workspace and its companion xml file
-                    plot1Dplot(__ws,compFilename)
-                    #plot the data and return to the main program
-                    return
+                    #plot1Dplot(__ws,compFilename)
+                    print "Launching View1D from MSlice.pyw"
+                    #placing View2D in a local window as the MSlice does not anticipate 
+                    #needing to directly interact with this window
+                    self.ui.View1DWS=__ws
+                    self.ui.View1DcompFilename=compFilename
+                    View1DWin=View1D(self)
+                    View1DWin.show()
+                    print "Launched File: ",compFilename
                 
-                try:
-                    #see if we can reduce the workspace memory footprint some
-                    keepLst=['goniometer','Ei','run_number','run_start','run_title','start_time','Filename','DirectInelasticReductionNormalisedBy','a1b','a1l','a1r','a1sd','a2b','a2l','a2r','a2sd','a2t']
-                    #RemoveLogs(__ws,KeepLogs=keepLst)
-                except:
-                    #if not, just move on.
-                    pass
-                print "** type(__ws): ",type(__ws)
-
+                else:
+                    #case for other file types Load can handle
+                    try:
+                        #see if we can reduce the workspace memory footprint some
+                        keepLst=['goniometer','Ei','run_number','run_start','run_title','start_time','Filename','DirectInelasticReductionNormalisedBy','a1b','a1l','a1r','a1sd','a2b','a2l','a2r','a2sd','a2t']
+                        #RemoveLogs(__ws,KeepLogs=keepLst)
+                    except:
+                        #if not, just move on.
+                        pass
+                    print "** type(__ws): ",type(__ws)
+    
+                    
+                    try:
+                        #If this try clause runs successfully, this is a single crystal file.
+                        #In that case, need to fill the histDict structure
+                        #check if the workspace just loaded is a single crystal CalcProj workspace
+                        #need to check workspace history to determine this
+                        
+                        histDict=histToDict(__ws)
+                        print "histDict: "
+                        print histDict
+                        #check if workspace history has entries for:
+                        # - SetGoniometer
+                        # - SetUB
+                        # - ConvertToMD
+                        #as each of these contain params needed for the GUI
+                        #check if the needed settings are present - will fall out of this try if they are not present (not using the values here, just checking)
+                        Goniometer=histDict['SetGoniometer']
+                        UB=histDict['SetUB']
+                        MD=histDict['ConvertToMD']
+                        gotOne +=1 #currently not checking for more than one single crystal file
+            
+                        
+                    except Exception as e:
+                        exc_type, exc_obj, exc_tb = sys.exc_info()
+                        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                        print(exc_type, fname, exc_tb.tb_lineno)
+                        #If this except clause is run, then it's assumed this is a powder file
+                        #case where the needed parameters for SC CalcProj not available in the workspace
+                        #skip this workspace and check next one if there are more.
+                        print "** not a SC Workspace **"
+                        pass
+                    
+                    #check if we found more than one SC Calc Proj workspace
+                    
+                    #gotOne variable indicates the number of single crystal workspaces discovered
+                    if gotOne > 1:
+                        #inform user that multiple SCCalcProj workspaces discovered
+                        #and using the last one found
+                        msg='Multiple SC Calc Proj workspaces discovered - using parameters from : '+__ws.name()
+                        dialog=QtGui.QMessageBox(self)
+                        dialog.setText(msg)
+                        dialog.exec_()  
+                        
+                    #case we have parameters for latest SC Calc Proj workspace
+                    #put params into GUI
+                    if gotOne >= 1:
+                        #case to update parameters on GUI
+                        updateSCParms(self,histDict,['Cut'])
+                        updateSCParms(self,histDict,['Slice'])
+                        updateSCParms(self,histDict,['Volume'])
+                        #make corresponding SC tabs on top
+                        self.ui.SampleTabWidget.setCurrentIndex(1) 
+                        self.ui.ViewTabWidget.setCurrentIndex(1)	
+                    
+                    
                 
-                try:
-                    #If this try clause runs successfully, this is a single crystal file.
-                    #In that case, need to fill the histDict structure
-                    #check if the workspace just loaded is a single crystal CalcProj workspace
-                    #need to check workspace history to determine this
-                    
-                    histDict=histToDict(__ws)
-                    print "histDict: "
-                    print histDict
-                    #check if workspace history has entries for:
-                    # - SetGoniometer
-                    # - SetUB
-                    # - ConvertToMD
-                    #as each of these contain params needed for the GUI
-                    #check if the needed settings are present - will fall out of this try if they are not present (not using the values here, just checking)
-                    Goniometer=histDict['SetGoniometer']
-                    UB=histDict['SetUB']
-                    MD=histDict['ConvertToMD']
-                    gotOne +=1 #currently not checking for more than one single crystal file
-        
-                    
-                except Exception as e:
-                    exc_type, exc_obj, exc_tb = sys.exc_info()
-                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                    print(exc_type, fname, exc_tb.tb_lineno)
-                    #If this except clause is run, then it's assumed this is a powder file
-                    #case where the needed parameters for SC CalcProj not available in the workspace
-                    #skip this workspace and check next one if there are more.
-                    print "** not a SC Workspace **"
-                    pass
-                
-                #check if we found more than one SC Calc Proj workspace
-                
-                #gotOne variable indicates the number of single crystal workspaces discovered
-                if gotOne > 1:
-                    #inform user that multiple SCCalcProj workspaces discovered
-                    #and using the last one found
-                    msg='Multiple SC Calc Proj workspaces discovered - using parameters from : '+__ws.name()
-                    dialog=QtGui.QMessageBox(self)
-                    dialog.setText(msg)
-                    dialog.exec_()  
-                    
-                #case we have parameters for latest SC Calc Proj workspace
-                #put params into GUI
-                if gotOne >= 1:
-                    #case to update parameters on GUI
-                    updateSCParms(self,histDict,['Cut'])
-                    updateSCParms(self,histDict,['Slice'])
-                    updateSCParms(self,histDict,['Volume'])
-                    #make corresponding SC tabs on top
-                    self.ui.SampleTabWidget.setCurrentIndex(1) 
-                    self.ui.ViewTabWidget.setCurrentIndex(1)	
-                    
-                    
-                
-                percentbusy=int(float(cntr)/float(Nfiles)*100)
-                self.ui.progressBarStatusProgress.setValue(percentbusy) #adjust progress bar according to % busy
-                time.sleep(0.01)  #seem to need a small delay to ensure that status updates
-                cntr += 1
-                #now populate table
-                self.ui.StatusText.append("  Loading workspace:"+str(wsName))
-                addWStoTable(table,wsName,wsfile)
-                #update table with memory size rather than file size in the Size column of the Workspace Manager
+                    percentbusy=int(float(cntr)/float(Nfiles)*100)
+                    self.ui.progressBarStatusProgress.setValue(percentbusy) #adjust progress bar according to % busy
+                    time.sleep(0.01)  #seem to need a small delay to ensure that status updates
+                    cntr += 1
+                    #now populate table
+                    self.ui.StatusText.append("  Loading workspace:"+str(wsName))
+                    addWStoTable(table,wsName,wsfile)
+                    #update table with memory size rather than file size in the Size column of the Workspace Manager
                 
             table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy

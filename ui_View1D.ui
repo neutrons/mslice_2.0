@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>View1DMainWindow</class>
+ <widget class="QMainWindow" name="View1DMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1055</width>
+    <height>920</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>View 1D Plot</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QFrame" name="frameView1D">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>551</width>
+        <height>353</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="groupBox">
+      <property name="minimumSize">
+       <size>
+        <width>551</width>
+        <height>200</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>551</width>
+        <height>191</height>
+       </size>
+      </property>
+      <property name="title">
+       <string>Controls</string>
+      </property>
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>20</y>
+         <width>151</width>
+         <height>73</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Data Select</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QRadioButton" name="radioButtonSignal">
+          <property name="text">
+           <string>Signal</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QRadioButton" name="radioButtonEBar">
+          <property name="text">
+           <string>Error Bar</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QComboBox" name="comboBoxPlotColor">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>170</y>
+         <width>121</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <item>
+        <property name="text">
+         <string>black</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>blue</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>green</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>red</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>cyan</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>magenta</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>yellow</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QLabel" name="label">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>150</y>
+         <width>91</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Plot Color</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="checkBoxShowEBar">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>100</y>
+         <width>161</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Show Error Bars</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_2">
+       <property name="geometry">
+        <rect>
+         <x>230</x>
+         <y>20</y>
+         <width>101</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Font Family</string>
+       </property>
+      </widget>
+      <widget class="QFontComboBox" name="fontComboBox">
+       <property name="geometry">
+        <rect>
+         <x>230</x>
+         <y>40</y>
+         <width>161</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <family>Courier</family>
+        </font>
+       </property>
+       <property name="editable">
+        <bool>false</bool>
+       </property>
+       <property name="currentIndex">
+        <number>58</number>
+       </property>
+       <property name="fontFilters">
+        <set>QFontComboBox::MonospacedFonts|QFontComboBox::ProportionalFonts|QFontComboBox::ScalableFonts</set>
+       </property>
+       <property name="currentFont">
+        <font>
+         <family>Courier New</family>
+        </font>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_3">
+       <property name="geometry">
+        <rect>
+         <x>230</x>
+         <y>70</y>
+         <width>101</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Font Size</string>
+       </property>
+      </widget>
+      <widget class="QComboBox" name="comboBoxFontSize">
+       <property name="geometry">
+        <rect>
+         <x>230</x>
+         <y>90</y>
+         <width>69</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <property name="currentIndex">
+        <number>2</number>
+       </property>
+       <item>
+        <property name="text">
+         <string>10</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>12</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>14</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>16</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>18</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>20</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>22</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>24</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QPushButton" name="pushButtonUpdatePlot">
+       <property name="geometry">
+        <rect>
+         <x>430</x>
+         <y>100</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Update Plot</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="checkBoxBoldFont">
+       <property name="geometry">
+        <rect>
+         <x>230</x>
+         <y>120</y>
+         <width>91</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Bold Font</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButtonExit">
+       <property name="geometry">
+        <rect>
+         <x>430</x>
+         <y>170</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Exit</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="checkBoxShowPlotMarker">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>120</y>
+         <width>161</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Show Plot Symbols</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+      <widget class="QComboBox" name="comboBoxLineThick">
+       <property name="geometry">
+        <rect>
+         <x>230</x>
+         <y>170</y>
+         <width>161</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <item>
+        <property name="text">
+         <string>Line: Thin</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Line: Med</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Line: Thick</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QComboBox" name="comboBoxEBarThick">
+       <property name="geometry">
+        <rect>
+         <x>230</x>
+         <y>140</y>
+         <width>161</width>
+         <height>22</height>
+        </rect>
+       </property>
+       <item>
+        <property name="text">
+         <string>Error Bar: Thin</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Error Bar: Med</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Error Bar: Thick</string>
+        </property>
+       </item>
+      </widget>
+      <widget class="QPushButton" name="pushButtonSaveASCII">
+       <property name="geometry">
+        <rect>
+         <x>430</x>
+         <y>140</y>
+         <width>91</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Save ASCII</string>
+       </property>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1055</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionExit"/>
+   </widget>
+   <addaction name="menuFile"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -63,7 +63,7 @@ def DoSCPlotMSlice(self):
     
     #for debug purposes
     #SaveMD(self.ui.normalized,Filename='wsn.nxs')
-    
+
     for pl in range(2):   
         if pl == 0:
             self.canvas #enable drawing area
@@ -108,6 +108,7 @@ def DoSCPlotMSlice(self):
         plt.hold(True)
         #overplot markers
         plt.plot(xaxis,sigsum,color=markercolor,marker=mstyle,linestyle='')
+        plt.subplot(111).grid(True) #show plot grid
         plt.hold(False)
         if pl == 0:
             self.canvas.draw()
@@ -124,7 +125,7 @@ def DoSCPlotMSlice(self):
         
             #clear oplot flag
             self.doOPlot=False
-        
+
     #check if we are in OPlot mode or not, if not, then enable pop plot button
     if not(self.doOPlot):self.ui.MPLpushButtonPopPlot.setEnabled(True)
     #clear oplot flag
