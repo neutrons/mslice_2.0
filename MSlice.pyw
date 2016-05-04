@@ -1,3 +1,4 @@
+"""
 ################################################################################
 #
 # MSlice.pyw
@@ -30,11 +31,11 @@
 # for data display are outstanding tasks to be done.
 #
 ################################################################################
-
+"""
 import sys, os, time
 from os.path import expanduser
 from PyQt4 import Qt, QtCore, QtGui
-from MSlice import *  # .py file created from the .ui file produced by PyQt corresponding to the .pyw file used to instantiate the GUI
+from ui_MSlice import *  # .py file created from the .ui file produced by PyQt corresponding to the .pyw file used to instantiate the GUI
 
 import psutil
 import numpy as np
@@ -45,17 +46,17 @@ if matplotlib.get_backend() != 'QT4Agg':
 from pylab import *
 
 #import custom develped helpers
-from MSliceHelpers import getReduceAlgFromWorkspace, getWorkspaceMemSize
+from MSliceHelpers import *  #getReduceAlgFromWorkspace, getWorkspaceMemSize
 #import h5py 
 from WorkspaceComposerMain import *
-from MPLPowderCutMain import *
+from MPL1DCutMain import *
 
-#import Mantid computatinal modules
-sys.path.append(os.environ['MANTIDPATH'])
-from mantid.simpleapi import *
 
 #import SliceViewer (here it assumes local module as a Mantid produced module for this does not exist)
 from SliceViewer import *
+from GProps import *
+
+from utils_dict_xml import *
 
 import config  #bring in configuration parameters and constants
 
@@ -64,15 +65,16 @@ class MSlice(QtGui.QMainWindow):
     
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
-        self.setWindowTitle("Mantid MSlice")
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self.setWindowTitle("Mantid MSlice")
         #define things needed for later
         self.ui.numActiveWorkspaces=0  #number of workspaces loaded into memory
         self.ui.activeWSNames=[]       #names of these workspaces
         self.ui.activeWSVarsList=[]    #this is where these workspaces are loaded
         self.ui.activePowderCalcWS=[]  #list for holding projection data for powder sample
         self.ui.activeSCCalcWS=[]      #list for holding projection data for single crystal sample
+        self.ui.rememberDataPath=''        #retain path where user selects data
                 
         #set global font style by system type as point size seems different on different platforms.
         if os.sys.platform == 'win32':
@@ -88,25 +90,25 @@ class MSlice(QtGui.QMainWindow):
             #otherwise...
             self.setStyleSheet('font-size: 11pt; font-family: Ariel;')
         
-        const=constants()
-		
+        #const=constants()
+
         #define actions and callbacks
 #        self.connect(self.ui.actionLoad_Workspace_s, QtCore.SIGNAL('triggered()'), self.WorkspaceManagerPageSelect) #make workspace stack page available to user
 #        self.connect(self.ui.actionCreateWorkspace, QtCore.SIGNAL('triggered()'), self.CreateWorkspacePageSelect) #define function to call to select files
         self.connect(self.ui.actionExit, QtCore.SIGNAL('triggered()'), self.confirmExit) #define function to confirm and perform exit
         self.connect(self.ui.actionDeleteSelected, QtCore.SIGNAL('triggered()'), self.deleteSelected) #define function to confirm and perform exit
         self.connect(self.ui.actionDeleteAll, QtCore.SIGNAL('triggered()'), self.deleteAll) #define function to confirm and perform exit
-		
+
 #        QtCore.QObject.connect(self.ui.pushButtonPerformActions, QtCore.SIGNAL('clicked(bool)'),self.performWorkspaceActions) #define the function to call to create workspaces from file selection page
         QtCore.QObject.connect(self.ui.pushButtonUpdate, QtCore.SIGNAL('clicked(bool)'),self.Update) #define the function to call to create workspaces from file selection page
 
         #For some reason GUI tool disables one of these headers so here we're forcing both sets to be enabled
         self.ui.tableWidgetWorkspaces.horizontalHeader().setVisible(True)
         self.ui.tableWidgetWorkspaces.verticalHeader().setVisible(True)
-		
+
         #Save Log setup
         QtCore.QObject.connect(self.ui.pushButtonSaveLog, QtCore.SIGNAL('clicked(bool)'),self.SaveLogSelect) 
-		
+
         #setup Calc Proj section
         QtCore.QObject.connect(self.ui.pushButtonPowderCalcProj, QtCore.SIGNAL('clicked(bool)'),self.PowderCalcProjSelect)
         QtCore.QObject.connect(self.ui.pushButtonSCCalcProj, QtCore.SIGNAL('clicked(bool)'),self.SCCalcProjSelect)
@@ -130,20 +132,20 @@ class MSlice(QtGui.QMainWindow):
 #        self.ui.labelSCUCbeta.setFont(QtGui.QFont('Symbol',10))
 #        self.ui.labelSCUCgamma.setFont(QtGui.QFont('Symbol',10))
 
-		
+
         #setup workspaces table
         NrowsWS=self.ui.tableWidgetWorkspaces.rowCount()
         print "NrowsWS: ",NrowsWS
 
-#        col=const.WSM_SelectCol
+#        col=config.WSM_SelectCol
 #        for i in range(NrowsWS):
 #            addCheckboxToWSTCell(self.ui.tableWidgetWorkspaces,i,col,True)
-	   
+
         #setup timer to enable periodic events such as status update checks
         self.ctimer = QtCore.QTimer()
         self.ctimer.start(5000)
         QtCore.QObject.connect(self.ctimer, QtCore.SIGNAL("timeout()"), self.constantUpdate)
-		
+
         #setup application elapsed timer
         self.etimer = QtCore.QTimer()
         self.etimer.start(60000)
@@ -153,7 +155,7 @@ class MSlice(QtGui.QMainWindow):
         #select Workspace Manager as the default tab
         self.ui.tabWidgetFilesWorkspaces.setCurrentIndex(0)
         
-	#setup progress bars to look nicer than defaults :-)
+        #setup progress bars to look nicer than defaults :-)
         self.ui.progressBarStatusMemory.setStyleSheet("QProgressBar {width: 25px;border: 1px solid black; border-radius: 3px; background: white;text-align: center;padding: 0px;}" 
                                +"QProgressBar::chunk:horizontal {background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #00CCEE, stop: 0.3 #00DDEE, stop: 0.6 #00EEEE, stop:1 #00FFEE);}")
         self.ui.progressBarStatusCPU.setStyleSheet("QProgressBar {width: 25px;border: 1px solid black; border-radius: 3px; background: white;text-align: center;padding: 0px;}" 
@@ -162,40 +164,42 @@ class MSlice(QtGui.QMainWindow):
                                +"QProgressBar::chunk:horizontal {background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #00CCEE, stop: 0.3 #00DDEE, stop: 0.6 #00EEEE, stop:1 #00FFEE);}")
         #make sure that initial value is zero
         self.ui.progressBarStatusProgress.setValue(0)
-		
+
         #enable saving of info that has been logged
         QtCore.QObject.connect(self.ui.pushButtonSaveLog, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSaveLogSelect)
-		
+
         #setup signal and call back for Sample Tab Widget selection
         QtCore.QObject.connect(self.ui.SampleTabWidget, QtCore.SIGNAL('currentChanged(int)'), self.SampleTabWidgetSelect)
+        
+        #Enable SC Calc Projections button
+        self.ui.pushButtonSCCalcProj.setEnabled(True) 
 
         #setup callbacks for Single Crystal Volume push buttons - Plot, Oplot, and Surface Slice
-        QtCore.QObject.connect(self.ui.pushButtonSCPlotVol, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCVolPlotSelect)
-        QtCore.QObject.connect(self.ui.pushButtonSCOplotVol, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCVolOplotSelect)
- 
+        QtCore.QObject.connect(self.ui.pushButtonSCVolSlices, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCVolSlicesSelect)
+        QtCore.QObject.connect(self.ui.pushButtonSCVShowParams, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCVShowParamsSelect)
+                 
         #setup SC Volume tab
-		#first setup combo boxes
+        #first setup combo boxes
         self.ui.comboBoxSCVolX.setCurrentIndex(1)
         self.ui.comboBoxSCVolX.setCurrentIndex(0)  # seem to need to toggle index 0 to get label to appear initially in GUI
         self.ui.comboBoxSCVolY.setCurrentIndex(1)		
         self.ui.comboBoxSCVolZ.setCurrentIndex(2)	
         self.ui.comboBoxSCVolE.setCurrentIndex(3)			
-        self.ui.comboBoxSCVolCT.setCurrentIndex(1)
-		
+
         #setup callbacks for SC Cut push buttons - Plot and Oplot 
         QtCore.QObject.connect(self.ui.pushButtonSCCutPlot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCutPlotSelect)
-        QtCore.QObject.connect(self.ui.pushButtonSCCutOplot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCutOplotSelect)
+        QtCore.QObject.connect(self.ui.pushButtonSCCShowParams, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCCShowParamsSelect)
 
         #setup SC Cut comboBox initial values
-        self.ui.comboBoxSCCutAlong.setCurrentIndex(1)
-        self.ui.comboBoxSCCutAlong.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
-        self.ui.comboBoxSCCutThick1.setCurrentIndex(1)
-        self.ui.comboBoxSCCutThick1_2.setCurrentIndex(2)
-        self.ui.comboBoxSCCutThick2.setCurrentIndex(3)
+        self.ui.comboBoxSCCutX.setCurrentIndex(1)
+        self.ui.comboBoxSCCutX.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
         self.ui.comboBoxSCCutY.setCurrentIndex(1)
-        self.ui.comboBoxSCCutY.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
+        self.ui.comboBoxSCCutZ.setCurrentIndex(2)
+        self.ui.comboBoxSCCutE.setCurrentIndex(3)
+        self.ui.comboBoxSCCutIntensity.setCurrentIndex(1)
+        self.ui.comboBoxSCCutIntensity.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
 
-		
+
         #setup callbacks for Powder Cut push buttons - Plot and Oplot 
         QtCore.QObject.connect(self.ui.pushButtonPowderCutPlot, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderCutPlotSelect)
 
@@ -205,36 +209,45 @@ class MSlice(QtGui.QMainWindow):
         self.ui.comboBoxPowderCutThick.setCurrentIndex(1)
         self.ui.comboBoxPowderCutAlong.setCurrentIndex(1)
         self.ui.comboBoxPowderCutAlong.setCurrentIndex(0) # seem to need to toggle index 0 to get label to appear initially in GUI
-		
-        #setup callbacks for Single Crystal Slice push buttons - Plot, Oplot, and Surface Slice
-        QtCore.QObject.connect(self.ui.pushButtonSCSlicePlotSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCSlicePlotSliceSelect)
-        QtCore.QObject.connect(self.ui.pushButtonSCSliceOplotSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCSliceOplotSliceSelect)
-        QtCore.QObject.connect(self.ui.pushButtonSCSliceSurfaceSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCSliceSurfaceSliceSelect)
- 
+
+        #setup callbacks for Single Crystal Slice push buttons - Show Params and Surface Slice
+        QtCore.QObject.connect(self.ui.pushButtonSCSShowParams, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCSShowParamsSelect)
+        QtCore.QObject.connect(self.ui.pushButtonSCSliceSurfaceSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonSCSSurfaceSelect) 
+
+        #setup signal/slot for from/to/step changes to recalculate number of points - for X
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXFrom, QtCore.SIGNAL('editingFinished()'), self.calcXNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXTo, QtCore.SIGNAL('editingFinished()'), self.calcXNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXStep, QtCore.SIGNAL('editingFinished()'), self.calcXNpts)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceX, QtCore.SIGNAL('currentIndexChanged(int)'), self.calcXNpts)
+        #setup signal/slot for from/to/step changes to recalculate number of points - for Y
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYFrom, QtCore.SIGNAL('editingFinished()'), self.calcYNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYTo, QtCore.SIGNAL('editingFinished()'), self.calcYNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYStep, QtCore.SIGNAL('editingFinished()'), self.calcYNpts)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceY, QtCore.SIGNAL('currentIndexChanged(int)'), self.calcYNpts)        
+                
         #setup SC Slice tab
-		#first setup combo boxes
+        #first setup combo boxes
         self.ui.comboBoxSCSliceX.setCurrentIndex(1)
         self.ui.comboBoxSCSliceX.setCurrentIndex(0)  # seem to need to toggle index 0 to get label to appear initially in GUI
         self.ui.comboBoxSCSliceY.setCurrentIndex(1)		
         self.ui.comboBoxSCSliceZ.setCurrentIndex(2)		
         self.ui.comboBoxSCSliceE.setCurrentIndex(3)				
-		
+
         #setup callbacks for Powder Slice push buttons - Plot, Oplot, and Surface Slice
         QtCore.QObject.connect(self.ui.pushButtonPowderSlicePlotSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderSlicePlotSliceSelect)
         QtCore.QObject.connect(self.ui.pushButtonPowderSliceSurfaceSlice, QtCore.SIGNAL('clicked(bool)'), self.pushButtonPowderSliceSurfaceSliceSelect)
 
         #setup Powder Slice tab
-		#first setup combo boxes
+        #first setup combo boxes
         self.ui.comboBoxPowderSliceX.setCurrentIndex(1)
         self.ui.comboBoxPowderSliceY.setCurrentIndex(1)		
         self.ui.comboBoxPowderSliceY.setCurrentIndex(0)		# seem to need to toggle index 0 to get label to appear initially in GUI
-		
+
         #setup view tabs once the application has been initialized
         self.ui.ViewTabWidget.setCurrentIndex(0)	
         #set Powder Calculate Projections Tab as default on startup
         self.ui.SampleTabWidget.setCurrentIndex(0)  
-	
-		
+
         #Initialize Status area
         self.ui.statusText="Status Updates"
         datetimestr=time.strftime("%a %b %d %Y %H:%M:%S")+" - Application Start: "
@@ -248,6 +261,238 @@ class MSlice(QtGui.QMainWindow):
         self.ui.returnName=''
         self.ui.returnType=''
         self.ui.returnSize=''
+        
+        #setup for saving and restoring single crystal calc proj params
+        #set defaults
+        #get parameters from GUI:
+        #Unit Cell Parameters:
+        self.ui.SCUCa=str(self.ui.lineEditUCa.text())
+        self.ui.SCUCb=str(self.ui.lineEditUCb.text())
+        self.ui.SCUCc=str(self.ui.lineEditUCc.text())
+        self.ui.SCUCalpha=str(self.ui.lineEditUCalpha.text())
+        self.ui.SCUCbeta=str(self.ui.lineEditUCbeta.text())
+        self.ui.SCUCgamma=str(self.ui.lineEditUCgamma.text())
+        
+        #Crystal Orientations:
+        self.ui.SCCOux=str(self.ui.lineEditSCCOux.text())
+        self.ui.SCCOuy=str(self.ui.lineEditSCCOuy.text())
+        self.ui.SCCOuz=str(self.ui.lineEditSCCOuz.text())
+        self.ui.SCCOvx=str(self.ui.lineEditSCCOvx.text())
+        self.ui.SCCOvy=str(self.ui.lineEditSCCOvy.text())
+        self.ui.SCCOvz=str(self.ui.lineEditSCCOvz.text())
+        self.ui.SCCOPsi=str(self.ui.lineEditSCCOPsi.text())
+        self.ui.SCCOMN=str(self.ui.lineEditSCCOName.text())		
+        
+        #Viewing Angle
+        self.ui.SCVAu1a=str(self.ui.lineEditSCVAu1a.text())
+        self.ui.SCVAu1b=str(self.ui.lineEditSCVAu1b.text())
+        self.ui.SCVAu1c=str(self.ui.lineEditSCVAu1c.text())
+        self.ui.SCVAu1Label=str(self.ui.lineEditSCVAu1Label.text())
+        self.ui.SCVAu2a=str(self.ui.lineEditSCVAu2a.text())
+        self.ui.SCVAu2b=str(self.ui.lineEditSCVAu2b.text())
+        self.ui.SCVAu2c=str(self.ui.lineEditSCVAu2c.text())
+        self.ui.SCVAu2Label=str(self.ui.lineEditSCVAu2Label.text())
+        self.ui.SCVAu3a=str(self.ui.lineEditSCVAu3a.text())
+        self.ui.SCVAu3b=str(self.ui.lineEditSCVAu3b.text())
+        self.ui.SCVAu3c=str(self.ui.lineEditSCVAu3c.text())
+        self.ui.SCVAu3Label=str(self.ui.lineEditSCVAu3Label.text())
+        
+        #Set Default Goniometer Settings - not on MSlice GUI but available via ui_GPrpos GUI
+        self.ui.ax0='0,1,0,1'
+        self.ui.ax1='0,1,0,1'
+        self.connect(self.ui.actionGoniometer_Properties, QtCore.SIGNAL('triggered()'), self.setGProps) 
+        
+        #enable parameters reset button
+        QtCore.QObject.connect(self.ui.pushButtonDefaultSCParams, QtCore.SIGNAL('clicked(bool)'),self.DefaultSCParams)
+        #now setup signals and slots for saving and loading parameters
+        QtCore.QObject.connect(self.ui.pushButtonSaveSCParams, QtCore.SIGNAL('clicked(bool)'),self.SaveSCParams)
+        QtCore.QObject.connect(self.ui.pushButtonLoadSCParams, QtCore.SIGNAL('clicked(bool)'),self.LoadSCParams)
+        QtCore.QObject.connect(self.ui.pushButtonCheckSCWorkspace, QtCore.SIGNAL('clicked(bool)'),self.CheckWorkspace)
+
+        #Define Slice Single Crystal Cut Tab dictionary used for creating data to view
+        ViewSCCDict={}
+
+        ViewSCCDict.setdefault('u1',{})['index']='0'
+        ViewSCCDict.setdefault('u1',{})['label']='[H,0,0]'+config.XYZUnits
+        ViewSCCDict.setdefault('u1',{})['from']=''
+        ViewSCCDict.setdefault('u1',{})['to']=''
+        ViewSCCDict.setdefault('u1',{})['Intensity']=''
+        
+        ViewSCCDict.setdefault('u2',{})['index']='1'
+        ViewSCCDict.setdefault('u2',{})['label']='[0,K,0]'+config.XYZUnits
+        ViewSCCDict.setdefault('u2',{})['from']=''
+        ViewSCCDict.setdefault('u2',{})['to']=''
+        ViewSCCDict.setdefault('u2',{})['Intensity']=''
+        
+        ViewSCCDict.setdefault('u3',{})['index']='2'
+        ViewSCCDict.setdefault('u3',{})['label']='[0,0,L]'+config.XYZUnits
+        ViewSCCDict.setdefault('u3',{})['from']=''
+        ViewSCCDict.setdefault('u3',{})['to']=''
+        ViewSCCDict.setdefault('u3',{})['Intensity']=''
+        
+        ViewSCCDict.setdefault('E',{})['index']='3'
+        ViewSCCDict.setdefault('E',{})['label']='E (meV)'
+        ViewSCCDict.setdefault('E',{})['from']=''
+        ViewSCCDict.setdefault('E',{})['to']=''
+        ViewSCCDict.setdefault('E',{})['Intensity']=''
+        #make dictionary available to MSlice
+        self.ui.ViewSCCDict=ViewSCCDict
+        
+        #Define signal/slot for when Viewing Axes change - need a connection for each line edit field in 'Viewing Axes'
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)        
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCCDict)
+        
+        #Define signal/slot for changing View Data combo box selections
+        QtCore.QObject.connect(self.ui.comboBoxSCCutX, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCX)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutY, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCY)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCZ)
+        QtCore.QObject.connect(self.ui.comboBoxSCCutE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCCE)
+        self.ui.ViewSCCDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
+        #and a second for programmatically changing the current index when updating the ViewSCCDict.  Skip the second update...
+
+        #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
+        QtCore.QObject.connect(self.ui.lineEditSCCutXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCCutYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCCNpts)
+
+
+        
+        #Define Slice Single Crystal Slice Tab dictionary used for creating data to view
+        ViewSCSDict={}
+
+        ViewSCSDict.setdefault('u1',{})['index']='0'
+        ViewSCSDict.setdefault('u1',{})['label']='[H,0,0]'+config.XYZUnits
+        ViewSCSDict.setdefault('u1',{})['from']=''
+        ViewSCSDict.setdefault('u1',{})['to']=''
+        ViewSCSDict.setdefault('u1',{})['Intensity']=''
+        
+        ViewSCSDict.setdefault('u2',{})['index']='1'
+        ViewSCSDict.setdefault('u2',{})['label']='[0,K,0]'+config.XYZUnits
+        ViewSCSDict.setdefault('u2',{})['from']=''
+        ViewSCSDict.setdefault('u2',{})['to']=''
+        ViewSCSDict.setdefault('u2',{})['Intensity']=''
+        
+        ViewSCSDict.setdefault('u3',{})['index']='2'
+        ViewSCSDict.setdefault('u3',{})['label']='[0,0,L]'+config.XYZUnits
+        ViewSCSDict.setdefault('u3',{})['from']=''
+        ViewSCSDict.setdefault('u3',{})['to']=''
+        ViewSCSDict.setdefault('u3',{})['Intensity']=''
+        
+        ViewSCSDict.setdefault('E',{})['index']='3'
+        ViewSCSDict.setdefault('E',{})['label']='E (meV)'
+        ViewSCSDict.setdefault('E',{})['from']=''
+        ViewSCSDict.setdefault('E',{})['to']=''
+        ViewSCSDict.setdefault('E',{})['Intensity']=''
+        #make dictionary available to MSlice
+        self.ui.ViewSCSDict=ViewSCSDict
+        
+        #Define signal/slot for when Viewing Axes change - need a connection for each line edit field in 'Viewing Axes'
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)        
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCSDict)
+        
+        #Define signal/slot for changing View Data combo box selections
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceX, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSX)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceY, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSY)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSZ)
+        QtCore.QObject.connect(self.ui.comboBoxSCSliceE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCSE)
+        self.ui.ViewSCSDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
+        #and a second for programmatically changing the current index when updating the ViewSCSDict.  Skip the second update...
+
+        #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCSliceYStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCSNpts)
+        
+        
+        #Define Volume Single Crystal Volume Tab dictionary used for creating data to view
+        ViewSCVDict={}
+
+        ViewSCVDict.setdefault('u1',{})['index']='0'
+        ViewSCVDict.setdefault('u1',{})['label']='[H,0,0]'+config.XYZUnits
+        ViewSCVDict.setdefault('u1',{})['from']=''
+        ViewSCVDict.setdefault('u1',{})['to']=''
+        ViewSCVDict.setdefault('u1',{})['Intensity']=''
+        
+        ViewSCVDict.setdefault('u2',{})['index']='1'
+        ViewSCVDict.setdefault('u2',{})['label']='[0,K,0]'+config.XYZUnits
+        ViewSCVDict.setdefault('u2',{})['from']=''
+        ViewSCVDict.setdefault('u2',{})['to']=''
+        ViewSCVDict.setdefault('u2',{})['Intensity']=''
+        
+        ViewSCVDict.setdefault('u3',{})['index']='2'
+        ViewSCVDict.setdefault('u3',{})['label']='[0,0,L]'+config.XYZUnits
+        ViewSCVDict.setdefault('u3',{})['from']=''
+        ViewSCVDict.setdefault('u3',{})['to']=''
+        ViewSCVDict.setdefault('u3',{})['Intensity']=''
+        
+        ViewSCVDict.setdefault('E',{})['index']='3'
+        ViewSCVDict.setdefault('E',{})['label']='E (meV)'
+        ViewSCVDict.setdefault('E',{})['from']=''
+        ViewSCVDict.setdefault('E',{})['to']=''
+        ViewSCVDict.setdefault('E',{})['Intensity']=''
+        #make dictionary available to MSlice
+        self.ui.ViewSCVDict=ViewSCVDict
+        
+        #Define signal/slot for when Viewing Axes change - need a connection for each line edit field in 'Viewing Axes'
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)        
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3a, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3b, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3c, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu1Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu2Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        QtCore.QObject.connect(self.ui.lineEditSCVAu3Label, QtCore.SIGNAL('textChanged(QString)'),self.UpdateViewSCVDict)
+        
+        #Define signal/slot for changing View Data combo box selections
+        QtCore.QObject.connect(self.ui.comboBoxSCVolX, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCVX)
+        QtCore.QObject.connect(self.ui.comboBoxSCVolY, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCVY)
+        QtCore.QObject.connect(self.ui.comboBoxSCVolZ, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCVZ)
+        QtCore.QObject.connect(self.ui.comboBoxSCVolE, QtCore.SIGNAL('currentIndexChanged(int)'),self.UpdateComboSCVE)
+        self.ui.ViewSCVDataDeBounce=False #need a debouncing flag since we're generating two index changed events: one for using the mouse to select the combobox item, 
+        #and a second for programmatically changing the current index when updating the ViewSCSDict.  Skip the second update...
+
+        #Define signal/slot for handling SCXNpts and SCYNpts calculations upon value changes
+        QtCore.QObject.connect(self.ui.lineEditSCVolXFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolXTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolXStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolYFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolYTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolYStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolZFrom, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolZTo, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)
+        QtCore.QObject.connect(self.ui.lineEditSCVolZStep, QtCore.SIGNAL('textChanged(QString)'),self.updateSCVNpts)        
+        
+        
+        
 
     #add slot for workspace group editor to connect to
     @QtCore.pyqtSlot(int)
@@ -255,7 +500,7 @@ class MSlice(QtGui.QMainWindow):
         #val can be used to let this methold know who called it should that be desired
         
         #get constants
-	const=constants()
+        #const=constants()
         
         print "on_button_clicked - val: ",val
         self.ui.pushButtonUpdate.setEnabled(True)
@@ -283,7 +528,7 @@ class MSlice(QtGui.QMainWindow):
             #case where we have one workspace with same name in Workspace Mgr and Workspace Composer - overwrite in this case
             for row in range(Nrows):
                 #find which row to overwrite
-                if wsname == str(table.item(row,const.WSM_WorkspaceCol).text()):
+                if wsname == str(table.item(row,config.WSM_WorkspaceCol).text()):
                     wsindex=row
         print "Slot WSMIndex: ",wsindex
         addmemWStoTable(table,wsname,wstype,wssize,wsindex)
@@ -304,19 +549,18 @@ class MSlice(QtGui.QMainWindow):
             fileObj.write(log)
             fileObj.close()
 
-		
     def PowderCalcProjSelect(self):
-	
-	#get constants
-	const=constants()
-	
+
+        #get constants
+        #const=constants()
+
         #disable Powder Calc Proj until calculations complete
         self.ui.pushButtonPowderCalcProj.setEnabled(False)      	
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Calculate Projections Initiated")		
-		
-	#get workspace table to work with
-	table=self.ui.tableWidgetWorkspaces
-		
+
+        #get workspace table to work with
+        table=self.ui.tableWidgetWorkspaces
+
         #get values from combo boxes 
         CBPU1=self.ui.comboBoxPowderu1.currentIndex()
         CBPU1txt=self.ui.comboBoxPowderu1.currentText()
@@ -324,7 +568,7 @@ class MSlice(QtGui.QMainWindow):
         CBPU2=self.ui.comboBoxPowderu2.currentIndex()
         CBPU2txt=self.ui.comboBoxPowderu2.currentText()
         print "CBPU2: ",str(CBPU2)," ",CBPU2txt
-		
+
         #now get values from the labels
         LESCu1Label=self.ui.lineEditPowderu1.text()
         print "LESCu1Label: ",LESCu1Label
@@ -342,19 +586,35 @@ class MSlice(QtGui.QMainWindow):
         for row in range(Nrows):
             percentbusy=int(100*(row+1)/Nrows)
             self.ui.progressBarStatusProgress.setValue(percentbusy)
-            cw=table.cellWidget(row,const.WSM_SelectCol) 
+            cw=table.cellWidget(row,config.WSM_SelectCol) 
+            print "cw: ",cw
+            print "type(cw): ",type(cw)
+            print "config.WSM_SelectCol: ",config.WSM_SelectCol
+            print "config.WSM_SavedCol: ",config.WSM_SavedCol
             cbstat=cw.isChecked()
             if cbstat:
                 
                 #case to attempt to run calculate projections
                 #FIXME - skipped for now, but will need to verify workspace type before running calc proj
                 #but for now, we'll assume that it's a powder workspace
-                pws=str(table.item(row,const.WSM_WorkspaceCol).text())
+                pws=str(table.item(row,config.WSM_WorkspaceCol).text())
                 self.ui.StatusText.append(time.strftime('  Input Workspace: '+pws))	
                 print "  pws: ",pws
                 pws_out=pws+pwsSuffix
                 self.ui.StatusText.append(time.strftime('  Output Workspace: '+pws_out))	
-                ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out)
+                pws=mtd.retrieve(pws)
+                if pws.id() == 'Workspace2D':
+                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out,PreprocDetectorsWS='')
+                elif pws.id() == 'WorkspaceGroup':
+                    #FIXME - eventually need to check inside group to determine each ws is a Workspace2D type
+                    ConvertToMD(pws,'|Q|','Direct',Outputworkspace=pws_out,PreprocDetectorsWS='')
+                elif pws.id() == 'MDEventWorkspace<MDEvent,2>':
+                    #case convert to MD has already been done 
+                    #so employ some mantid workspace handlers...
+                    mtd.addOrReplace(pws_out,pws)                
+                else:
+                    #unhandled case for now
+                    pass
                 placeholderws=mtd.retrieve(pws_out)
                 #once outputworkspace exists, add it back to the table
                 pws_type='Powder Calc Proj'
@@ -363,9 +623,11 @@ class MSlice(QtGui.QMainWindow):
                 print "pws_out: ",pws_out
                 print "pws_type: ",pws_type
                 print "pws_size: ",pws_size
+                print "table: ",table
+                print "config.WSM_SelectCol: ",config.WSM_SelectCol
                 table.insertRow(pws_indx)
                 addmemWStoTable(table,pws_out,pws_type,pws_size,pws_indx)
-                addCheckboxToWSTCell(table,row,const.WSM_SelectCol,False) #row was: pws_indx-1
+                addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False) #row was: pws_indx-1
                 addcntr +=1 #increment row counter for where to add a workspace
         table.resizeColumnsToContents();
         time.sleep(0.2) #give some time since processing before clearing progress bar
@@ -374,106 +636,328 @@ class MSlice(QtGui.QMainWindow):
         self.ui.pushButtonPowderCalcProj.setEnabled(True)      
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Calculate Projections Complete")	
         print "Powder Calc Workspaces Processed: "
-		
+
     def SCCalcProjSelect(self):
 
-        #disable Powder Calc Proj until calculations complete
-        self.ui.pushButtonSCCalcProj.setEnabled(False)      
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Calculate Projections Initiated")		
-		
-        #extract values from the line text boxes
-		#Unit Cell Parameters:
-        SCUCa=self.ui.lineEditUCa.text()
-        SCUCb=self.ui.lineEditUCb.text()
-        SCUCc=self.ui.lineEditUCc.text()
-        SCUCalpha=self.ui.lineEditUCalpha.text()
-        SCUCbeta=self.ui.lineEditUCbeta.text()
-        SCUCgamma=self.ui.lineEditUCgamma.text()
-        print "UC values: ",SCUCa,SCUCb,SCUCc,SCUCalpha,SCUCbeta,SCUCgamma
+        try:
+            #to avoid various pilot erros from hanging the interface, 
+            #catch excpetions here and handle them gracefulle for this method
+            #disable Powder Calc Proj until calculations complete
+            self.ui.pushButtonSCCalcProj.setEnabled(False)      
+            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Calculate Projections Initiated")		
+            
+            #get workspace table to work with
+            table=self.ui.tableWidgetWorkspaces
+    
+            #extract values from the line text boxes
+            #Unit Cell Parameters:
+            SCUCa=str(self.ui.lineEditUCa.text())
+            SCUCb=str(self.ui.lineEditUCb.text())
+            SCUCc=str(self.ui.lineEditUCc.text())
+            SCUCalpha=str(self.ui.lineEditUCalpha.text())
+            SCUCbeta=str(self.ui.lineEditUCbeta.text())
+            SCUCgamma=str(self.ui.lineEditUCgamma.text())
+            print "UC values: ",SCUCa,SCUCb,SCUCc,SCUCalpha,SCUCbeta,SCUCgamma
+            
+            #Crystal Orientations:
+            SCCOux=self.ui.lineEditSCCOux.text()
+            SCCOuy=self.ui.lineEditSCCOuy.text()
+            SCCOuz=self.ui.lineEditSCCOuz.text()
+            SCCOvx=self.ui.lineEditSCCOvx.text()
+            SCCOvy=self.ui.lineEditSCCOvy.text()
+            SCCOvz=self.ui.lineEditSCCOvz.text()
+            SCCOPsi=self.ui.lineEditSCCOPsi.text()	
+            SCCOMN=self.ui.lineEditSCCOName.text()	
+            print "CO values: ",SCCOux,SCCOuy,SCCOuz,SCCOvx,SCCOvy,SCCOvz,SCCOPsi
+    
+            #Viewing Angle
+            SCVAu1a=self.ui.lineEditSCVAu1a.text()
+            SCVAu1b=self.ui.lineEditSCVAu1b.text()
+            SCVAu1c=self.ui.lineEditSCVAu1c.text()
+            SCVAu1Label=self.ui.lineEditSCVAu1Label.text()
+            SCVAu2a=self.ui.lineEditSCVAu2a.text()
+            SCVAu2b=self.ui.lineEditSCVAu2b.text()
+            SCVAu2c=self.ui.lineEditSCVAu2c.text()
+            SCVAu2Label=self.ui.lineEditSCVAu2Label.text()
+            SCVAu3a=self.ui.lineEditSCVAu3a.text()
+            SCVAu3b=self.ui.lineEditSCVAu3b.text()
+            SCVAu3c=self.ui.lineEditSCVAu3c.text()
+            SCVAu3Label=self.ui.lineEditSCVAu3Label.text()
+            print "VA values: ",SCVAu1a,SCVAu1b,SCVAu1c,SCVAu1Label,SCVAu2a,SCVAu2b,SCVAu2c,SCVAu2Label,SCVAu3a,SCVAu3b,SCVAu3c,SCVAu3Label
+    
+            #Not doing this portion yet as the functionality is not yet supported in Mantid
+            #Viewing Angle - fold
+            SCVAu1Fold=self.ui.checkBoxSCVAu1Fold.checkState()
+            SCVAu1Center=self.ui.lineEditSCVAu1Center.text()
+            SCVAu1Direction=self.ui.comboBoxSCVAu1Direction.currentIndex()
+            SCVAu1Directiontxt=self.ui.comboBoxSCVAu1Direction.currentText()
+            SCVAu2Fold=self.ui.checkBoxSCVAu2Fold.checkState()
+            SCVAu2Center=self.ui.lineEditSCVAu2Center.text()
+            SCVAu2Direction=self.ui.comboBoxSCVAu2Direction.currentIndex()
+            SCVAu2Directiontxt=self.ui.comboBoxSCVAu2Direction.currentText()
+            SCVAu3Fold=self.ui.checkBoxSCVAu2Fold.checkState()
+            SCVAu3Center=self.ui.lineEditSCVAu2Center.text()
+            SCVAu3Direction=self.ui.comboBoxSCVAu2Direction.currentIndex()
+            SCVAu3Directiontxt=self.ui.comboBoxSCVAu2Direction.currentText()
+            #print "VA - fold u1: ",SCVAu1Fold,SCVAu1Center,SCVAu1Direction,SCVAu1Directiontxt
+            #print "VA - fold u2: ",SCVAu2Fold,SCVAu2Center,SCVAu2Direction,SCVAu2Directiontxt
+            #print "VA - fold u3: ",SCVAu3Fold,SCVAu3Center,SCVAu3Direction,SCVAu3Directiontxt
+    
+            #need to determine which workspaces are selected 
+            Nrows=table.rowCount()
+            cwsSuffix=str(self.ui.lineEditSCWorkspaceSuffix.text()) #get workspace suffix to append to resultant workspace from GUI
+            self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
+            addcntr=0
+            NumSelWorkspaces=0
+            for row in range(Nrows):
+                percentbusy=int(100*(row+1)/Nrows)
+                self.ui.progressBarStatusProgress.setValue(percentbusy)
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
+                print "cw: ",cw
+                print "type(cw): ",type(cw)
+                cbstat=cw.isChecked()
+                if cbstat:
+                    NumSelWorkspaces+=1
+                    cws=str(table.item(row,config.WSM_WorkspaceCol).text())
+                    self.ui.StatusText.append(time.strftime('  Input Workspace: '+cws))	
+                    
+    
+            #**************************************************************************
+            #
+            #Initial implementation of SC expects a single group workspace
+            
+            if NumSelWorkspaces != 1:
+                #case where we have more or less than one (group) workspace
+                dialog=QtGui.QMessageBox(self)
+                dialog.setText("Need a single workspace or a group workspace - returning")
+                dialog.exec_()  
+                return
+            #print a warning if the workspace is not a group workspace
+            cwsName=cws
+            cws=mtd.retrieve(cws) #now retrieve cws using it's string name to have a Mantid workspace
+            if cws.id() != 'WorkspaceGroup':
+                print "Notice: single workspace is not a group workspace"
+                
+            #update Ei and S1
+            try:
+                #using try in case S1 is not the correct motor name
+                Ei=cws.run().getProperty('Ei').value
+                self.ui.labelSCEi.setText("Ei: "+"%.3f" % Ei)
+                S1=cws.run().getProperty('S1').firstValue()
+                self.ui.labelSCS1.setText("Start Angle: "+"%.3f" % S1)
+            except:
+                pass
+            
+            cws_out=cwsName+cwsSuffix
+            
+            self.ui.StatusText.append(time.strftime('  Output Workspace: '+cws_out))	
+            
+            #
+            #place variables into Mantid Algorithms
+            #FIXME - need a generic way to determine Axis0 name
+            # From Mantid Documentation: Axis0: name, x,y,z, 1/-1 (1 for ccw, -1 for cw rotation). A number of degrees can be used instead of name. Leave blank for no axis
+            motorName=str(self.ui.lineEditSCCOName.text())
+            #check if motor name given - if not, request 
+            if motorName=='':
+                #case where we need to send the user back to fill in the value
+                motorName,ok = QtGui.QInputDialog.getText(self,"Set Goniometer","Input Motor Name")
+                if motorName == "" or motorName == None:
+                    #we tried to be nice and ask again, just send the user back to the GUI
+                    return
+            motorName=str(motorName) #if we get here, we should have a motor name
+            self.ui.lineEditSCCOName.setText(motorName)
+            print "Motor Name: ",motorName
         
-		#Crystal Orientations:
-        SCCOux=self.ui.lineEditSCCOux.text()
-        SCCOuy=self.ui.lineEditSCCOuy.text()
-        SCCOuz=self.ui.lineEditSCCOuz.text()
-        SCCOvx=self.ui.lineEditSCCOvx.text()
-        SCCOvy=self.ui.lineEditSCCOvy.text()
-        SCCOvz=self.ui.lineEditSCCOvz.text()
-        SCCOPsi=self.ui.lineEditSCCOPsi.text()		
-        print "CO values: ",SCCOux,SCCOuy,SCCOuz,SCCOvx,SCCOvy,SCCOvz,SCCOPsi
-		
-        #Viewing Angle
-        SCVAu1a=self.ui.lineEditSCVAu1a.text()
-        SCVAu1b=self.ui.lineEditSCVAu1b.text()
-        SCVAu1c=self.ui.lineEditSCVAu1c.text()
-        SCVAu1Label=self.ui.lineEditSCVAu1Label.text()
-        SCVAu2a=self.ui.lineEditSCVAu2a.text()
-        SCVAu2b=self.ui.lineEditSCVAu2b.text()
-        SCVAu2c=self.ui.lineEditSCVAu2c.text()
-        SCVAu2Label=self.ui.lineEditSCVAu2Label.text()
-        SCVAu3a=self.ui.lineEditSCVAu3a.text()
-        SCVAu3b=self.ui.lineEditSCVAu3b.text()
-        SCVAu3c=self.ui.lineEditSCVAu3c.text()
-        SCVAu3Label=self.ui.lineEditSCVAu3Label.text()
-        print "VA values: ",SCVAu1a,SCVAu1b,SCVAu1c,SCVAu1Label,SCVAu2a,SCVAu2b,SCVAu2c,SCVAu2Label,SCVAu3a,SCVAu3b,SCVAu3c,SCVAu3Label
-		
-        #Viewing Angle - fold
-        SCVAu1Fold=self.ui.checkBoxSCVAu1Fold.checkState()
-        SCVAu1Center=self.ui.lineEditSCVAu1Center.text()
-        SCVAu1Direction=self.ui.comboBoxSCVAu1Direction.currentIndex()
-        SCVAu1Directiontxt=self.ui.comboBoxSCVAu1Direction.currentText()
-        SCVAu2Fold=self.ui.checkBoxSCVAu2Fold.checkState()
-        SCVAu2Center=self.ui.lineEditSCVAu2Center.text()
-        SCVAu2Direction=self.ui.comboBoxSCVAu2Direction.currentIndex()
-        SCVAu2Directiontxt=self.ui.comboBoxSCVAu2Direction.currentText()
-        SCVAu3Fold=self.ui.checkBoxSCVAu2Fold.checkState()
-        SCVAu3Center=self.ui.lineEditSCVAu2Center.text()
-        SCVAu3Direction=self.ui.comboBoxSCVAu2Direction.currentIndex()
-        SCVAu3Directiontxt=self.ui.comboBoxSCVAu2Direction.currentText()
-        print "VA - fold u1: ",SCVAu1Fold,SCVAu1Center,SCVAu1Direction,SCVAu1Directiontxt
-        print "VA - fold u2: ",SCVAu2Fold,SCVAu2Center,SCVAu2Direction,SCVAu2Directiontxt
-        print "VA - fold u3: ",SCVAu3Fold,SCVAu3Center,SCVAu3Direction,SCVAu3Directiontxt
-		
-        NumActiveWorkspaces=self.ui.numActiveWorkspaces
-        #for demo purposes, activate the application status progress bar
-        for i in range(NumActiveWorkspaces):
-            #************ incorporate Powder Calculate Projections algorithm here
-            print "i: ",str(i)
-            percentcpubusy=100*(i+1)/NumActiveWorkspaces #determine % busy
-            self.ui.progressBarStatusProgress.setValue(percentcpubusy) #adjust progress bar according to % busy
-            time.sleep(0.01)  #seem to need a small delay to ensure that status updates
-            progressText="  Projecting workspace: "+self.ui.activeWSNames[i]
-            print "progressText: ",progressText
-            self.ui.StatusText.append(progressText)
-            thisWS=self.ui.activeWSVarsList[i]
-            SCCP=np.sum(thisWS,axis=0) #to simulate projection, select an axis to sum along
-            #examine thisWS size to see if data look "right"
-            print "thisWS shape: ",thisWS.shape," WS name: ",self.ui.activeWSNames[i]," SCCP shape: ",SCCP.shape
-            time.sleep(1) #have a 1 second delay to enable viewing progress bar update changes
-        self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
-		
-        #upon successful completion enable Powder Calc Proj button
-        self.ui.pushButtonSCCalcProj.setEnabled(True)      
-        #for now, just enable the corresponding Save Workspaces button
-        self.ui.pushButtonSCSaveWorkspace.setEnabled(True) 
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Calculate Projections Complete")		
-		
+            Psi=str(self.ui.lineEditSCCOPsi.text())
+            #check if Psi angle given - if not, request 
+            if Psi=='':
+                #case where we need to send the user back to fill in the value
+                Psi,ok = QtGui.QInputDialog.getText(self,"Set Goniometer","Input Psi")
+                if Psi == "" or Psi == None:
+                    #we tried to be nice and ask again, just send the user back to the GUI
+                    return
+            Psi=str(Psi) #if we get here, we should have a Psi angle
+            self.ui.lineEditSCCOPsi.setText(Psi)
+            print "Psi: ",Psi
+            ax0=str(self.ui.ax0)
+            ax1=str(self.ui.ax1)
+            print "ax0: ",ax0,"  ax1: ",ax1
+            #SetGoniometer(Workspace=cws,Axis0='s1,0,1,0,1',Axis1='7.5,0,1,0,1') 
+            SetGoniometer(Workspace=cws,Axis0=motorName+','+ax0,Axis1=Psi+','+ax1) 
+            u=str(SCCOux)+','+str(SCCOuy)+','+str(SCCOuz)
+            v=str(SCCOvx)+','+str(SCCOvy)+','+str(SCCOvz)
+            SetUB(Workspace=cws,a=SCUCa,b=SCUCb,c=SCUCc,alpha=SCUCalpha,beta=SCUCbeta,gamma=SCUCgamma,u=u,v=v)
+            #FIXME - note in ConvertToMD may want to support additional modes that direct some point into the future but hard coded for now
+            #Some notes:
+            # - ConvertToMDMinMaxGlobal requires a single workspace, not a group workspace to give results
+            # - As long as Ei is the same for all workspaces in the group, minn and maxx will be the same for all workspaces in that group
+            # - Since ConvertToMDMinMaxGlobal will sense the UB workspace, Autoselect will automatically select HKL mode for Q3DFrames
+            if cws.id() != 'WorkspaceGroup':
+                # single workspace case - no index on cws
+                minn,maxx = ConvertToMDMinMaxGlobal(InputWorkspace=cws,QDimensions='Q3D',dEAnalysisMode='Direct')
+            else:
+                # group workspace - use index on cws
+                minn,maxx = ConvertToMDMinMaxGlobal(InputWorkspace=cws[0],QDimensions='Q3D',dEAnalysisMode='Direct')
+            Uproj=str(SCVAu1a)+','+str(SCVAu1b)+','+str(SCVAu1c)
+            Vproj=str(SCVAu2a)+','+str(SCVAu2b)+','+str(SCVAu2c)
+            Wproj=str(SCVAu3a)+','+str(SCVAu3b)+','+str(SCVAu3c)
+            ConvertToMD(InputWorkspace=cws,OutputWorkspace=cws_out,QDimensions='Q3D',QConversionScales='HKL',MinValues=minn,MaxValues=maxx,Uproj=Uproj,Vproj=Vproj,Wproj=Wproj,PreprocDetectorsWS='')
+            cws_out_name=cws_out
+            cws_out=mtd.retrieve(cws_out)
+            wsType=cws_out.id()
+            print " wsType: ",wsType
+            if wsType == 'WorkspaceGroup':
+                print " ** Group workspace"
+                #Note that MergeMD automatically handles group workspaces
+                #Needs a comma separated list of workspace names
+                #check the number of files within the workspace group - MergeMD needs at least two
+                if len(cws_out) == 1:
+                    cws_out=cws_out[0]
+                else:
+                    MergeMD(cws_out,OutputWorkspace=cws_out_name)
+                    cws_out=mtd.retrieve(cws_out_name)
+            else:
+                print " ** Single workspace"
+                cws_out=cws_out
+            
+            
+            #
+            #**************************************************************************
+    
+            #once outputworkspace exists, add it back to the table
+            cws_type='Single Crystal Calc Proj'
+            """
+            placeholderws=mtd.retrieve(cws_out)
+            
+            
+            #to determine memory size, must add sizes of each workspace in the group as the group workspace itself does not provide the composite size
+            #also note that memory size can differ from disk size - will consider if/how to address this later
+            if cws.id() != 'WorkspaceGroup':
+                # single workspace case 
+                Nws=1
+                sz=float(placeholderws.getMemorySize())
+            else:
+                # group workspace case
+                Nws=len(placeholderws)
+                sz=0.0
+                for i in range(Nws):
+                    sz+=float(placeholderws[i].getMemorySize())
+            """        
+                    
+            sz=cws_out.getMemorySize() #MergeMD workspace is a single workspace
+            cws_size=str(float(int(sz/float(1024*1024)*10))/10)+' MB'
+            cws_indx=Nrows#+NumSelWorkspaces #here this should be equivalent to Nrows+1
+            print "cws_out: ",cws_out
+            print "cws_type: ",cws_type
+            print "cws_size: ",cws_size
+            table.insertRow(cws_indx)
+            
+            """
+            print "** Debug ** - save WS "
+            SaveMD(cws_out,Filename='Z:/data/HYS/BarryWinn/tmp/tmp_SCProj.nxs')
+            #SaveNexus(cws_out,Filename='Z:/data/HYS/BarryWinn/tmp/tmp1_SCProj.nxs')
+            """
+                        
+            addmemWStoTable(table,cws_out_name,cws_type,cws_size,cws_indx)
+            addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False) #row was: pws_indx-1
 
+            #update ViewSCCDict with minn and maxx values calculated above
+            ViewSCCDict=self.ui.ViewSCCDict
+            ViewSCCDict['u1']['from']=minn[0]
+            ViewSCCDict['u1']['to']=maxx[0]            
+            ViewSCCDict['u2']['from']=minn[1]
+            ViewSCCDict['u2']['to']=maxx[1] 
+            ViewSCCDict['u3']['from']=minn[2]
+            ViewSCCDict['u3']['to']=maxx[2] 
+            ViewSCCDict['E']['from']=minn[3]
+            ViewSCCDict['E']['to']=maxx[3] 
+            
+            #update ViewSCSDict with minn and maxx values calculated above
+            ViewSCSDict=self.ui.ViewSCSDict
+            ViewSCSDict['u1']['from']=minn[0]
+            ViewSCSDict['u1']['to']=maxx[0]            
+            ViewSCSDict['u2']['from']=minn[1]
+            ViewSCSDict['u2']['to']=maxx[1] 
+            ViewSCSDict['u3']['from']=minn[2]
+            ViewSCSDict['u3']['to']=maxx[2] 
+            ViewSCSDict['E']['from']=minn[3]
+            ViewSCSDict['E']['to']=maxx[3] 
+
+            #update ViewSCVDict with minn and maxx values calculated above
+            ViewSCVDict=self.ui.ViewSCVDict
+            ViewSCVDict['u1']['from']=minn[0]
+            ViewSCVDict['u1']['to']=maxx[0]            
+            ViewSCVDict['u2']['from']=minn[1]
+            ViewSCVDict['u2']['to']=maxx[1] 
+            ViewSCVDict['u3']['from']=minn[2]
+            ViewSCVDict['u3']['to']=maxx[2] 
+            ViewSCVDict['E']['from']=minn[3]
+            ViewSCVDict['E']['to']=maxx[3]             
+            
+            
+        except Exception as e:
+            #parse error messages and provide info to user
+            
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            #print(exc_type, fname, exc_tb.tb_lineno)
+            
+            etype=e.__class__.__name__
+            #exception types found here: https://docs.python.org/3/library/exceptions.html 
+            
+            #add handling specific to cases discovered in using the code
+            msg0=''
+            #retrieve error message info and interpret this for the user
+            if e.args[0] == "'NoneType' object has no attribute 'isChecked'":
+                msg0='No files selected'
+            #can add additional elif clauses here as more error types are handled
+            elif etype == 'ValueError':
+                msg0='Wrong file type selected'
+            else:
+                msg0='Non-fatal error encountered'
+                
+            #also check if there are any system errors
+            syserr=sys.stderr.errors
+            if syserr==None:
+                syserr=''
+                
+            #retrieve exception error message and write to log - this info useful for programmer but not user...
+            msg1=e.args[0]
+            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+msg1)	
+            
+            #Compile the entire message from substrings created above and present it to the user
+            msg="File: "+fname+" Line: "+str(exc_tb.tb_lineno)+" "
+            msg=msg+"Type: "+etype+" - "+msg0+" - "+syserr
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("Non-Fatal Error: "+msg)
+            dialog.exec_()  
+
+            
+        else:
+            #case where try completes successfully and we want to know specifically that it has
+            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Calculate Projections Complete")	
+            
+        finally:
+            #this code executed for either case for try/except conditions occuring
+            #upon completion enable Powder Calc Proj button
+            self.ui.pushButtonSCCalcProj.setEnabled(True)      
+            self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
         
     def Update(self):
         print "** Update "
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Updating Workspace Manager")
-        const=constants()
+        #const=constants()
 
         self.ui.tableWidgetWorkspaces.setEnabled(False)
         self.ui.pushButtonPowderCalcProj.setEnabled(True) 
-        self.ui.pushButtonSCCalcProj.setEnabled(False) 
+        self.ui.pushButtonSCCalcProj.setEnabled(True) 
         self.ui.activeWSNames=[]
         table=self.ui.tableWidgetWorkspaces
         #first let's clean up empty rows
         Nrows=table.rowCount()
         roff=0
         for row in range(Nrows):
-            item=table.item(row,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(row,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             if itemStr == 'None':
@@ -485,11 +969,14 @@ class MSlice(QtGui.QMainWindow):
             #Load workspaces or groups from files
             
             #open dialog box to select files
-            curdir=os.curdir
-            filter='*.nxs'
+            if self.ui.rememberDataPath=='':
+                curdir=os.curdir
+            else:
+                curdir=self.ui.rememberDataPath
+            filter="NXS (*.nxs);;All files (*.*)"
             wsFiles = QtGui.QFileDialog.getOpenFileNames(self, 'Open Workspace(s)', curdir,filter)
-            
-            
+            self.ui.rememberDataPath=os.path.dirname(str(wsFiles[0]))
+        
             #for each file selected:
             #  - load mantid workspace
             #  - populate workspace manager table
@@ -498,14 +985,110 @@ class MSlice(QtGui.QMainWindow):
             table=self.ui.tableWidgetWorkspaces
             
             print "Number of files selected: ",Nfiles
-            cntr=1
+            cntr=1 #used for calculating progress bar % complete...
+            gotOne=0
             for wsfile in wsFiles:
                 basename=os.path.basename(str(wsfile))
                 fileparts=os.path.splitext(basename)
                 wsName=fileparts[0]
-                Load(Filename=str(wsfile),OutputWorkspace=wsName)
-                #make sure workspaces are available at the python level
+                """
+                At this point, it turns out that SaveMD only saves the last workspace
+                in a group.  Realizing this, it is necessary for the group event workspace
+                save to save each MDWorkspace individually and retrieve them in a similar fashion
+                creating the group around these to produce the MD group workspace.
                 
+                Unfortunately in the case for Load(), one does not know the type
+                of data until Load() makes an attempt to read the data.  As load of
+                a group of MD workspaces will not function propery, it is necessary
+                to intercept the Load() function and determine the proper operations.  
+                For other workspace types, Load() automatically determines the proper
+                load mechanism, but for an MDEvent group workspace, it is necessary 
+                for a layer to manage proper loading
+                """
+                wsfile=str(wsfile)
+                Load(Filename=wsfile,OutputWorkspace=wsName)
+                
+                #make sure workspaces are available at the python level
+                __ws=mtd.retrieve(wsName)
+                
+                #check if the file has a companion .xml file of the same base filename
+                #if so, this indicates a 1D workspace and the workspace will be
+                #tossed to the 1D plot display program and will exit out of
+                #this method
+                
+                basefname=os.path.splitext(wsfile)
+                compFilename=basefname[0]+'.xml'
+                chkCompFile=os.path.isfile(compFilename)
+                if chkCompFile == True:
+                    #case we have a 1D mantid workspace and its companion xml file
+                    plot1Dplot(__ws,compFilename)
+                    #plot the data and return to the main program
+                    return
+                
+                try:
+                    #see if we can reduce the workspace memory footprint some
+                    keepLst=['goniometer','Ei','run_number','run_start','run_title','start_time','Filename','DirectInelasticReductionNormalisedBy','a1b','a1l','a1r','a1sd','a2b','a2l','a2r','a2sd','a2t']
+                    #RemoveLogs(__ws,KeepLogs=keepLst)
+                except:
+                    #if not, just move on.
+                    pass
+                print "** type(__ws): ",type(__ws)
+
+                
+                try:
+                    #If this try clause runs successfully, this is a single crystal file.
+                    #In that case, need to fill the histDict structure
+                    #check if the workspace just loaded is a single crystal CalcProj workspace
+                    #need to check workspace history to determine this
+                    
+                    histDict=histToDict(__ws)
+                    print "histDict: "
+                    print histDict
+                    #check if workspace history has entries for:
+                    # - SetGoniometer
+                    # - SetUB
+                    # - ConvertToMD
+                    #as each of these contain params needed for the GUI
+                    #check if the needed settings are present - will fall out of this try if they are not present (not using the values here, just checking)
+                    Goniometer=histDict['SetGoniometer']
+                    UB=histDict['SetUB']
+                    MD=histDict['ConvertToMD']
+                    gotOne +=1 #currently not checking for more than one single crystal file
+        
+                    
+                except Exception as e:
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                    print(exc_type, fname, exc_tb.tb_lineno)
+                    #If this except clause is run, then it's assumed this is a powder file
+                    #case where the needed parameters for SC CalcProj not available in the workspace
+                    #skip this workspace and check next one if there are more.
+                    print "** not a SC Workspace **"
+                    pass
+                
+                #check if we found more than one SC Calc Proj workspace
+                
+                #gotOne variable indicates the number of single crystal workspaces discovered
+                if gotOne > 1:
+                    #inform user that multiple SCCalcProj workspaces discovered
+                    #and using the last one found
+                    msg='Multiple SC Calc Proj workspaces discovered - using parameters from : '+__ws.name()
+                    dialog=QtGui.QMessageBox(self)
+                    dialog.setText(msg)
+                    dialog.exec_()  
+                    
+                #case we have parameters for latest SC Calc Proj workspace
+                #put params into GUI
+                if gotOne >= 1:
+                    #case to update parameters on GUI
+                    updateSCParms(self,histDict,['Cut'])
+                    updateSCParms(self,histDict,['Slice'])
+                    updateSCParms(self,histDict,['Volume'])
+                    #make corresponding SC tabs on top
+                    self.ui.SampleTabWidget.setCurrentIndex(1) 
+                    self.ui.ViewTabWidget.setCurrentIndex(1)	
+                    
+                    
                 
                 percentbusy=int(float(cntr)/float(Nfiles)*100)
                 self.ui.progressBarStatusProgress.setValue(percentbusy) #adjust progress bar according to % busy
@@ -516,12 +1099,10 @@ class MSlice(QtGui.QMainWindow):
                 addWStoTable(table,wsName,wsfile)
                 #update table with memory size rather than file size in the Size column of the Workspace Manager
                 
-                
-                
             table.resizeColumnsToContents();
             self.ui.progressBarStatusProgress.setValue(0) #adjust progress bar according to % busy
             
-        elif self.ui.radioButtonComposeSelected.isChecked():  
+        elif self.ui.radioButtonGroupSelected.isChecked():  
             #edit existing workspace group using the workspace group editor
             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Calling Workspace Composer Edit Workspace")
             #first need to determine which workspace selected in the workspace manager
@@ -531,7 +1112,7 @@ class MSlice(QtGui.QMainWindow):
             selrow=[]
             for row in range(Nrows):
                 #get checkbox status            
-                cw=table.cellWidget(row,const.WSM_SelectCol) 
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
                 try:
                     cbstat=cw.isChecked()
                     print "row: ",row," cbstat: ",cbstat
@@ -540,7 +1121,7 @@ class MSlice(QtGui.QMainWindow):
                         selrow.append(row)
                 except AttributeError:
                     #case where rows have been deleted and nothing do check or do
-					print "unexpected case"
+                    print "unexpected case"
 
             #once done checking selects, determine:
             # if none were selected
@@ -551,7 +1132,47 @@ class MSlice(QtGui.QMainWindow):
                 print "type WSMIndex: ",type(self.ui.WSMIndex)
                 for row in selrow:
                     self.ui.WSMIndex.append(row)   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
-                    self.ui.GWSName.append(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                    self.ui.GWSName.append(str(table.item(row,config.WSM_WorkspaceCol).text()))
+                self.child_win = WorkspaceComposer(self)
+                self.child_win.ui.radioButtonGroupWS.setChecked(True) #select group workspace
+                self.child_win.ui.lineEditGroupName.setText('NewGroup')
+                self.child_win.show()                    
+                
+            else:
+                print "this case not anticipated...doing nothing"   
+
+
+        elif self.ui.radioButtonComposeSelected.isChecked():  
+            #edit existing workspace group using the workspace group editor
+            self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Calling Workspace Composer Edit Workspace")
+            #first need to determine which workspace selected in the workspace manager
+            table=self.ui.tableWidgetWorkspaces
+            #first let's clean up empty rows
+            Nrows=table.rowCount()
+            selrow=[]
+            for row in range(Nrows):
+                #get checkbox status            
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
+                try:
+                    cbstat=cw.isChecked()
+                    print "row: ",row," cbstat: ",cbstat
+                    if cbstat == True:
+                        #case to identify selected row number
+                        selrow.append(row)
+                except AttributeError:
+                    #case where rows have been deleted and nothing do check or do
+                    print "unexpected case"
+
+            #once done checking selects, determine:
+            # if none were selected
+            # if more than one were selected
+            # or just one was selected
+            if len(selrow) >= 0:
+                #preferred case - just do it
+                print "type WSMIndex: ",type(self.ui.WSMIndex)
+                for row in selrow:
+                    self.ui.WSMIndex.append(row)   #WorkSpaceManager Index gives the row number of that table.  -1 indicates new group to be created
+                    self.ui.GWSName.append(str(table.item(row,config.WSM_WorkspaceCol).text()))
                 self.child_win = WorkspaceComposer(self)
                 self.child_win.show()                    
                 
@@ -561,26 +1182,26 @@ class MSlice(QtGui.QMainWindow):
         elif self.ui.radioButtonSelectAll.isChecked():  
             #set all checkboxes in the workspace manager table
             #first check if there are any rows to update selection
-            item=table.item(0,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(0,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
 #            print "itemStr: ",itemStr
             #then only update the rows if rows with content are discovered.
             if itemStr != 'None':
                 Nrows=table.rowCount()
                 for row in range(Nrows):
-                    addCheckboxToWSTCell(table,row,const.WSM_SelectCol,True)            
+                    addCheckboxToWSTCell(table,row,config.WSM_SelectCol,True)            
 
         elif self.ui.radioButtonClearAll.isChecked():  
             #clear all checkboxes in the workspace manager table
             #first check if there are any rows to update selection
-            item=table.item(0,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(0,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
 #            print "itemStr: ",itemStr
             #then only update the rows if rows with content are discovered.
             if itemStr != 'None':
                 Nrows=table.rowCount()
                 for row in range(Nrows):
-                    addCheckboxToWSTCell(table,row,const.WSM_SelectCol,False)          
+                    addCheckboxToWSTCell(table,row,config.WSM_SelectCol,False)          
             
         elif self.ui.radioButtonSaveSelected.isChecked():  
             #save selected workspaces
@@ -590,7 +1211,7 @@ class MSlice(QtGui.QMainWindow):
             selrow=[]
             for row in range(Nrows):
                 #get checkbox status            
-                cw=table.cellWidget(row-roff,const.WSM_SelectCol) 
+                cw=table.cellWidget(row-roff,config.WSM_SelectCol) 
                 try:
                     cbstat=cw.isChecked()
                     print "row: ",row," cbstat: ",cbstat
@@ -609,30 +1230,56 @@ class MSlice(QtGui.QMainWindow):
 
                 dialog=QtGui.QMessageBox(self)
                 dialog.setText("No workspaces selected to save")
-                dialog.exec_()
+                dialog.exec_()  
             elif len(selrow) == 1:
                 #when saving one file, user specifies filename and directory to save
                 row=selrow[0]
                 if row != -1:
-                    wsname=str(table.item(row,const.WSM_WorkspaceCol).text())
+                    wsname=str(table.item(row,config.WSM_WorkspaceCol).text())
                     
-                filter='.nxs'
+                if self.ui.rememberDataPath=='':
+                    curdir=os.curdir
+                else:
+                    curdir=self.ui.rememberDataPath
+                    
+                filter=".nxs"
                 wsnamext=wsname+filter
-                wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsnamext,filter))
+                filter="NXS (*.nxs);;All files (*.*)"
+                wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', curdir+'/'+wsnamext,filter))
                 print "Workspace Save: ",wspathname
                 
                 if wspathname != '':
-                    #now save workspace to nexus file
+                    #now save workspace to a file
                     self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Saving Workspace: "+str(wsname))
                     stws=str(type(mtd.retrieve(wsname))) #get the type of workspace, convert to string
                     print "stws: ",stws
-                    if (('MatrixWorkspace' in stws) or ('IEventWorkspace' in stws)):
+                    if ('MatrixWorkspace' in stws):
                         #case for "standard" 2D workspace
+                        #note that group workspace may contain various types of workspaces but here we're not currently supporting saving MD workspaces in a group
+                        print " ** SaveNexus 1**"
                         SaveNexus(wsname,wspathname)
-                    else:
+                    elif ('IEventWorkspace' in stws):
+                        print " ** SaveMD 2**"
+                        SaveMD(wsname,wspathname)     
+                    elif ('MDEventWorkspace' in stws):
                         #case for MD workspace
-                        SaveMD(wsname,wspathname)
-                    table.item(row,const.WSM_SavedCol).setText('Yes')
+                        print " ** SaveMD 3**"
+                        SaveMD(wsname,wspathname)     
+                    elif ('WorkspaceGroup' in stws):
+                        #case to save a group workspace but need to determine which save format to use:
+                        __tmpws=mtd.retrieve(wsname)
+                        if 'Workspace2D' in __tmpws[0].id():
+                            print " ** SaveNexus 4**"
+                            #Workspace2D to save
+                            SaveNexus(wsname,wspathname)
+                        elif 'MDEventWorkspace' in __tmpws[0].id():
+                            print " ** SaveMD **5"
+                            SaveMD(wsname,wspathname)    
+                    else:
+                        #unable to resolve workspace type - try generic SaveNexus...
+                        SaveNexus(wsname,wspathname)
+                        
+                    table.item(row,config.WSM_SavedCol).setText('Yes')
                     
                     
             elif len(selrow) > 1:
@@ -642,7 +1289,7 @@ class MSlice(QtGui.QMainWindow):
                 dialog.setText("Multiple files selected to save - user selects the directory to save the files and filenames will be automatically generated")
                 dialog.exec_()
                              
-                filter='.nxs'
+                filter="NXS (*.nxs);;All files (*.*)"
 #                wsnamext=wsname+filter
 #                wspathname = str(QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsnamext,filter))
                 home=getHomeDir()
@@ -653,7 +1300,7 @@ class MSlice(QtGui.QMainWindow):
                 fcnt=0
                 fstat=False
                 for row in selrow:
-                    wsname=str(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                    wsname=str(str(table.item(row,config.WSM_WorkspaceCol).text()))
                     wspathname1 = wspathname + os.sep + wsname + '.nxs'
                     tmp=os.path.isfile(wspathname1)
                     if tmp:
@@ -666,14 +1313,16 @@ class MSlice(QtGui.QMainWindow):
                     print "one or more files already exist - overwrite?"
                     reply = QtGui.QMessageBox.question(self, 'Warning', "One or more files already exist - overwrite all existing files?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No, QtGui.QMessageBox.No)
                     print "Button pressed: ",reply
+                else:
+                    reply = QtGui.QMessageBox.Yes
                     
                 if reply == QtGui.QMessageBox.Yes:
-                    #case to overwrite files
+                    #case to (over)write files
                     if wspathname != '':
                         #wspathname will be empty if the cancel button was selected on the path dialog.
                         cntr=1
                         for row in selrow:
-                            wsname=str(str(table.item(row,const.WSM_WorkspaceCol).text()))
+                            wsname=str(str(table.item(row,config.WSM_WorkspaceCol).text()))
                             #since wspathname contains a directory, need to add filename and extension to it
                             wspathname1 = wspathname + os.sep + wsname + '.nxs'
                             print "save wsname: ",wsname
@@ -691,7 +1340,7 @@ class MSlice(QtGui.QMainWindow):
                             else:
                                 #case for MD workspace
                                 SaveMD(wsname,wspathname1)
-                            table.item(row,const.WSM_SavedCol).setText('Yes')
+                            table.item(row,config.WSM_SavedCol).setText('Yes')
                             cntr += 1
 
                 time.sleep(0.2)
@@ -707,7 +1356,7 @@ class MSlice(QtGui.QMainWindow):
             
             print "Remove Selected Selected"
             #first check if there are any rows to update selection
-            item=table.item(0,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(0,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             #then only update the rows if rows with content are discovered.
@@ -716,13 +1365,13 @@ class MSlice(QtGui.QMainWindow):
                 roff=0
                 rcntr=0
                 for row in range(Nrows):
-                    item=table.item(row-roff,const.WSM_WorkspaceCol)
+                    item=table.item(row-roff,config.WSM_WorkspaceCol)
                     itemStr=str(item)
                     print "itemStr: ",itemStr
                     #then only update the rows if rows with content are discovered.
                     if itemStr != 'None':
                         #get checkbox status            
-                        cw=table.cellWidget(row-roff,const.WSM_SelectCol) 
+                        cw=table.cellWidget(row-roff,config.WSM_SelectCol) 
     #                    try:
                         cbstat=cw.isChecked()
                         print "row: ",row," roff: ",roff," rcntr: ",rcntr," cbstat: ",cbstat
@@ -735,7 +1384,7 @@ class MSlice(QtGui.QMainWindow):
                             #remove workspace from memory before removing the row from the table
                             #get workspace name to be removed
                             print "Available workspaces: ",mtd.getObjectNames()
-                            wsname=str(table.item(row-roff,const.WSM_WorkspaceCol).text())
+                            wsname=str(table.item(row-roff,config.WSM_WorkspaceCol).text())
                             print "wsname: ",wsname
                             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Removing Workspace: "+str(wsname))
                             percentbusy=int(float(row+1)/float(Nrows))*100
@@ -757,10 +1406,10 @@ class MSlice(QtGui.QMainWindow):
             print "unsupported radiobutton option...doing nothing"
         self.ui.tableWidgetWorkspaces.setEnabled(True)
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Workspace Manager Update Complete")
-		
+
     def performWorkspaceActions(self):
         print "performWorkspaceActions"
-        const=constants()
+        #const=constants()
         self.ui.pushButtonPerformActions.setEnabled(False) 
         self.ui.tableWidgetWorkspaces.setEnabled(False)
         self.ui.pushButtonPowderCalcProj.setEnabled(False) 
@@ -771,7 +1420,7 @@ class MSlice(QtGui.QMainWindow):
         Nrows=table.rowCount()
         roff=0
         for row in range(Nrows):
-            item=table.item(row,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(row,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             if itemStr == 'None':
@@ -790,13 +1439,13 @@ class MSlice(QtGui.QMainWindow):
             self.ui.progressBarStatusProgress.setValue(percentbusy) #adjust progress bar according to % busy
             time.sleep(0.01)  #seem to need a small delay to ensure that status updates
             #determine if row has content to process
-            item=table.item(row,const.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
+            item=table.item(row,config.WSM_WorkspaceCol) #need to convert item from Qstring to string for comparison to work
             itemStr=str(item)
             print "itemStr: ",itemStr
             if itemStr != 'None':
-                itemText=str(table.item(row,const.WSM_WorkspaceCol).text())
+                itemText=str(table.item(row,config.WSM_WorkspaceCol).text())
                 print "row: ",row
-                rowComboboxIndex=table.cellWidget(row,const.WSM_ActionCol).currentIndex()
+                rowComboboxIndex=table.cellWidget(row,config.WSM_ActionCol).currentIndex()
                 print "rowAction: ",rowComboboxIndex
                 if rowComboboxIndex == 0:
                     print "Load case"
@@ -805,7 +1454,7 @@ class MSlice(QtGui.QMainWindow):
                     self.ui.activeWSNames.append(itemText)
                     print "itemText: ",itemText," self.ui.activeWSNames: ",self.ui.activeWSNames
                     #determine if data already loaded, if so, skip load
-                    loadStat=str(table.item(row,const.WSM_StatusCol).text())
+                    loadStat=str(table.item(row,config.WSM_StatusCol).text())
                     if loadStat != 'Loaded':
                         print "Case to load data"
                         #get filename
@@ -816,27 +1465,27 @@ class MSlice(QtGui.QMainWindow):
                         mockWSData=np.random.rand(Ndim,Ndim)
                         self.ui.activeWSVarsList.append(mockWSData)
                     status="Loaded"
-                    table.setItem(row,const.WSM_StatusCol,QtGui.QTableWidgetItem(status)) #Status col=5
+                    table.setItem(row,config.WSM_StatusCol,QtGui.QTableWidgetItem(status)) #Status col=5
                     #if any data are loaded, set cal proj buttons active
                     calcProjFlag +=1
 
                 elif rowComboboxIndex == 1:
                     print "Unload case"
-                    loadStat=str(table.item(row,const.WSM_StatusCol).text())
+                    loadStat=str(table.item(row,config.WSM_StatusCol).text())
                     if loadStat == 'Loaded':
                         #case to unload data
                         print "case to unload data"
                         self.ui.activeWSVarsList[row]=[] #replace whatever list item is there with an empty list - this deletes the data		
                     status="Not Loaded"
                     table.setItem(row,5,QtGui.QTableWidgetItem(status)) #Status col=5
-					
+
                 elif rowComboboxIndex == 2:
                     print "Remove case"
                     #remove this row
                     #first determine the current state of this workspace
-                    wkspc=str(table.item(row,const.WSM_WorkspaceCol).text())
+                    wkspc=str(table.item(row,config.WSM_WorkspaceCol).text())
                     print "Removing Workspace: ",wkspc
-                    loadStat=str(table.item(row,const.WSM_StatusCol).text())
+                    loadStat=str(table.item(row,config.WSM_StatusCol).text())
                     if loadStat == 'Loaded':    
                         self.ui.activeWSVarsList[row]=[] #replace whatever list item is there with an empty list - this deletes the data	
 #                        NumActiveRows -=1 #decrement active workspaces counter if the row to be deleted already has data
@@ -859,19 +1508,19 @@ class MSlice(QtGui.QMainWindow):
             #note that .remove() errors out if the element to delete is not present in the list - so put one in...
             self.ui.activeWSVarsList.append([]) #dummy null list to give our friend .remove() something to do...
             self.ui.activeWSVarsList.remove([])
-				
+
         if calcProjFlag > 0:
             self.ui.pushButtonPowderCalcProj.setEnabled(True) 
             self.ui.pushButtonSCCalcProj.setEnabled(True) 
         else:
             self.ui.pushButtonPowderCalcProj.setEnabled(False) 
             self.ui.pushButtonSCCalcProj.setEnabled(False) 
-		
+
         self.ui.progressBarStatusProgress.setValue(0) #clear progress bar
         self.ui.numActiveWorkspaces=NumActiveRows
         cnt=0
         for row in range(NumActiveRows):
-            itemText=str(table.item(row,const.WSM_LastAlgCol).text())
+            itemText=str(table.item(row,config.WSM_LastAlgCol).text())
             print "row: ",row,"  itemText: ",itemText
             if itemText == "DgsReduction":
                 cnt +=1
@@ -881,13 +1530,13 @@ class MSlice(QtGui.QMainWindow):
         self.ui.labelPowderWorkspaces.setText(label)
         self.ui.pushButtonPerformActions.setEnabled(True) 
         self.ui.tableWidgetWorkspaces.setEnabled(True)
-		
+
     def WorkspaceManagerPageSelect(self):
         self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(1) #Show workspace manager stacked widget page
 
     def CreateWorkspacePageSelect(self):
         self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(0) #Show create workspace from files stacked widget page 
-		
+
     def elapsedUpdate(self):
         #update the elapsed time since the application has been running.
         self.etimer.minutecntr = self.etimer.minutecntr + 1L #increment counter with timer timeout each 60 seconds
@@ -902,107 +1551,75 @@ class MSlice(QtGui.QMainWindow):
         #redirct to global function
         constantUpdateActor(self)
 
-						
+
     def pushButtonSaveLogSelect(self):
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Save Log")			
-		
-    def pushButtonSCVolPlotSelect(self):
-        print "SC Vol Plot Callback"
-        #now extract values from this tab
-        SCVXcomboIndex=self.ui.comboBoxSCVolX.currentIndex()
-        SCVXFrom=self.ui.lineEditSCVolXFrom.text()
-        SCVXTo=self.ui.lineEditSCVolXTo.text()
-        SCVXStep=self.ui.lineEditSCVolXStep.text()
-        SCVYcomboIndex=self.ui.comboBoxSCVolY.currentIndex()
-        SCVYFrom=self.ui.lineEditSCVolYFrom.text()
-        SCVYTo=self.ui.lineEditSCVolYTo.text()
-        SCVYStep=self.ui.lineEditSCVolYStep.text()
-        SCVZcomboIndex=self.ui.comboBoxSCVolZ.currentIndex()
-        SCVZFrom=self.ui.lineEditSCVolZFrom.text()
-        SCVZTo=self.ui.lineEditSCVolZTo.text()
-        SCVZStep=self.ui.lineEditSCVolZStep.text()
-        SCVEcomboIndex=self.ui.comboBoxSCVolE.currentIndex()
-        SCVEFrom=self.ui.lineEditSCVolEFrom.text()
-        SCVETo=self.ui.lineEditSCVolETo.text()
-        SCVEStep=self.ui.lineEditSCVolEStep.text()
-        SCVIntensityFrom=self.ui.lineEditSCVolIntensityFrom.text()
-        SCVIntensityTo=self.ui.lineEditSCVolIntensityTo.text()
-        SCVSmoothing=self.ui.lineEditSCVolSmoothing.text()
-        SCVCTIndex=self.ui.comboBoxSCVolCT.currentIndex()
-        print "SC Vol Plot values: ",SCVXcomboIndex,SCVXFrom,SCVXTo,SCVXStep,SCVYcomboIndex,SCVYFrom,SCVYTo,SCVYStep,SCVZcomboIndex,SCVZFrom,SCVZTo,SCVZStep,SCVEcomboIndex,SCVEFrom,SCVETo,SCVEStep,SCVIntensityFrom,SCVIntensityTo,SCVSmoothing,SCVCTIndex
-        #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Plot Volume")				
 
-    def pushButtonSCVolOplotSelect(self):
-        print "SC Vol Oplot Callback"
-        #now extract values from this tab
-        SCVXcomboIndex=self.ui.comboBoxSCVolX.currentIndex()
-        SCVXFrom=self.ui.lineEditSCVolXFrom.text()
-        SCVXTo=self.ui.lineEditSCVolXTo.text()
-        SCVXStep=self.ui.lineEditSCVolXStep.text()
-        SCVYcomboIndex=self.ui.comboBoxSCVolY.currentIndex()
-        SCVYFrom=self.ui.lineEditSCVolYFrom.text()
-        SCVYTo=self.ui.lineEditSCVolYTo.text()
-        SCVYStep=self.ui.lineEditSCVolYStep.text()
-        SCVZcomboIndex=self.ui.comboBoxSCVolZ.currentIndex()
-        SCVZFrom=self.ui.lineEditSCVolZFrom.text()
-        SCVZTo=self.ui.lineEditSCVolZTo.text()
-        SCVZStep=self.ui.lineEditSCVolZStep.text()
-        SCVEcomboIndex=self.ui.comboBoxSCVolE.currentIndex()
-        SCVEFrom=self.ui.lineEditSCVolEFrom.text()
-        SCVETo=self.ui.lineEditSCVolETo.text()
-        SCVEStep=self.ui.lineEditSCVolEStep.text()
-        SCVIntensityFrom=self.ui.lineEditSCVolIntensityFrom.text()
-        SCVIntensityTo=self.ui.lineEditSCVolIntensityTo.text()
-        SCVSmoothing=self.ui.lineEditSCVolSmoothing.text()
-        SCVCTIndex=self.ui.comboBoxSCVolCT.currentIndex()
-        print "SC Vol Oplot values: ",SCVXcomboIndex,SCVXFrom,SCVXTo,SCVXStep,SCVYcomboIndex,SCVYFrom,SCVYTo,SCVYStep,SCVZcomboIndex,SCVZFrom,SCVZTo,SCVZStep,SCVEcomboIndex,SCVEFrom,SCVETo,SCVEStep,SCVIntensityFrom,SCVIntensityTo,SCVSmoothing,SCVCTIndex
-		
-        #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Oplot Volume")				
-		
     def pushButtonSCCutPlotSelect(self):
-        print "SC Cut Plot Callback"
-        SCCAIndex=self.ui.comboBoxSCCutAlong.currentIndex()
-        SCCAFrom=self.ui.lineEditSCCutAlongFrom.text()
-        SCCATo=self.ui.lineEditSCCutAlongTo.text()		
-        SCCAStep=self.ui.lineEditSCCutAlongStep.text()
-        SCCT1Index=self.ui.comboBoxSCCutThick1.currentIndex()
-        SCCT1From=self.ui.lineEditSCCutThick1From.text()
-        SCCT1To=self.ui.lineEditSCCutThick1To.text()
-        SCCT1_2Index=self.ui.comboBoxSCCutThick1_2.currentIndex()
-        SCCT1_2From=self.ui.lineEditSCCutThick1From_2.text()
-        SCCT1_2To=self.ui.lineEditSCCutThick1To_2.text()
-        SCCT2Index=self.ui.comboBoxSCCutThick2.currentIndex()
-        SCCT2From=self.ui.lineEditSCCutThick2From.text()
-        SCCT2To=self.ui.lineEditSCCutThick2To.text()
-        SCCYIndex=self.ui.comboBoxSCCutY.currentIndex()
-        SCCYFrom=self.ui.lineEditSCCutYFrom.text()
-        SCCYTo=self.ui.lineEditSCCutYTo.text()
-        print "SC Cut Plot Values: ",SCCAIndex,SCCAFrom,SCCATo,SCCAStep,SCCT1Index,SCCT1From,SCCT1To,SCCT1_2Index,SCCT1_2From,SCCT1_2To,SCCT2Index,SCCT2From,SCCT2To,SCCYIndex,SCCYFrom,SCCYTo
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Plot Cut")				
-		
-    def pushButtonSCCutOplotSelect(self):
-        print "SC Cut Oplot Callback"
-        SCCAIndex=self.ui.comboBoxSCCutAlong.currentIndex()
-        SCCAFrom=self.ui.lineEditSCCutAlongFrom.text()
-        SCCATo=self.ui.lineEditSCCutAlongTo.text()		
-        SCCAStep=self.ui.lineEditSCCutAlongStep.text()
-        SCCT1Index=self.ui.comboBoxSCCutThick1.currentIndex()
-        SCCT1From=self.ui.lineEditSCCutThick1From.text()
-        SCCT1To=self.ui.lineEditSCCutThick1To.text()
-        SCCT2Index=self.ui.comboBoxSCCutThick2.currentIndex()
-        SCCT2From=self.ui.lineEditSCCutThick2From.text()
-        SCCT2To=self.ui.lineEditSCCutThick2To.text()
-        SCCYIndex=self.ui.comboBoxSCCutY.currentIndex()
-        SCCYFrom=self.ui.lineEditSCCutYFrom.text()
-        SCCYTo=self.ui.lineEditSCCutYTo.text()
-        print "SC Cut Oplot Values: ",SCCAIndex,SCCAFrom,SCCATo,SCCAStep,SCCT1Index,SCCT1From,SCCT1To,SCCT2Index,SCCT2From,SCCT2To,SCCYIndex,SCCYFrom,SCCYTo
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Oplot Cut")				
+        print "Single Crystal Cut Plot Button pressed"
+        """
+        #now extract values from this tab
+        SCSXcomboIndex=self.ui.comboBoxSCCutX.currentIndex()
+        SCSXFrom=self.ui.lineEditSCCutXFrom.text()
+        SCSXTo=self.ui.lineEditSCCutXTo.text()
+        SCSXStep=self.ui.lineEditSCCutXStep.text()
+        SCSYcomboIndex=self.ui.comboBoxSCCutY.currentIndex()
+        SCSYFrom=self.ui.lineEditSCCutYFrom.text()
+        SCSYTo=self.ui.lineEditSCCutYTo.text()
+        SCSYStep=self.ui.lineEditSCCutYStep.text()
+        SCSZcomboIndex=self.ui.comboBoxSCCutZ.currentIndex()
+        SCSZFrom=self.ui.lineEditSCCutZFrom.text()
+        SCSZTo=self.ui.lineEditSCCutZTo.text()
+        SCSEcomboIndex=self.ui.comboBoxSCCutE.currentIndex()
+        SCSEFrom=self.ui.lineEditSCCutEFrom.text()
+        SCSETo=self.ui.lineEditSCCutETo.text()
+        SCSIntensityFrom=self.ui.lineEditSCCutIntensityFrom.text()
+        SCSIntensityTo=self.ui.lineEditSCCutIntensityTo.text()
+        SCSSmoothing=self.ui.lineEditSCCutSmoothing.text()
+        SCSEcomboIndex=self.ui.comboBoxSCCutE.currentIndex()
+        SCSThickFrom=self.ui.lineEditSCCutEFrom.text()
+        SCSThickTo=self.ui.lineEditSCCutETo.text()
+        print "SC Surface values: ",SCSXcomboIndex,SCSXFrom,SCSXTo,SCSXStep,SCSYcomboIndex,SCSYFrom,SCSYTo,SCSYStep,SCSEcomboIndex,SCSEFrom,SCSETo,SCSIntensityFrom,SCSIntensityTo,SCSSmoothing
+        print "  More SC Surface values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo
+        """
+        #**** code to extract data and perform plot placed here
+        
+        #get list of selected workspaces from the workspace manager
+        table=self.ui.tableWidgetWorkspaces
+        Nrows=table.rowCount()
+        EmptyRows=0
+        wslist=[]
+        for row in range(Nrows):
+            try:
+                #using try here to check if user forgot to load data then we'd have a table with empty rows...
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
+                cbstat=cw.isChecked()
+                #check if this workspace is selected for display
+                if cbstat == True:
+                    #case where it is selected
+                    #get workspace
+                    wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
+                    print " wsitem:",wsitem
+                    print " mtd.getObjectNames():",mtd.getObjectNames()
+                    ws=mtd.retrieve(wsitem)      
+                    wslist.append(wsitem)
+            except:
+                #case where a table row is empty - can't use this one
+                EmptyRows += 1
+                
+        print "Number of empty rows: ",EmptyRows
+#        self.ui.wslist=['Hello','World']  #for debugging use...
+        self.ui.wslist=wslist
+        
+        self.ui.mode1D='SC'
+        self.MPLPC_win = MPL1DCut(self)			
+        self.MPLPC_win.show() 
+        
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Cut Plot Select")				
 
-		
+
     def pushButtonPowderCutPlotSelect(self):
-        const=constants()
+        #const=constants()
         print "Powder Cut Plot Callback"
         PCAIndex=self.ui.comboBoxPowderCutAlong.currentIndex()
         PCAFrom=self.ui.lineEditPowderCutAlongFrom.text()
@@ -1026,13 +1643,13 @@ class MSlice(QtGui.QMainWindow):
         for row in range(Nrows):
             try:
                 #using try here to check if user forgot to load data then we'd have a table with empty rows...
-                cw=table.cellWidget(row,const.WSM_SelectCol) 
+                cw=table.cellWidget(row,config.WSM_SelectCol) 
                 cbstat=cw.isChecked()
                 #check if this workspace is selected for display
                 if cbstat == True:
                     #case where it is selected
                     #get workspace
-                    wsitem=str(table.item(row,const.WSM_WorkspaceCol).text())
+                    wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
                     print " wsitem:",wsitem
                     print " mtd.getObjectNames():",mtd.getObjectNames()
                     ws=mtd.retrieve(wsitem)      
@@ -1044,69 +1661,417 @@ class MSlice(QtGui.QMainWindow):
         print "Number of empty rows: ",EmptyRows
 #        self.ui.wslist=['Hello','World']  #for debugging use...
         self.ui.wslist=wslist
+        self.ui.mode1D='Powder'
+        self.MPLPC_win = MPL1DCut(self)				
+        self.MPLPC_win.show() 
+        """
         if wslist != []:
             self.MPLPC_win = MPLPowderCut(self)				
             self.MPLPC_win.show()    
         else:
             self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - No workspaces selected for powder cut plots...returning")		
-					
-		
-    def pushButtonSCSlicePlotSliceSelect(self):
-        print "Single Crystal Plot Slice Button pressed"
-        #now extract values from this tab
-        SCSXcomboIndex=self.ui.comboBoxSCSliceX.currentIndex()
-        SCSXFrom=self.ui.lineEditSCSliceXFrom.text()
-        SCSXTo=self.ui.lineEditSCSliceXTo.text()
-        SCSXStep=self.ui.lineEditSCSliceXStep.text()
-        SCSYcomboIndex=self.ui.comboBoxSCSliceY.currentIndex()
-        SCSYFrom=self.ui.lineEditSCSliceYFrom.text()
-        SCSYTo=self.ui.lineEditSCSliceYTo.text()
-        SCSYStep=self.ui.lineEditSCSliceYStep.text()
-        SCSEcomboIndex=self.ui.comboBoxSCSliceE.currentIndex()
-        SCSEFrom=self.ui.lineEditSCSliceEFrom.text()
-        SCSETo=self.ui.lineEditSCSliceETo.text()
-        SCSIntensityFrom=self.ui.lineEditSCSliceIntensityFrom.text()
-        SCSIntensityTo=self.ui.lineEditSCSliceIntensityTo.text()
-        SCSSmoothing=self.ui.lineEditSCSliceSmoothing.text()
-        SCSEcomboIndex=self.ui.comboBoxSCSliceE.currentIndex()
-        SCSThickFrom=self.ui.lineEditSCSliceEFrom.text()
-        SCSThickTo=self.ui.lineEditSCSliceETo.text()
-        SCSCTcomboIndex=self.ui.comboBoxSCSliceCT.currentIndex()
-        print "SC Plot values: ",SCSXcomboIndex,SCSXFrom,SCSXTo,SCSXStep,SCSYcomboIndex,SCSYFrom,SCSYTo,SCSYStep,SCSEcomboIndex,SCSEFrom,SCSETo,SCSIntensityFrom,SCSIntensityTo,SCSSmoothing
-        print "  More SC Plot values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo,SCSCTcomboIndex
-        #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Show Slice")		
+        """
 
-		
-    def pushButtonSCSliceOplotSliceSelect(self):
-        print "Single Crystal Oplot Slice Button pressed"
-        #now extract values from this tab
-        SCSXcomboIndex=self.ui.comboBoxSCSliceX.currentIndex()
-        SCSXFrom=self.ui.lineEditSCSliceXFrom.text()
-        SCSXTo=self.ui.lineEditSCSliceXTo.text()
-        SCSXStep=self.ui.lineEditSCSliceXStep.text()
-        SCSYcomboIndex=self.ui.comboBoxSCSliceY.currentIndex()
-        SCSYFrom=self.ui.lineEditSCSliceYFrom.text()
-        SCSYTo=self.ui.lineEditSCSliceYTo.text()
-        SCSYStep=self.ui.lineEditSCSliceYStep.text()
-        SCSEcomboIndex=self.ui.comboBoxSCSliceE.currentIndex()
-        SCSEFrom=self.ui.lineEditSCSliceEFrom.text()
-        SCSETo=self.ui.lineEditSCSliceETo.text()
-        SCSIntensityFrom=self.ui.lineEditSCSliceIntensityFrom.text()
-        SCSIntensityTo=self.ui.lineEditSCSliceIntensityTo.text()
-        SCSSmoothing=self.ui.lineEditSCSliceSmoothing.text()
-        SCSEcomboIndex=self.ui.comboBoxSCSliceE.currentIndex()
-        SCSThickFrom=self.ui.lineEditSCSliceEFrom.text()
-        SCSThickTo=self.ui.lineEditSCSliceETo.text()
-        SCSCTcomboIndex=self.ui.comboBoxSCSliceCT.currentIndex()
-        print "SC Oplot values: ",SCSXcomboIndex,SCSXFrom,SCSXTo,SCSXStep,SCSYcomboIndex,SCSYFrom,SCSYTo,SCSYStep,SCSEcomboIndex,SCSEFrom,SCSETo,SCSIntensityFrom,SCSIntensityTo,SCSSmoothing
-        print "  More SC Oplot values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo,SCSCTcomboIndex
-        #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Oplot Slice")				
+    def pushButtonSCCShowParamsSelect(self):
+        #Utility function to transfer values from ViewSCCDict into the 
+        #corresponding view fields in the Cut GUI
+        ViewSCCDict=self.ui.ViewSCCDict
+        
+        label=convertIndexToLabel(self,'X','Cut')    
+        if ViewSCCDict[label]['from'] != '':                
+            SCSXFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutXFrom.setText(SCSXFrom)
 
-		
-    def pushButtonSCSliceSurfaceSliceSelect(self):
+        label=convertIndexToLabel(self,'X','Cut')   
+        if ViewSCCDict[label]['to'] != '':      
+            SCSXTo = str("%.3f" % ViewSCCDict[label]['to'])
+            self.ui.lineEditSCCutXTo.setText(SCSXTo)
+        
+        label=convertIndexToLabel(self,'Y','Cut')    
+        if ViewSCCDict[label]['from'] != '':
+            SCSYFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutYFrom.setText(SCSYFrom)
+        
+        label=convertIndexToLabel(self,'Y','Cut')
+        if ViewSCCDict[label]['to'] != '':
+            SCSYTo = str("%.3f" % ViewSCCDict[label]['to'])
+            self.ui.lineEditSCCutYTo.setText(SCSYTo)
+        
+        label=convertIndexToLabel(self,'Z','Cut')     
+        if ViewSCCDict[label]['from'] != '':
+            SCSZFrom = str("%.3f" % ViewSCCDict[label]['from'])
+            self.ui.lineEditSCCutZFrom.setText(SCSZFrom)
+        
+        label=convertIndexToLabel(self,'Z','Cut')
+        if ViewSCCDict[label]['to'] != '':
+            SCSZTo = str("%.3f" % ViewSCCDict[label]['to'])  
+            self.ui.lineEditSCCutZTo.setText(SCSZTo)
+        
+        label=convertIndexToLabel(self,'E','Cut')                    
+        if ViewSCCDict[label]['from'] != '':
+            SCSEFrom = str("%.3f" % ViewSCCDict[label]['from'])    
+            self.ui.lineEditSCCutEFrom.setText(SCSEFrom)
+        
+        label=convertIndexToLabel(self,'E','Cut')  
+        if ViewSCCDict[label]['to'] != '':
+            SCSETo = str("%.3f" % ViewSCCDict[label]['to'])       
+            self.ui.lineEditSCCutETo.setText(SCSETo)
+
+
+    def pushButtonSCSShowParamsSelect(self):
+        #Utility function to transfer values from ViewSCSDict into the 
+        #corresponding view fields in the Slice GUI
+        ViewSCSDict=self.ui.ViewSCSDict
+        
+        label=convertIndexToLabel(self,'X','Slice')    
+        if ViewSCSDict[label]['from'] != '':                
+            SCSXFrom = str("%.3f" % ViewSCSDict[label]['from'])
+            self.ui.lineEditSCSliceXFrom.setText(SCSXFrom)
+
+        label=convertIndexToLabel(self,'X','Slice')   
+        if ViewSCSDict[label]['to'] != '':      
+            SCSXTo = str("%.3f" % ViewSCSDict[label]['to'])
+            self.ui.lineEditSCSliceXTo.setText(SCSXTo)
+        
+        label=convertIndexToLabel(self,'Y','Slice')    
+        if ViewSCSDict[label]['from'] != '':
+            SCSYFrom = str("%.3f" % ViewSCSDict[label]['from'])
+            self.ui.lineEditSCSliceYFrom.setText(SCSYFrom)
+        
+        label=convertIndexToLabel(self,'Y','Slice')
+        if ViewSCSDict[label]['to'] != '':
+            SCSYTo = str("%.3f" % ViewSCSDict[label]['to'])
+            self.ui.lineEditSCSliceYTo.setText(SCSYTo)
+        
+        label=convertIndexToLabel(self,'Z','Slice')     
+        if ViewSCSDict[label]['from'] != '':
+            SCSZFrom = str("%.3f" % ViewSCSDict[label]['from'])
+            self.ui.lineEditSCSliceZFrom.setText(SCSZFrom)
+        
+        label=convertIndexToLabel(self,'Z','Slice')
+        if ViewSCSDict[label]['to'] != '':
+            SCSZTo = str("%.3f" % ViewSCSDict[label]['to'])  
+            self.ui.lineEditSCSliceZTo.setText(SCSZTo)
+        
+        label=convertIndexToLabel(self,'E','Slice')                    
+        if ViewSCSDict[label]['from'] != '':
+            SCSEFrom = str("%.3f" % ViewSCSDict[label]['from'])    
+            self.ui.lineEditSCSliceEFrom.setText(SCSEFrom)
+        
+        label=convertIndexToLabel(self,'E','Slice')  
+        if ViewSCSDict[label]['to'] != '':
+            SCSETo = str("%.3f" % ViewSCSDict[label]['to'])       
+            self.ui.lineEditSCSliceETo.setText(SCSETo)
+
+    def pushButtonSCVShowParamsSelect(self):
+        #Utility function to transfer values from ViewSCVDict into the 
+        #corresponding view fields in the Slice GUI
+        ViewSCVDict=self.ui.ViewSCVDict
+        
+        label=convertIndexToLabel(self,'X','Volume')    
+        if ViewSCVDict[label]['from'] != '':                
+            SCSXFrom = str("%.3f" % ViewSCVDict[label]['from'])
+            self.ui.lineEditSCVolXFrom.setText(SCSXFrom)
+
+        label=convertIndexToLabel(self,'X','Volume')   
+        if ViewSCVDict[label]['to'] != '':      
+            SCSXTo = str("%.3f" % ViewSCVDict[label]['to'])
+            self.ui.lineEditSCVolXTo.setText(SCSXTo)
+        
+        label=convertIndexToLabel(self,'Y','Volume')    
+        if ViewSCVDict[label]['from'] != '':
+            SCSYFrom = str("%.3f" % ViewSCVDict[label]['from'])
+            self.ui.lineEditSCVolYFrom.setText(SCSYFrom)
+        
+        label=convertIndexToLabel(self,'Y','Volume')
+        if ViewSCVDict[label]['to'] != '':
+            SCSYTo = str("%.3f" % ViewSCVDict[label]['to'])
+            self.ui.lineEditSCVolYTo.setText(SCSYTo)
+        
+        label=convertIndexToLabel(self,'Z','Volume')     
+        if ViewSCVDict[label]['from'] != '':
+            SCSZFrom = str("%.3f" % ViewSCVDict[label]['from'])
+            self.ui.lineEditSCVolZFrom.setText(SCSZFrom)
+        
+        label=convertIndexToLabel(self,'Z','Volume')
+        if ViewSCVDict[label]['to'] != '':
+            SCSZTo = str("%.3f" % ViewSCVDict[label]['to'])  
+            self.ui.lineEditSCVolZTo.setText(SCSZTo)
+        
+        label=convertIndexToLabel(self,'E','Volume')                    
+        if ViewSCVDict[label]['from'] != '':
+            SCSEFrom = str("%.3f" % ViewSCVDict[label]['from'])    
+            self.ui.lineEditSCVolEFrom.setText(SCSEFrom)
+        
+        label=convertIndexToLabel(self,'E','Volume')  
+        if ViewSCVDict[label]['to'] != '':
+            SCSETo = str("%.3f" % ViewSCVDict[label]['to'])       
+            self.ui.lineEditSCVolETo.setText(SCSETo)
+
+
+    def pushButtonSCVolSlicesSelect(self):
+        #method to call the sliceviewer to visualize the data volume
+        
+        print "Single Crystal Volume Button pressed"
+        #now extract values from this tab
+        SCSXcomboIndex=self.ui.comboBoxSCVolX.currentIndex()
+        SCSXFrom=self.ui.lineEditSCVolXFrom.text()
+        SCSXTo=self.ui.lineEditSCVolXTo.text()
+        SCSXStep=self.ui.lineEditSCVolXStep.text()
+        SCSYcomboIndex=self.ui.comboBoxSCVolY.currentIndex()
+        SCSYFrom=self.ui.lineEditSCVolYFrom.text()
+        SCSYTo=self.ui.lineEditSCVolYTo.text()
+        SCSYStep=self.ui.lineEditSCVolYStep.text()
+        SCSZcomboIndex=self.ui.comboBoxSCVolZ.currentIndex()
+        SCSZFrom=self.ui.lineEditSCVolZFrom.text()
+        SCSZTo=self.ui.lineEditSCVolZTo.text()
+        SCSZStep=self.ui.lineEditSCVolZStep.text()
+        SCSEcomboIndex=self.ui.comboBoxSCVolE.currentIndex()
+        SCSEFrom=self.ui.lineEditSCVolEFrom.text()
+        SCSETo=self.ui.lineEditSCVolETo.text()
+        SCSIntensityFrom=self.ui.lineEditSCVolIntensityFrom.text()
+        SCSIntensityTo=self.ui.lineEditSCVolIntensityTo.text()
+        SCSSmoothing=self.ui.lineEditSCVolSmoothing.text()
+        SCSEcomboIndex=self.ui.comboBoxSCVolE.currentIndex()
+        SCSThickFrom=self.ui.lineEditSCVolEFrom.text()
+        SCSThickTo=self.ui.lineEditSCVolETo.text()
+
+        #**** code to extract data and perform plot placed here
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Volume Slice")				
+
+        #determine which workspaces have been selected
+        table=self.ui.tableWidgetWorkspaces
+        #first let's clean up empty rows
+        Nrows=table.rowCount()
+        Nws=0
+        for row in range(Nrows):
+            cw=table.cellWidget(row,config.WSM_SelectCol) 
+            cbstat=cw.isChecked()
+            #check if this workspace is selected for display
+            if cbstat == True:
+                #case where it is selected
+                Nws+=1 #increment selected workspace counter
+                #get workspace
+                wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
+                print " wsitem:",wsitem
+                print " mtd.getObjectNames():",mtd.getObjectNames()
+                __ws=mtd.retrieve(wsitem)
+                
+                #need to determine if this is a single or group workspace to obtain min/max values
+                #get min & max range values for the MD workspace
+                wsType=__ws.id()
+                if wsType == 'WorkspaceGroup':
+                    minn=[__ws[0].getXDimension().getMinimum(),__ws[0].getYDimension().getMinimum(),__ws[0].getZDimension().getMinimum(),__ws[0].getTDimension().getMinimum()]
+                    maxx=[__ws[0].getXDimension().getMaximum(),__ws[0].getYDimension().getMaximum(),__ws[0].getZDimension().getMaximum(),__ws[0].getTDimension().getMaximum()]
+                    NEntries=__ws.getNumberOfEntries()
+                else:
+                    # single workspace case
+                    minn=[__ws.getXDimension().getMinimum(),__ws.getYDimension().getMinimum(),__ws.getZDimension().getMinimum(),__ws.getTDimension().getMinimum()]
+                    maxx=[__ws.getXDimension().getMaximum(),__ws.getYDimension().getMaximum(),__ws.getZDimension().getMaximum(),__ws.getTDimension().getMaximum()]
+                    NEntries=1
+                    
+                #get values from GUI and ViewSCVDict
+                ViewSCVDict=self.ui.ViewSCVDict
+                print "ViewSCVDict: ",ViewSCVDict
+                if SCSXFrom =='':
+                    #SCSXFrom=minn[0]
+                    label=convertIndexToLabel(self,'X','Volume')   
+                    print "  label: ",label                 
+                    SCSXFrom = float(ViewSCVDict[label]['from'])
+                else:
+                    SCSXFrom=float(SCSXFrom)
+                if SCSXTo =='':
+                    #SCSXTo=maxx[0]
+                    label=convertIndexToLabel(self,'X','Volume')                    
+                    SCSXTo = float(ViewSCVDict[label]['to'])
+                else:
+                    SCSXTo=float(SCSXTo)
+                Nscx=int(round((SCSXTo-SCSXFrom)/float(SCSXStep)))
+                
+                if SCSYFrom =='':
+                    #SCSYFrom=minn[1]
+                    label=convertIndexToLabel(self,'Y','Volume')                    
+                    SCSYFrom = float(ViewSCVDict[label]['from'])
+                else:
+                    SCSYFrom=float(SCSYFrom)
+                if SCSYTo =='':
+                    #SCSYTo=maxx[1]
+                    label=convertIndexToLabel(self,'Y','Volume')                    
+                    SCSYTo = float(ViewSCVDict[label]['to'])
+                else:
+                    SCSYTo=float(SCSYTo)
+                Nscy=int(round((SCSYTo-SCSYFrom)/float(SCSYStep)))                    
+                    
+                if SCSZFrom =='':
+                    #SCSZFrom=minn[2]
+                    label=convertIndexToLabel(self,'Z','Volume')                    
+                    SCSZFrom = float(ViewSCVDict[label]['from'])
+                else:
+                    SCSZFrom=float(SCSZFrom)
+                if SCSZTo =='':
+                    #SCSZTo=maxx[2]
+                    label=convertIndexToLabel(self,'Z','Volume')                    
+                    SCSZTo = float(ViewSCVDict[label]['to'])
+                else:
+                    SCSZTo=float(SCSZTo)   
+                Nscz=int(round((SCSZTo-SCSZFrom)/float(SCSZStep)))  
+                    
+                if SCSEFrom =='':
+                    #SCSEFrom=minn[3]
+                    label=convertIndexToLabel(self,'E','Volume')                    
+                    SCSEFrom = float(ViewSCVDict[label]['from'])
+                else:
+                    SCSEFrom=float(SCSEFrom)
+                if SCSETo =='':
+                    #SCSETo=maxx[3]
+                    label=convertIndexToLabel(self,'E','Volume')                    
+                    SCSETo = float(ViewSCVDict[label]['to'])
+                else:
+                    SCSETo=float(SCSETo)
+                    
+                #Derive names from Viewing Axes u and label fields
+                #nameLst=makeSCNames(self)
+                #Extract names from Slice View combo boxes
+                nameLst=[]
+                nameLst.append(self.ui.comboBoxSCVolX.currentText())
+                nameLst.append(self.ui.comboBoxSCVolY.currentText())
+                nameLst.append(self.ui.comboBoxSCVolZ.currentText())
+                nameLst.append(self.ui.comboBoxSCVolE.currentText())
+                #note that the comboBox label and that label needed by MDNormDirectSC are different - search for the case and replace with what's needed
+                nameLst=['DeltaE' if x=='E (meV)' else x for x in nameLst]
+                                                                    
+                #Format: 'name,minimum,maximum,number_of_bins'
+                print "Nscx: ",Nscx,"  Nscy: ",Nscy
+                AD0=str(nameLst[0])+','+str(SCSXFrom)+','+str(SCSXTo)+','+str(Nscx)
+                AD0=AD0.replace(config.XYZUnits,'')
+                AD1=str(nameLst[1])+','+str(SCSYFrom)+','+str(SCSYTo)+','+str(Nscy)
+                AD1=AD1.replace(config.XYZUnits,'')
+                AD2=str(nameLst[2])+','+str(SCSZFrom)+','+str(SCSZTo)+','+str(Nscz)
+                AD2=AD2.replace(config.XYZUnits,'')
+                AD3=str(nameLst[3])+','+str(SCSEFrom)+','+str(SCSETo)+','+str(1)
+                AD3=AD3.replace(config.XYZUnits,'')
+                
+                print "AD0: ",AD0,'  type: ',type(AD0)
+                print "AD1: ",AD1,'  type: ',type(AD1)
+                print "AD2: ",AD2,'  type: ',type(AD2)
+                print "AD3: ",AD3,'  type: ',type(AD3)
+                print "type(__ws): ",type(__ws)
+                print "__ws: ",__ws.name
+                
+                
+                
+                """
+                The following code block was implemented to use MDNormDirectSC.
+                However this algorithm is not yet ready to handle non-orthogonal 
+                cuts so BinMD will still be used for now.
+                """
+                """
+                histoData,histoNorm=MDNormDirectSC(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3)
+                print "histoNorm Complete"
+                if wsType == 'WorkspaceGroup':
+                    print "histoData.getNumberOfEntries(): ",histoData.getNumberOfEntries()
+                    print "histoNorm.getNumberOfEntries(): ",histoNorm.getNumberOfEntries()
+                    #Loop thru each workspace in a group and calculate the data and norm for the requested parameters
+                    for k in range(NEntries):
+                        print "Sum Loop: ",k," of ",NEntries
+                        
+                        if k == 0:
+                            histoDataSum=histoData[k]
+                            histoNormSum=histoNorm[k]
+                        else:
+                            histoDataSum+=histoData[k]
+                            histoNormSum+=histoNorm[k]
+                else:
+                    # case for a single workspace - just pass thru to sum workspaces
+                    histoDataSum=histoData
+                    histoNormSum=histoNorm
+                    
+                #upon summing coresponding data and norm data, produce eht normalized result
+                print "histoDataSum.id(): ",histoDataSum.id()
+                print "histoNormSum.id(): ",histoNormSum.id()
+                normalized=histoDataSum/histoNormSum   
+                
+                #let's check for values we don't want in the normalized data...
+                # isinf : Shows which elements are positive or negative infinity
+                # isposinf : Shows which elements are positive infinity
+                # isneginf : Shows which elements are negative infinity
+                # isnan : Shows which elements are Not a Number        
+                
+                #normalizedNew=normalized
+                normArray=normalized.getSignalArray()
+                normArray.flags.writeable=True  #note that initially the array is not writeable, so change this
+                indx=np.isinf(normArray)
+                normArray[indx]=0    
+                indx=np.isnan(normArray)
+                normArray[indx]=0     
+                normArray.flags.writeable=False #now put it back to nonwriteable
+                normalized.setSignalArray(normArray)
+                
+                
+                #Envoke SliceViewer here
+                sv = SliceViewer()
+                label='MSlice SC VolumeViewer'                
+                sv.LoadData('normalized',label)
+                xydim=None
+                slicepoint=None
+                colormin=None
+                colormax=None
+                colorscalelog=False
+                limits=None
+                normalization=0
+                sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
+                sv.Show()
+                """
+                
+                #For now, still need to use BinMD() instead of MDNormDirectSC as in the above commented out block
+
+                __ows=__ws.name()+'_histo'
+                BinMD(InputWorkspace=__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
+                #make new output workspace available to python
+                mtd.retrieve(__ows)
+                
+                #Envoke SliceViewer here
+                sv = SliceViewer()
+                label='MSlice SC SliceViewer - Volume View'                
+                #sv.LoadData(str(__ows.name()),label)
+                sv.LoadData(__ows,label)
+                xydim=None
+                slicepoint=None
+                colormin=None
+                colormax=None
+                colorscalelog=False
+                limits=None
+                normalization=0
+                sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
+                sv.Show()                
+                
+                
+                #determine workspace type
+                #stubbing this part out for now...
+        if Nws < 1:
+            #check if we have any workspaces to work with - return if not
+            print "No workspaces selected - returning"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("No workspaces selected - returning")
+            dialog.exec_()
+            return        
+        
+        
+        
+        
+        pass
+        
+    def calcXNpts(self):
+        print "calcXNpts"
+        pass
+        
+    def calcYNpts(self):
+        print "calcYNpts"
+        pass
+
+    def pushButtonSCSSurfaceSelect(self):
         print "Single Crystal Surface Slice Button pressed"
+        
         #now extract values from this tab
         SCSXcomboIndex=self.ui.comboBoxSCSliceX.currentIndex()
         SCSXFrom=self.ui.lineEditSCSliceXFrom.text()
@@ -1116,6 +2081,9 @@ class MSlice(QtGui.QMainWindow):
         SCSYFrom=self.ui.lineEditSCSliceYFrom.text()
         SCSYTo=self.ui.lineEditSCSliceYTo.text()
         SCSYStep=self.ui.lineEditSCSliceYStep.text()
+        SCSZcomboIndex=self.ui.comboBoxSCSliceZ.currentIndex()
+        SCSZFrom=self.ui.lineEditSCSliceZFrom.text()
+        SCSZTo=self.ui.lineEditSCSliceZTo.text()
         SCSEcomboIndex=self.ui.comboBoxSCSliceE.currentIndex()
         SCSEFrom=self.ui.lineEditSCSliceEFrom.text()
         SCSETo=self.ui.lineEditSCSliceETo.text()
@@ -1127,11 +2095,211 @@ class MSlice(QtGui.QMainWindow):
         SCSThickTo=self.ui.lineEditSCSliceETo.text()
         print "SC Surface values: ",SCSXcomboIndex,SCSXFrom,SCSXTo,SCSXStep,SCSYcomboIndex,SCSYFrom,SCSYTo,SCSYStep,SCSEcomboIndex,SCSEFrom,SCSETo,SCSIntensityFrom,SCSIntensityTo,SCSSmoothing
         print "  More SC Surface values: ",SCSEcomboIndex,SCSThickFrom,SCSThickTo
+        
         #**** code to extract data and perform plot placed here
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Single Crystal Sample: Surface Slice")				
 
-		
-		
+        #determine which workspaces have been selected
+        table=self.ui.tableWidgetWorkspaces
+        #first let's clean up empty rows
+        Nrows=table.rowCount()
+        Nws=0
+        for row in range(Nrows):
+            cw=table.cellWidget(row,config.WSM_SelectCol) 
+            cbstat=cw.isChecked()
+            #check if this workspace is selected for display
+            if cbstat == True:
+                #case where it is selected
+                Nws+=1 #increment selected workspace counter
+                #get workspace
+                wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
+                print " wsitem:",wsitem
+                print " mtd.getObjectNames():",mtd.getObjectNames()
+                __ws=mtd.retrieve(wsitem)
+                
+                #need to determine if this is a single or group workspace to obtain min/max values
+                #get min & max range values for the MD workspace
+                wsType=__ws.id()
+                if wsType == 'WorkspaceGroup':
+                    minn=[__ws[0].getXDimension().getMinimum(),__ws[0].getYDimension().getMinimum(),__ws[0].getZDimension().getMinimum(),__ws[0].getTDimension().getMinimum()]
+                    maxx=[__ws[0].getXDimension().getMaximum(),__ws[0].getYDimension().getMaximum(),__ws[0].getZDimension().getMaximum(),__ws[0].getTDimension().getMaximum()]
+                    NEntries=__ws.getNumberOfEntries()
+                else:
+                    # single workspace case
+                    minn=[__ws.getXDimension().getMinimum(),__ws.getYDimension().getMinimum(),__ws.getZDimension().getMinimum(),__ws.getTDimension().getMinimum()]
+                    maxx=[__ws.getXDimension().getMaximum(),__ws.getYDimension().getMaximum(),__ws.getZDimension().getMaximum(),__ws.getTDimension().getMaximum()]
+                    NEntries=1
+                    
+                #get values from GUI and ViewSCSDict
+                ViewSCSDict=self.ui.ViewSCSDict
+                print "ViewSCSDict: ",ViewSCSDict
+                if SCSXFrom =='':
+                    #SCSXFrom=minn[0]
+                    label=convertIndexToLabel(self,'X','Slice')   
+                    print "  label: ",label                 
+                    SCSXFrom = float(ViewSCSDict[label]['from'])
+                else:
+                    SCSXFrom=float(SCSXFrom)
+                if SCSXTo =='':
+                    #SCSXTo=maxx[0]
+                    label=convertIndexToLabel(self,'X','Slice')                    
+                    SCSXTo = float(ViewSCSDict[label]['to'])
+                else:
+                    SCSXTo=float(SCSXTo)
+                Nscx=int(round((SCSXTo-SCSXFrom)/float(SCSXStep)))
+                
+                if SCSYFrom =='':
+                    #SCSYFrom=minn[1]
+                    label=convertIndexToLabel(self,'Y','Slice')                    
+                    SCSYFrom = float(ViewSCSDict[label]['from'])
+                else:
+                    SCSYFrom=float(SCSYFrom)
+                if SCSYTo =='':
+                    #SCSYTo=maxx[1]
+                    label=convertIndexToLabel(self,'Y','Slice')                    
+                    SCSYTo = float(ViewSCSDict[label]['to'])
+                else:
+                    SCSYTo=float(SCSYTo)
+                Nscy=int(round((SCSYTo-SCSYFrom)/float(SCSYStep)))                    
+                    
+                if SCSZFrom =='':
+                    #SCSZFrom=minn[2]
+                    label=convertIndexToLabel(self,'Z','Slice')                    
+                    SCSZFrom = float(ViewSCSDict[label]['from'])
+                else:
+                    SCSZFrom=float(SCSZFrom)
+                if SCSZTo =='':
+                    #SCSZTo=maxx[2]
+                    label=convertIndexToLabel(self,'Z','Slice')                    
+                    SCSZTo = float(ViewSCSDict[label]['to'])
+                else:
+                    SCSZTo=float(SCSZTo)                    
+                    
+                if SCSEFrom =='':
+                    #SCSEFrom=minn[3]
+                    label=convertIndexToLabel(self,'E','Slice')                    
+                    SCSEFrom = float(ViewSCSDict[label]['from'])
+                else:
+                    SCSEFrom=float(SCSEFrom)
+                if SCSETo =='':
+                    #SCSETo=maxx[3]
+                    label=convertIndexToLabel(self,'E','Slice')                    
+                    SCSETo = float(ViewSCSDict[label]['to'])
+                else:
+                    SCSETo=float(SCSETo)
+                    
+                #Derive names from Viewing Axes u and label fields
+                #nameLst=makeSCNames(self)
+                #Extract names from Slice View combo boxes
+                nameLst=[]
+                nameLst.append(self.ui.comboBoxSCSliceX.currentText())
+                nameLst.append(self.ui.comboBoxSCSliceY.currentText())
+                nameLst.append(self.ui.comboBoxSCSliceZ.currentText())
+                nameLst.append(self.ui.comboBoxSCSliceE.currentText())
+                #note that the comboBox label and that label needed by MDNormDirectSC are different - search for the case and replace with what's needed
+                nameLst=['DeltaE' if x=='E (meV)' else x for x in nameLst]
+                                                                    
+                #Format: 'name,minimum,maximum,number_of_bins'
+                print "Nscx: ",Nscx,"  Nscy: ",Nscy
+                AD0=str(nameLst[0])+','+str(SCSXFrom)+','+str(SCSXTo)+','+str(Nscx)
+                AD0=AD0.replace(config.XYZUnits,'')
+                AD1=str(nameLst[1])+','+str(SCSYFrom)+','+str(SCSYTo)+','+str(Nscy)
+                AD1=AD1.replace(config.XYZUnits,'')
+                AD2=str(nameLst[2])+','+str(SCSZFrom)+','+str(SCSZTo)+','+str(1)
+                AD2=AD2.replace(config.XYZUnits,'')
+                AD3=str(nameLst[3])+','+str(SCSEFrom)+','+str(SCSETo)+','+str(1)
+                AD3=AD3.replace(config.XYZUnits,'')
+                
+                print "AD0: ",AD0,'  type: ',type(AD0)
+                print "AD1: ",AD1,'  type: ',type(AD1)
+                print "AD2: ",AD2,'  type: ',type(AD2)
+                print "AD3: ",AD3,'  type: ',type(AD3)
+                print "type(__ws): ",type(__ws)
+                print "__ws: ",__ws.name()
+                #comment block represents new way to use MDNormDirectSC 
+                """
+                histoData,histoNorm=MDNormDirectSC(__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3)
+                print "histoNorm Complete"
+                if wsType == 'WorkspaceGroup':
+                    print "histoData.getNumberOfEntries(): ",histoData.getNumberOfEntries()
+                    print "histoNorm.getNumberOfEntries(): ",histoNorm.getNumberOfEntries()
+                    #Loop thru each workspace in a group and calculate the data and norm for the requested parameters
+                    for k in range(NEntries):
+                        print "Sum Loop: ",k," of ",NEntries
+                        
+                        if k == 0:
+                            histoDataSum=histoData[k]
+                            histoNormSum=histoNorm[k]
+                        else:
+                            histoDataSum+=histoData[k]
+                            histoNormSum+=histoNorm[k]
+                else:
+                    # case for a single workspace - just pass thru to sum workspaces
+                    histoDataSum=histoData
+                    histoNormSum=histoNorm
+                    
+                normalized=histoDataSum/histoNormSum   
+                
+                #Experienced an issue where Slice Viewer was crashing due to -inf (we think), so check the data and replace values
+                #let's check for values we don't want in the normalized data...
+                # isinf : Shows which elements are positive or negative infinity
+                # isposinf : Shows which elements are positive infinity
+                # isneginf : Shows which elements are negative infinity
+                # isnan : Shows which elements are Not a Number  
+                #normalizedNew=normalized
+                normArray=normalized.getSignalArray()
+                normArray.flags.writeable=True  #note that initially the array is not writeable, so change this
+                indx=np.isinf(normArray)
+                normArray[indx]=0    
+                indx=np.isnan(normArray)
+                normArray[indx]=0     
+                normArray.flags.writeable=False #now put it back to nonwriteable
+                normalized.setSignalArray(normArray)
+                
+                #upon summing coresponding data and norm data, produce the normalized result
+                print "histoDataSum.id(): ",histoDataSum.id()
+                print "histoNormSum.id(): ",histoNormSum.id()
+                normalized=histoDataSum/histoNormSum  
+                
+                #sv.LoadData('normalized',label)
+                
+                """
+                
+                #For now, still need to use BinMD() instead of MDNormDirectSC as in the above commented out block
+                __ows=__ws.name()+'_histo'
+                BinMD(InputWorkspace=__ws,AlignedDim0=AD0,AlignedDim1=AD1,AlignedDim2=AD2,AlignedDim3=AD3,OutputWorkspace=__ows)
+                #make new output workspace available to python
+                mtd.retrieve(__ows)
+                
+                #Envoke SliceViewer here
+                sv = SliceViewer()
+                label='MSlice SC SliceViewer'                
+                #sv.LoadData(str(__ows.name()),label)
+                sv.LoadData(__ows,label)
+                xydim=None
+                slicepoint=None
+                colormin=None
+                colormax=None
+                colorscalelog=False
+                limits=None
+                normalization=0
+                sv.SetParams(xydim,slicepoint,colormin,colormax,colorscalelog,limits, normalization)
+                sv.Show()
+                
+                #determine workspace type
+                #stubbing this part out for now...
+        if Nws < 1:
+            #check if we have any workspaces to work with - return if not
+            print "No workspaces selected - returning"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("No workspaces selected - returning")
+            dialog.exec_()
+            return
+
+            
+            
+
+
     def pushButtonPowderSlicePlotSliceSelect(self):
         print "Powder Plot Slice Button pressed"
         #now extract values from this tab
@@ -1148,9 +2316,8 @@ class MSlice(QtGui.QMainWindow):
         PSSmoothing=self.ui.lineEditPowderSliceSmoothing.text()
         print "Powder Plot values: ",PSXcomboIndex,PSXFrom,PSXTo,PSXStep,PSYcomboIndex,PSYFrom,PSYTo,PSYStep,PSIntensityFrom,PSIntensityTo,PSSmoothing
         #**** code to extract data and perform plot placed here
-        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Show Slice")				
+        self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Show Slice")		
 
-		
     def pushButtonPowderSliceOplotSliceSelect(self):
         print "Powder Oplot Slice Button pressed"
         #now extract values from this tab
@@ -1169,7 +2336,6 @@ class MSlice(QtGui.QMainWindow):
         #**** code to extract data and perform plot placed here
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Oplot Slice")				
 
-		
     def pushButtonPowderSliceSurfaceSliceSelect(self):
         print "Powder Surface Slice Button pressed"
         #now extract values from this tab
@@ -1188,25 +2354,25 @@ class MSlice(QtGui.QMainWindow):
         #**** code to extract data and perform plot placed here
         
         #get constants
-        const=constants()
+        #const=constants()
         
         table=self.ui.tableWidgetWorkspaces
         #first let's clean up empty rows
         Nrows=table.rowCount()
         for row in range(Nrows):
-            cw=table.cellWidget(row,const.WSM_SelectCol) 
+            cw=table.cellWidget(row,config.WSM_SelectCol) 
             cbstat=cw.isChecked()
             #check if this workspace is selected for display
             if cbstat == True:
                 #case where it is selected
                 #get workspace
-                wsitem=str(table.item(row,const.WSM_WorkspaceCol).text())
+                wsitem=str(table.item(row,config.WSM_WorkspaceCol).text())
                 print " wsitem:",wsitem
                 print " mtd.getObjectNames():",mtd.getObjectNames()
-                ws=mtd.retrieve(wsitem)
+                __ws=mtd.retrieve(wsitem)
     
-                wsX=ws.getXDimension()
-                wsY=ws.getYDimension()
+                wsX=__ws.getXDimension()
+                wsY=__ws.getYDimension()
                 
                 xmin=wsX.getMinimum()
                 xmax=wsX.getMaximum()
@@ -1221,11 +2387,12 @@ class MSlice(QtGui.QMainWindow):
                 ad1=yname+','+str(ymin)+','+str(ymax)+',100'
                 print "ad0: ",ad0
                 print "ad1: ",ad1
-                MDH=BinMD(InputWorkspace=ws,AlignedDim0=ad0,AlignedDim1=ad1)
-                sig=MDH.getSignalArray()
-                ne=MDH.getNumEventsArray()
-#                dne=sig/ne
-                dne=sig
+                BinMD(InputWorkspace=__ws,AlignedDim0=ad0,AlignedDim1=ad1,OutputWorkspace="__MDH")
+                __MDH=mtd.retrieve('__MDH')
+                sig=__MDH.getSignalArray()
+                ne=__MDH.getNumEventsArray()
+                dne=sig/ne
+ #               dne=sig  #use to just look at the signal array
                 
                 
                 #Incorporate SliceViewer here
@@ -1236,7 +2403,8 @@ class MSlice(QtGui.QMainWindow):
 #                sv.LoadData('ws',label)
                 
 #                exec ("%s = mtd.retrieve(%r)" % (outname,outname))
-                
+                #FIXME - retrospectively observing that Sliceview just uses the selected workspace and not the calculated results 
+                #FIXME cont: This may not be a problem here as the desired result is usually calculated when using SliceViewer
                 sv.LoadData(wsitem,label)
                 xydim=None
                 slicepoint=None
@@ -1304,7 +2472,7 @@ class MSlice(QtGui.QMainWindow):
         
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Powder Sample: Surface Slice")				
 
-		
+
     def SampleTabWidgetSelect(self):
         print "SampleTabWidget"
         SampleTabIndex=self.ui.SampleTabWidget.currentIndex()
@@ -1324,7 +2492,7 @@ class MSlice(QtGui.QMainWindow):
             self.ui.stackedWidgetSlice.setCurrentIndex(1)
             self.ui.stackedWidgetCut.setCurrentIndex(1)
             self.ui.stackedWidgetVolume.setCurrentIndex(1)						
-		
+
     def deleteAll(self):
         #make sure that workspace name lineEdit is enabled
         self.ui.lineEditWorkspaceName.setEnabled(True)
@@ -1336,7 +2504,7 @@ class MSlice(QtGui.QMainWindow):
         nfilesStr="Number of Files: "+str(Nrows)
         self.ui.LabelNfiles.setText(nfilesStr)
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Deleted All Files")		
-		
+
     def deleteSelected(self):
         #make sure that workspace name lineEdit is enabled
         self.ui.lineEditWorkspaceName.setEnabled(True)
@@ -1384,46 +2552,46 @@ class MSlice(QtGui.QMainWindow):
         nfilesStr="Number of Files: "+str(Nrows)
         self.ui.LabelNfiles.setText(nfilesStr)
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Deleted Selected Files")		
-		
+
     def confirmExit(self):
         reply = QtGui.QMessageBox.question(self, 'Message',
             "Are you sure to quit?", QtGui.QMessageBox.Yes | 
             QtGui.QMessageBox.No, QtGui.QMessageBox.No)
 
         if reply == QtGui.QMessageBox.Yes:
-			#close application
+        #close application
             self.close()
         else:
-			#do nothing and return
+        #do nothing and return
             pass               
-		
+
     def CreateWorkspace(self):
         #function creates the workspace from files and requires the user to save the workspace to disk
         print "In CreateWorkspace"
-        const=constants()
+        #const=constants()
         #disable load until another set of files has been selected
         self.ui.pushButtonCreateWorkspace.setEnabled(False)
-		
+
         #set some initial progress on the meter
         self.ui.progressBarStatusProgress.setValue(10)
 
         #get output filename first
         wsname=self.ui.lineEditWorkspaceName.text()
-        filter='.nxs'
+        filter="NXS (*.nxs);;All files (*.*)"
         wsname=wsname+filter
         wspathname = QtGui.QFileDialog.getSaveFileName(self, 'Save Workspace', wsname,filter)        
         print "Workspace Save: ",wspathname
         #place code here to create the workspace
         #update application progress
         self.ui.progressBarStatusProgress.setValue(25)
-		
+
         #then save the workspace to file
         fileObj=open(wspathname,'w')
         data=np.random.rand(1024,1024)
         fileObj.write(data)
         fileObj.close()
         self.ui.progressBarStatusProgress.setValue(50)		
-		
+
         #now update the workspace manager with the new workspace		
         #determine how many files we have
         Nfiles = self.ui.tableWidget.rowCount()
@@ -1432,13 +2600,13 @@ class MSlice(QtGui.QMainWindow):
         row=0 #set row counter
         for row in range(Nfiles):
             #get scale value and print it
-            col=const.CWS_ScaleFactorCol
+            col=config.CWS_ScaleFactorCol
             scale=self.ui.tableWidget.item(row,col)
             print "Scale: ", scale.text()
             #scale cannot be edited once a file is loaded
             self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)	
             #change the item status to 'Loaded'
-            col=const.CWS_StatusCol
+            col=config.CWS_StatusCol
             self.ui.tableWidget.setItem(row,col, QtGui.QTableWidgetItem('Loaded'))           
             self.ui.tableWidget.item(row,col).setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
         self.ui.StatusText.append(time.strftime("%a %b %d %Y %H:%M:%S")+" - Loaded Data")		
@@ -1449,210 +2617,1121 @@ class MSlice(QtGui.QMainWindow):
             self.ui.lineEditWorkspaceName.setText(wsName)
         #place code here to load workspace into memory and update table in workspace manager
         self.ui.progressBarStatusProgress.setValue(60)		
-		
+
         #update workspace table
         wsName=self.ui.lineEditWorkspaceName.text()
         print "CreateWorkspace wsName: ",wspathname
         table=self.ui.tableWidgetWorkspaces
         addWStoTable(table,wsName,wspathname)
         self.ui.tableWidgetWorkspaces.resizeColumnsToContents();
-		
+
         self.ui.progressBarStatusProgress.setValue(100)		
         time.sleep(1)
         self.ui.progressBarStatusProgress.setValue(0)
-		
+
         #update status
         msg=time.strftime("%a %b %d %Y %H:%M:%S")+' Wrote file: '+wspathname
         self.ui.StatusText.append(msg)
-		
+
         #once workspace loaded into memory, enable the save workspace button
         #also need to lock the workspace name lineEdit once the workspace has been created
         self.ui.lineEditWorkspaceName.setEnabled(False)
-		
+
         #once the workspace has been created, saved, and loaded in, take user to workspace manager
         self.ui.stackedWidgetFilesWorkspaces.setCurrentIndex(1)
-			
 
+    def setGProps(self):
+        print "SetGoniometerProperties"
+        SetGoniometerProperties(self) #call separate GUI to set Goniometer properties
         
-#************* beginning of global functions and classes ****************
-
-class constants:
-    def __init__(self):
-#        self.WSM_WorkspaceCol=0
-#        self.WSM_LastAlgCol=1
-#        self.WSM_LocationCol=2
-#        self.WSM_DateCol=3
-#        self.WSM_SizeCol=4
-#        self.WSM_ActionCol=5
-#        self.WSM_StatusCol=6
-        self.WSM_WorkspaceCol=0
-        self.WSM_TypeCol=1
-        self.WSM_SavedCol=2
-        self.WSM_SizeCol=3
-        self.WSM_SelectCol=4
-
+    def CheckWorkspace(self):
+        #method to check the selected single or group workspace for the following:
+        # - motor name
+        # - initial (Psi) rotation angle
+        # - inital a,b,c
+        # - initial alpha, beta, gamma
         
-        self.CWS_FilenameCol=0
-        self.CWS_DateCol=1
-        self.CWS_TypeCol=2
-        self.CWS_SizeCol=3
-        self.CWS_ScaleFactorCol=4
-        self.CWS_StatusCol=5
-        
-
-def constantUpdateActor(self):
-    const=constants()
-    #mode to show status in percentage
-    cpu_stats = psutil.cpu_times_percent(interval=1,percpu=False)
-    percentcpubusy = 100.0 - cpu_stats.idle
-    self.ui.progressBarStatusCPU.setValue(percentcpubusy)
-    percentmembusy=psutil.virtual_memory().percent
-    self.ui.progressBarStatusMemory.setValue(percentmembusy)
-    Ncpus=len(psutil.cpu_percent(percpu=True))
-    totalcpustr='CPU Count: '+str(Ncpus)
-#        print "Total CPU str: ",totalcpustr
-    self.ui.labelCPUCount.setText(totalcpustr)
-    totalmem=int(round(float(psutil.virtual_memory().total)/(1024*1024*1024)))
-#        print "Total Mem: ",totalmem
-    totalmemstr='Max Mem: '+str(totalmem)+' GB'
-#        print "Total Mem str: ",totalmemstr
-    self.ui.labelMaxMem.setText(totalmemstr)
-				
-def getHomeDir():
-        if sys.platform == 'win32':
-            home = expanduser("~")
+        #need to determine which workspaces are selected 
+        #get workspace table to work with
+        table=self.ui.tableWidgetWorkspaces
+        Nrows=table.rowCount()
+        cnt=0
+        for row in range(Nrows):
+            cw=table.cellWidget(row,config.WSM_SelectCol) 
+            cbstat=cw.isChecked()
+            if cbstat:
+                cnt+=1
+                saveRow=row
+        if cnt != 1:
+            #case where we have the incorrect number of workspaces
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("Select only 1 workspace please")
+            dialog.exec_()
+            return
+        #at this point we have one workspace or one workspace group - determine which
+        #get the workspace
+        tmpwsName=str(table.item(saveRow,config.WSM_WorkspaceCol).text())
+        tmpws=mtd.retrieve(tmpwsName)
+        if tmpws.id() == 'WorkspaceGroup':
+            Nws=len(tmpws)
+            wsNames=[]
+            for i in range(Nws):
+                wsNames.append(tmpws[i].getName())
+            wsNames.sort() #sort so that lowest numbered workspace in the group is first in the list - assumes similarly named workspaces!
+            wsName=wsNames[0]
+            
         else:
-            home=os.getenv("HOME")
-        return home
+            wsName=tmpwsName
+        #now retrieve this workspace (in case it's not already been retrieved)
+        tmpws=mtd.retrieve(wsName)
+        
+        #first check if the workspace has any values in it we may want
+        try:
+            Ei=tmpws.run().getProperty('Ei').value
+            self.ui.labelSCEi.setText("Ei: "+"%.3f" % Ei)
+            S1=tmpws.run().getProperty('S1').firstValue()
+            self.ui.labelSCS1.setText("Start Angle: "+"%.3f" % S1)
+            
+        except:
+            pass
+        
+        try:
+            if not(tmpws.sample().hasOrientedLattice()):
+                #case where there is no lattice info to use - inform user and return
+                dialog=QtGui.QMessageBox(self)
+                dialog.setText("No Lattice Information to Gather from Workspace - returning")
+                dialog.exec_()  
+                return
+        except:
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText("Incompatible Workspace - returning")
+            dialog.exec_()  
+            return
+        #getting to this point, there should be some lattice info to use
+        #get values from the run
+        #**** Not sure what we want from the run at this point - leaving commented out code for example use later 
+        """
+        keys=tmpws.run().keys()
+        motor1=tmpws.run().getProperty('s1').value
+        """
+
+        #get sample properties
+        a=tmpws.sample().getOrientedLattice().a()
+        b=tmpws.sample().getOrientedLattice().b()        
+        c=tmpws.sample().getOrientedLattice().c()
+        alpha=tmpws.sample().getOrientedLattice().alpha()
+        beta=tmpws.sample().getOrientedLattice().beta()
+        gamma=tmpws.sample().getOrientedLattice().gamma()
+        uVector=tmpws.sample().getOrientedLattice().getuVector()
+        uVectorX=uVector.getX()
+        uVectorY=uVector.getY()
+        uVectorZ=uVector.getZ()
+        vVector=tmpws.sample().getOrientedLattice().getvVector()
+        vVectorX=vVector.getX()
+        vVectorY=vVector.getY()
+        vVectorZ=vVector.getZ()
+        
+        #Unit Cell Parameters:
+        self.ui.lineEditUCa.setText("%.3f" % a)
+        self.ui.lineEditUCb.setText("%.3f" % b)
+        self.ui.lineEditUCc.setText("%.3f" % c)
+        self.ui.lineEditUCalpha.setText("%.3f" % alpha)
+        self.ui.lineEditUCbeta.setText("%.3f" % beta)
+        self.ui.lineEditUCgamma.setText("%.3f" % gamma)
+        
+        #Crystal Orientations:
+        self.ui.lineEditSCCOux.setText("%.3f" % uVectorX)
+        self.ui.lineEditSCCOuy.setText("%.3f" % uVectorY)
+        self.ui.lineEditSCCOuz.setText("%.3f" % uVectorZ)
+        self.ui.lineEditSCCOvx.setText("%.3f" % vVectorX)
+        self.ui.lineEditSCCOvy.setText("%.3f" % vVectorY)
+        self.ui.lineEditSCCOvz.setText("%.3f" % vVectorZ)        
+        
+        
+    def DefaultSCParams(self):
+        #Unit Cell Parameters:
+        self.ui.lineEditUCa.setText(self.ui.SCUCa)
+        self.ui.lineEditUCb.setText(self.ui.SCUCb)
+        self.ui.lineEditUCc.setText(self.ui.SCUCc)
+        self.ui.lineEditUCalpha.setText(self.ui.SCUCalpha)
+        self.ui.lineEditUCbeta.setText(self.ui.SCUCbeta)
+        self.ui.lineEditUCgamma.setText(self.ui.SCUCgamma)
+        
+        #Crystal Orientations:
+        self.ui.lineEditSCCOux.setText(self.ui.SCCOux)
+        self.ui.lineEditSCCOuy.setText(self.ui.SCCOuy)
+        self.ui.lineEditSCCOuz.setText(self.ui.SCCOuz)
+        self.ui.lineEditSCCOvx.setText(self.ui.SCCOvx)
+        self.ui.lineEditSCCOvy.setText(self.ui.SCCOvy)
+        self.ui.lineEditSCCOvz.setText(self.ui.SCCOvz)
+        self.ui.lineEditSCCOPsi.setText(self.ui.SCCOPsi)		
+        self.ui.lineEditSCCOName.setText(self.ui.SCCOMN)		
+        
+        #Viewing Angle
+        self.ui.lineEditSCVAu1a.setText(self.ui.SCVAu1a)
+        self.ui.lineEditSCVAu1b.setText(self.ui.SCVAu1b)
+        self.ui.lineEditSCVAu1c.setText(self.ui.SCVAu1c)
+        self.ui.lineEditSCVAu1Label.setText(self.ui.SCVAu1Label)
+        self.ui.lineEditSCVAu2a.setText(self.ui.SCVAu2a)
+        self.ui.lineEditSCVAu2b.setText(self.ui.SCVAu2b)
+        self.ui.lineEditSCVAu2c.setText(self.ui.SCVAu2c)
+        self.ui.lineEditSCVAu2Label.setText(self.ui.SCVAu2Label)
+        self.ui.lineEditSCVAu3a.setText(self.ui.SCVAu3a)
+        self.ui.lineEditSCVAu3b.setText(self.ui.SCVAu3b)
+        self.ui.lineEditSCVAu3c.setText(self.ui.SCVAu3c)
+        self.ui.lineEditSCVAu3Label.setText(self.ui.SCVAu3Label)      
+        
+        #Clear info
+        self.ui.labelSCEi.setText("Ei: ")
+        self.ui.labelSCS1.setText("Start Angle: ")
+
+    def SaveSCParams(self):
+        
+        filter="XML (*.xml);;All files (*.*)"
+        xmlname="SingleCrystalParams.xml"
+        filename = QtGui.QFileDialog.getSaveFileName(self, 'Save Single Crystal GUI Parameters', xmlname,filter)       
+        if filename=='':
+            #case where no filename was selected
+            print "No file selected - returning"
+            return
+        
+        #get parameters from GUI:
+        #Unit Cell Parameters:
+        SCUCa=str(self.ui.lineEditUCa.text())
+        SCUCb=str(self.ui.lineEditUCb.text())
+        SCUCc=str(self.ui.lineEditUCc.text())
+        SCUCalpha=str(self.ui.lineEditUCalpha.text())
+        SCUCbeta=str(self.ui.lineEditUCbeta.text())
+        SCUCgamma=str(self.ui.lineEditUCgamma.text())
+        
+        #Crystal Orientations:
+        SCCOux=str(self.ui.lineEditSCCOux.text())
+        SCCOuy=str(self.ui.lineEditSCCOuy.text())
+        SCCOuz=str(self.ui.lineEditSCCOuz.text())
+        SCCOvx=str(self.ui.lineEditSCCOvx.text())
+        SCCOvy=str(self.ui.lineEditSCCOvy.text())
+        SCCOvz=str(self.ui.lineEditSCCOvz.text())
+        SCCOPsi=str(self.ui.lineEditSCCOPsi.text())
+        SCCOMN=str(self.ui.lineEditSCCOName.text())		
+        
+        #Viewing Angle
+        SCVAu1a=str(self.ui.lineEditSCVAu1a.text())
+        SCVAu1b=str(self.ui.lineEditSCVAu1b.text())
+        SCVAu1c=str(self.ui.lineEditSCVAu1c.text())
+        SCVAu1Label=str(self.ui.lineEditSCVAu1Label.text())
+        SCVAu2a=str(self.ui.lineEditSCVAu2a.text())
+        SCVAu2b=str(self.ui.lineEditSCVAu2b.text())
+        SCVAu2c=str(self.ui.lineEditSCVAu2c.text())
+        SCVAu2Label=str(self.ui.lineEditSCVAu2Label.text())
+        SCVAu3a=str(self.ui.lineEditSCVAu3a.text())
+        SCVAu3b=str(self.ui.lineEditSCVAu3b.text())
+        SCVAu3c=str(self.ui.lineEditSCVAu3c.text())
+        SCVAu3Label=str(self.ui.lineEditSCVAu3Label.text())
+        
+        """
+        #pack variables into a dictionary
+        params_dict_root={'root':{
+                            'SCUCa':SCUCa,
+                            'SCUCb':SCUCb,
+                            'SCUCc':SCUCc,
+                            'SCUCalpha':SCUCalpha,                   
+                            'SCUCbeta':SCUCbeta,                                          
+                            'SCUCgamma':SCUCgamma,                
+                            'SCCOux':SCCOux,
+                            'SCCOuy':SCCOuy,                        
+                            'SCCOuz':SCCOuz,            
+                            'SCCOvx':SCCOvx,
+                            'SCCOvy':SCCOvy,                        
+                            'SCCOvz':SCCOvz,     
+                            'SCGSPsi':SCCOPsi,                        
+                            'SCGSMN':SCCOMN,                        
+                            'SCVAu1a':SCVAu1a,                    
+                            'SCVAu1b':SCVAu1b,                        
+                            'SCVAu1c':SCVAu1c,                        
+                            'SCVAu1Label':SCVAu1Label,
+                            'SCVAu2a':SCVAu2a,                       
+                            'SCVAu2b':SCVAu2b,                        
+                            'SCVAu2c':SCVAu2c,                        
+                            'SCVAu2Label':SCVAu2Label,                        
+                            'SCVAu3a':SCVAu3a,
+                            'SCVAu3b':SCVAu3b,                        
+                            'SCVAu3c':SCVAu3c,                        
+                            'SCVAu3Label':SCVAu3Label                                                
+                        }}
+        """
+                        
+        #pack variables into a dictionary
+        params_dict_root={'root':{
+                            'a':SCUCa,
+                            'b':SCUCb,
+                            'c':SCUCc,
+                            'alpha':SCUCalpha,                   
+                            'beta':SCUCbeta,                                          
+                            'gamma':SCUCgamma,                
+                            'ux':SCCOux,
+                            'uy':SCCOuy,                        
+                            'uz':SCCOuz,            
+                            'vx':SCCOvx,
+                            'vy':SCCOvy,                        
+                            'vz':SCCOvz,     
+                            'Psi':SCCOPsi,                        
+                            'MN':SCCOMN,                        
+                            'u1a':SCVAu1a,                    
+                            'u1b':SCVAu1b,                        
+                            'u1c':SCVAu1c,                        
+                            'u1Label':SCVAu1Label,
+                            'u2a':SCVAu2a,                       
+                            'u2b':SCVAu2b,                        
+                            'u2c':SCVAu2c,                        
+                            'u2Label':SCVAu2Label,                        
+                            'u3a':SCVAu3a,
+                            'u3b':SCVAu3b,                        
+                            'u3c':SCVAu3c,                        
+                            'u3Label':SCVAu3Label                                                
+                        }}
+                        
+        #view key:value pairs for debug
+        params_dict=params_dict_root.get('root') 
+        for key,value in params_dict.items():
+            print "key: ",key,"  value: ",value, " type(value): ",type(value)
+                        
+        #create xml from dictionary and save xml to file
+        dicttoxmlfile(params_dict_root, filename)
+        
+        
+    def LoadSCParams(self):
+        #method to load parameters from file to the Parameters portion of the GUI
+        curdir=os.curdir
+        filter="XML (*.xml);;All files (*.*)"
+        xmlfile = QtGui.QFileDialog.getOpenFileNames(self, 'Open Single Crystal Params File', curdir,filter)
+        xmlfile = str(xmlfile[0])
+        if xmlfile=='':
+            #no file selected
+            print "No file selected - returning"
+            return
+        print "xmlfile: ",xmlfile," type(xmlfile): ",type(xmlfile)
+        #retrieve dictionary from xml file
+        params_dict_root=xmlfiletodict(xmlfile)
+        
+        #place dictionary values into GUI
+        params_dict=params_dict_root.get('root') # need to strip off root key
+        
+        #scan dictionary for empty values and substitute a space as setText() cannot set an empty value
+        for key,value in params_dict.items():
+            if value==None:
+                params_dict[key]=''
+        
+        #Unit Cell Parameters:
+        self.ui.lineEditUCa.setText(params_dict.get('a'))
+        self.ui.lineEditUCb.setText(params_dict.get('b'))
+        self.ui.lineEditUCc.setText(params_dict.get('c'))
+        self.ui.lineEditUCalpha.setText(params_dict.get('alpha'))
+        self.ui.lineEditUCbeta.setText(params_dict.get('beta'))
+        self.ui.lineEditUCgamma.setText(params_dict.get('gamma'))
+        
+        #Crystal Orientations:
+        self.ui.lineEditSCCOux.setText(params_dict.get('ux'))
+        self.ui.lineEditSCCOuy.setText(params_dict.get('uy'))
+        self.ui.lineEditSCCOuz.setText(params_dict.get('uz'))
+        self.ui.lineEditSCCOvx.setText(params_dict.get('vx'))
+        self.ui.lineEditSCCOvy.setText(params_dict.get('vy'))
+        self.ui.lineEditSCCOvz.setText(params_dict.get('vz'))
+        self.ui.lineEditSCCOPsi.setText(params_dict.get('Psi'))		
+        self.ui.lineEditSCCOName.setText(params_dict.get('MN'))		
+        
+        #Viewing Angle
+        self.ui.lineEditSCVAu1a.setText(params_dict.get('u1a'))
+        self.ui.lineEditSCVAu1b.setText(params_dict.get('u1b'))
+        self.ui.lineEditSCVAu1c.setText(params_dict.get('u1c'))
+        self.ui.lineEditSCVAu1Label.setText(params_dict.get('u1Label'))
+        self.ui.lineEditSCVAu2a.setText(params_dict.get('u2a'))
+        self.ui.lineEditSCVAu2b.setText(params_dict.get('u2b'))
+        self.ui.lineEditSCVAu2c.setText(params_dict.get('u2c'))
+        self.ui.lineEditSCVAu2Label.setText(params_dict.get('u2Label'))
+        self.ui.lineEditSCVAu3a.setText(params_dict.get('u3a'))
+        self.ui.lineEditSCVAu3b.setText(params_dict.get('u3b'))
+        self.ui.lineEditSCVAu3c.setText(params_dict.get('u3c'))
+        self.ui.lineEditSCVAu3Label.setText(params_dict.get('u3Label'))    
+
+    def UpdateViewSCCDict(self):
+        print "In UpdateViewSCCDict(self)"
+        #This method updates the ViewSCCDict dictionary any time that a value
+        #is changed in the Viewing Axes field changes.  As this can be performed quickly,
+        #the entire dictionary is update when a selction is made in lieu of having a
+        #separate method for each of the 12 fields that can change.
+        
+        #Note that currently only the dictionary labels are updated and that
+        #other parameters are updated once SC calc projections occurs
+        
+        ViewSCCDict=self.ui.ViewSCCDict #for convenience and readability, shorten the name 
+        
+        #get updated labels
+        nameLst=makeSCNames(self)
+        #put labels in the View dictionary
+        ViewSCCDict['u1']['label']=nameLst[0]
+        ViewSCCDict['u2']['label']=nameLst[1]
+        ViewSCCDict['u3']['label']=nameLst[2]
+        #note that 'E' label does not change...
+        #store label changes back into the global dictionary
+        self.ui.ViewSCCDict=ViewSCCDict
+        
+        #update corresponding ViewSCData labels - X
+        self.ui.comboBoxSCCutX.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutX.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutX.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutX.setItemText(3,ViewSCCDict['E']['label'])
+        #update corresponding ViewSCData labels - Y
+        self.ui.comboBoxSCCutY.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutY.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutY.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutY.setItemText(3,ViewSCCDict['E']['label'])
+        #update corresponding ViewSCData labels - Z
+        self.ui.comboBoxSCCutZ.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutZ.setItemText(3,ViewSCCDict['E']['label'])
+        #update corresponding ViewSCData labels - E
+        self.ui.comboBoxSCCutE.setItemText(0,ViewSCCDict['u1']['label'])
+        self.ui.comboBoxSCCutE.setItemText(1,ViewSCCDict['u2']['label'])
+        self.ui.comboBoxSCCutE.setItemText(2,ViewSCCDict['u3']['label'])
+        self.ui.comboBoxSCCutE.setItemText(3,ViewSCCDict['E']['label'])
+        
+        
+    def UpdateComboSCCX(self):
+        """
+        Wrapper method to perform swapping labels for 'X' comboBox
+        """
+        print "** UpdateComboSCX"
+        label= str(self.ui.comboBoxSCCutX.currentText())
+        self.UpdateViewSCCData(label,'u1')
+        self.ui.ViewSCCDataDeBounce=False
+        
+    def UpdateComboSCCY(self):
+        """
+        Wrapper method to perform swapping labels for 'Y' comboBox
+        """
+        print "** UpdateComboSCY"
+        label= str(self.ui.comboBoxSCCutY.currentText())
+        self.UpdateViewSCCData(label,'u2')
+        self.ui.ViewSCCDataDeBounce=False
+                
+    def UpdateComboSCCZ(self):
+        """
+        Wrapper method to perform swapping labels for 'Z' comboBox
+        """
+        print "** UpdateComboSCZ"
+        label= str(self.ui.comboBoxSCCutZ.currentText())
+        self.UpdateViewSCCData(label,'u3')
+        self.ui.ViewSCCDataDeBounce=False
+                
+    def UpdateComboSCCE(self):
+        """
+        Wrapper method to perform swapping labels for 'E' comboBox
+        """
+        print "** UpdateComboSCE"
+        label= str(self.ui.comboBoxSCCutE.currentText())
+        self.UpdateViewSCCData(label,'E')
+        self.ui.ViewSCCDataDeBounce=False
+                
+    def UpdateViewSCCData(self,newLabel,newKey):
+        """
+        Method to perform swapping single crystal comboBox labels
+        newLabel: new comboBox label
+        newKey: key to index used for the swap
+        """
+        if self.ui.ViewSCCDataDeBounce:
+            #case we have a second update due to programmtically changing the current index - skip this one
+            #print "++++++++ Debounce +++++++++"
+            return
+        #get labels for each comboBox - should have a duplicate at this point
+        labels=[]
+        labels.append(str(self.ui.comboBoxSCCutX.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutY.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutZ.currentText()))
+        labels.append(str(self.ui.comboBoxSCCutE.currentText()))  
+        
+        #get list of possible labels - should be no duplicates
+        labelLst=[]
+        ViewSCCDict=self.ui.ViewSCCDict
+        labelLst.append(ViewSCCDict['u1']['label'])
+        labelLst.append(ViewSCCDict['u2']['label'])
+        labelLst.append(ViewSCCDict['u3']['label'])
+        labelLst.append(ViewSCCDict['E']['label'])    
+        
+        #Let's find the missing label
+        cntr=0
+        for chkLab in labelLst:
+            tst=chkLab in labels
+            if not(tst):
+                #case we found the missing label
+                missingLab=chkLab
+                missingIndx=cntr
+            cntr+=1
+        
+        #check which labels match the one passed in
+        cnt=0
+        mtch=[]
+        for label in labels:
+            if label == newLabel:
+                mtch.append(cnt)
+            cnt+=1
+
+        if len(mtch) != 2:
+            print "Did not find the correct number of labels - 2 expected but found: ",len(mtch)
+            
+        #check which index matches the index passed in
+        cnt=0
+
+        for indx in mtch:
+            if indx != int(ViewSCCDict[newKey]['index']):
+                updateCBIndx=indx
+                cnt+=1 #check to make sure we found an updateCBIndx
+            if indx == int(ViewSCCDict[newKey]['index']):
+                otherIndex=indx
+                
+        if cnt != 1:
+            print "Did not find the correct number of indicies- 1 expected but found: ",cnt
+        #The indx we found 
+        
+        #Setting the debounce flag to True enables setCurrentIndex() event generated via the code
+        #below to be ignored else letting this even be processed interferes with the current processing
+        self.ui.ViewSCCDataDeBounce=True 
+        if updateCBIndx==0:
+            self.ui.comboBoxSCCutX.setCurrentIndex(missingIndx)
+        if updateCBIndx==1:
+            self.ui.comboBoxSCCutY.setCurrentIndex(missingIndx)
+        if updateCBIndx==2:
+            self.ui.comboBoxSCCutZ.setCurrentIndex(missingIndx)
+        if updateCBIndx==3:
+            self.ui.comboBoxSCCutE.setCurrentIndex(missingIndx)    
+            
+        #Now that we have the information for the swapped combo boxes, let's swap the corresponding parameters
+        #Will simpy swap what's in the GUI widgets
+        CBIndx0=mtch[0]
+        CBIndx1=mtch[1]
+        swapSCViewParams(self,'Cut',CBIndx0,CBIndx1)
+
+    def updateSCCNpts(self):
+        
+        
+        #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
+        
+        #Update X NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCCutXFrom.text()) != '':
+            XFrom=float(str(self.ui.lineEditSCCutXFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCCutXTo.text()) != '':
+            XTo=float(str(self.ui.lineEditSCCutXTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCCutXStep.text()) != '':
+            XStep=float(str(self.ui.lineEditSCCutXStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if XFrom >= XTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X From is greater than X To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if XStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
     
-def addCheckboxToWSTCell(table,row,col,state):
-    
-    if state == '':
-        state=False
-    
-    checkbox = QtGui.QCheckBox()
-    checkbox.setText('Select')
-    checkbox.setChecked(state)
-    
-    #adding a widget which will be inserted into the table cell
-    #then centering the checkbox within this widget which in turn,
-    #centers it within the table column :-)
-    QW=QtGui.QWidget()
-    cbLayout=QtGui.QHBoxLayout(QW)
-    cbLayout.addWidget(checkbox)
-    cbLayout.setAlignment(QtCore.Qt.AlignCenter)
-    cbLayout.setContentsMargins(0,0,0,0)
-    
-    table.setCellWidget(row,col, checkbox) #if just adding the checkbox directly
-#    table.setCellWidget(row,col, QW)
+        try:
+            XNpts=(XTo-XFrom)/XStep
+        
+        except:
+            #case where unable to successfully calculate XNpts
+            self.ui.labelSCNptsX.setText("Npts:   ")
+            msg="Unable to calculate 'X NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCNptsX.setText("Npts: "+str(int(XNpts)))
+            
+        if XNpts > config.SCXNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current X settings will produce a large number of values: "+str(XNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return                
 
 
-def addmemWStoTable(table,wsname,wstype,wssize,wsindex):
-    
-    #get constants
-    const=constants()
 
-    
-    if wstype == '':
-        wstype = 'unknown'
+    def UpdateViewSCSDict(self):
+        print "In UpdateViewSCSDict(self)"
+        #This method updates the ViewSCSDict dictionary any time that a value
+        #is changed in the Viewing Axes field changes.  As this can be performed quickly,
+        #the entire dictionary is update when a selction is made in lieu of having a
+        #separate method for each of the 12 fields that can change.
+        
+        #Note that currently only the dictionary labels are updated and that
+        #other parameters are updated once SC calc projections occurs
+        
+        ViewSCSDict=self.ui.ViewSCSDict #for convenience and readability, shorten the name 
+        
+        #get updated labels
+        nameLst=makeSCNames(self)
+        #put labels in the View dictionary
+        ViewSCSDict['u1']['label']=nameLst[0]
+        ViewSCSDict['u2']['label']=nameLst[1]
+        ViewSCSDict['u3']['label']=nameLst[2]
+        #note that 'E' label does not change...
+        #store label changes back into the global dictionary
+        self.ui.ViewSCSDict=ViewSCSDict
+        
+        #update corresponding ViewSCData labels - X
+        self.ui.comboBoxSCSliceX.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceX.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceX.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceX.setItemText(3,ViewSCSDict['E']['label'])
+        #update corresponding ViewSCData labels - Y
+        self.ui.comboBoxSCSliceY.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceY.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceY.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceY.setItemText(3,ViewSCSDict['E']['label'])
+        #update corresponding ViewSCData labels - Z
+        self.ui.comboBoxSCSliceZ.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceZ.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceZ.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceZ.setItemText(3,ViewSCSDict['E']['label'])
+        #update corresponding ViewSCData labels - E
+        self.ui.comboBoxSCSliceE.setItemText(0,ViewSCSDict['u1']['label'])
+        self.ui.comboBoxSCSliceE.setItemText(1,ViewSCSDict['u2']['label'])
+        self.ui.comboBoxSCSliceE.setItemText(2,ViewSCSDict['u3']['label'])
+        self.ui.comboBoxSCSliceE.setItemText(3,ViewSCSDict['E']['label'])
+        
+        
+    def UpdateComboSCSX(self):
+        """
+        Wrapper method to perform swapping labels for 'X' comboBox
+        """
+        print "** UpdateComboSCX"
+        label= str(self.ui.comboBoxSCSliceX.currentText())
+        self.UpdateViewSCSData(label,'u1')
+        self.ui.ViewSCSDataDeBounce=False
+        
+    def UpdateComboSCSY(self):
+        """
+        Wrapper method to perform swapping labels for 'Y' comboBox
+        """
+        print "** UpdateComboSCY"
+        label= str(self.ui.comboBoxSCSliceY.currentText())
+        self.UpdateViewSCSData(label,'u2')
+        self.ui.ViewSCSDataDeBounce=False
+                
+    def UpdateComboSCSZ(self):
+        """
+        Wrapper method to perform swapping labels for 'Z' comboBox
+        """
+        print "** UpdateComboSCZ"
+        label= str(self.ui.comboBoxSCSliceZ.currentText())
+        self.UpdateViewSCSData(label,'u3')
+        self.ui.ViewSCSDataDeBounce=False
+                
+    def UpdateComboSCSE(self):
+        """
+        Wrapper method to perform swapping labels for 'E' comboBox
+        """
+        print "** UpdateComboSCE"
+        label= str(self.ui.comboBoxSCSliceE.currentText())
+        self.UpdateViewSCSData(label,'E')
+        self.ui.ViewSCSDataDeBounce=False
+                
+    def UpdateViewSCSData(self,newLabel,newKey):
+        """
+        Method to perform swapping single crystal comboBox labels
+        newLabel: new comboBox label
+        newKey: key to index used for the swap
+        """
+        if self.ui.ViewSCSDataDeBounce:
+            #case we have a second update due to programmtically changing the current index - skip this one
+            #print "++++++++ Debounce +++++++++"
+            return
+        #get labels for each comboBox - should have a duplicate at this point
+        labels=[]
+        labels.append(str(self.ui.comboBoxSCSliceX.currentText()))
+        labels.append(str(self.ui.comboBoxSCSliceY.currentText()))
+        labels.append(str(self.ui.comboBoxSCSliceZ.currentText()))
+        labels.append(str(self.ui.comboBoxSCSliceE.currentText()))  
+        
+        #get list of possible labels - should be no duplicates
+        labelLst=[]
+        ViewSCSDict=self.ui.ViewSCSDict
+        labelLst.append(ViewSCSDict['u1']['label'])
+        labelLst.append(ViewSCSDict['u2']['label'])
+        labelLst.append(ViewSCSDict['u3']['label'])
+        labelLst.append(ViewSCSDict['E']['label'])    
+        
+        #Let's find the missing label
+        cntr=0
+        for chkLab in labelLst:
+            tst=chkLab in labels
+            if not(tst):
+                #case we found the missing label
+                missingLab=chkLab
+                missingIndx=cntr
+            cntr+=1
+        
+        #check which labels match the one passed in
+        cnt=0
+        mtch=[]
+        for label in labels:
+            if label == newLabel:
+                mtch.append(cnt)
+            cnt+=1
 
-    saved='No'
-    
-    #First determine if there is an open row
-    #need to determine the available row number in the workspace table
-    
-    Nrows=table.rowCount()
-    print "Nrows: ",Nrows,"  wsindex: ",wsindex
+        if len(mtch) != 2:
+            print "Did not find the correct number of labels - 2 expected but found: ",len(mtch)
+            
+        #check which index matches the index passed in
+        cnt=0
 
-    #check if the row index supplied is >= to the number of rows
-    #if so, add a row
-    if wsindex >= Nrows:  #check if we need to add a row or not
-        #case to insert
-        table.insertRow(Nrows)
-    col=const.WSM_SelectCol
-#        addComboboxToWSTCell(table,userow,col)
-    addCheckboxToWSTCell(table,wsindex,col,True)
+        for indx in mtch:
+            if indx != int(ViewSCSDict[newKey]['index']):
+                updateCBIndx=indx
+                cnt+=1 #check to make sure we found an updateCBIndx
+            if indx == int(ViewSCSDict[newKey]['index']):
+                otherIndex=indx
+                
+        if cnt != 1:
+            print "Did not find the correct number of indicies- 1 expected but found: ",cnt
+        #The indx we found 
+        
+        #Setting the debounce flag to True enables setCurrentIndex() event generated via the code
+        #below to be ignored else letting this even be processed interferes with the current processing
+        self.ui.ViewSCSDataDeBounce=True 
+        if updateCBIndx==0:
+            self.ui.comboBoxSCSliceX.setCurrentIndex(missingIndx)
+        if updateCBIndx==1:
+            self.ui.comboBoxSCSliceY.setCurrentIndex(missingIndx)
+        if updateCBIndx==2:
+            self.ui.comboBoxSCSliceZ.setCurrentIndex(missingIndx)
+        if updateCBIndx==3:
+            self.ui.comboBoxSCSliceE.setCurrentIndex(missingIndx)    
+            
+        #Now that we have the information for the swapped combo boxes, let's swap the corresponding parameters
+        #Will simpy swap what's in the GUI widgets
+        CBIndx0=mtch[0]
+        CBIndx1=mtch[1]
+        swapSCViewParams(self,'Slice',CBIndx0,CBIndx1)
+
+    def updateSCSNpts(self):
+        
+        
+        #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
+        
+        #Update X NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCSliceXFrom.text()) != '':
+            XFrom=float(str(self.ui.lineEditSCSliceXFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceXTo.text()) != '':
+            XTo=float(str(self.ui.lineEditSCSliceXTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceXStep.text()) != '':
+            XStep=float(str(self.ui.lineEditSCSliceXStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if XFrom >= XTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X From is greater than X To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if XStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
     
-    #now add the row
-    userow=wsindex		
-    print "userow: ",userow
-    table.setItem(userow,const.WSM_WorkspaceCol,QtGui.QTableWidgetItem(wsname)) #Workspace Name 
-    table.setItem(userow,const.WSM_TypeCol,QtGui.QTableWidgetItem(wstype)) #Workspace Type
-    table.setItem(userow,const.WSM_SavedCol,QtGui.QTableWidgetItem(saved)) #FIXXME Hard coded for now
-    table.setItem(userow,const.WSM_SizeCol,QtGui.QTableWidgetItem(wssize)) #Size 
-    addCheckboxToWSTCell(table,userow,const.WSM_SelectCol,True)
-#    table.setItem(userow,const.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
-
-       	
-def addWStoTable(table,workspaceName,workspaceLocation):
-    #function to add a single workspace to the workspace manager table
-	# workspaces may originate from create workspace or the list of files
-    print "addWStoTable workspaceName: ",workspaceName
-    print "workspaceLocation: ",workspaceLocation
+        try:
+            XNpts=(XTo-XFrom)/XStep
+        
+        except:
+            #case where unable to successfully calculate XNpts
+            self.ui.labelSCNptsX.setText("Npts:   ")
+            msg="Unable to calculate 'X NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCNptsX.setText("Npts: "+str(int(XNpts)))
+            
+        if XNpts > config.SCXNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current X settings will produce a large number of values: "+str(XNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return                
+        
     
-    #get constants
-    const=constants()
-
-    #then get info about the workspace file
-#    ws_date=str(time.ctime(os.path.getctime(workspaceLocation)))
-#    ws_size=str(int(round(float(os.stat(workspaceLocation).st_size)/(1024*1024))))+' MB'
-    ws_size=getWorkspaceMemSize(workspaceName)
+        #Update Y NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCSliceYFrom.text()) != '':
+            YFrom=float(str(self.ui.lineEditSCSliceYFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceYTo.text()) != '':
+            YTo=float(str(self.ui.lineEditSCSliceYTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCSliceYStep.text()) != '':
+            YStep=float(str(self.ui.lineEditSCSliceYStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if YFrom >= YTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: Y From is greater than Y To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if YStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: Y Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
     
-    #also need the Mantid Algorithm used to create the workspace
-    #for now, this will be obtained by reading the workspace as an HDF file and
-    #extracting the algorithm information.
+        try:
+            YNpts=(YTo-YFrom)/YStep
+        
+        except:
+            #case where unable to successfully calculate YNpts
+            self.ui.labelSCNptsY.setText("Npts:   "+str(YNpts))
+            msg="Unable to calculate 'Y NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCNptsY.setText("Npts: "+str(int(YNpts)))
+            
+        if YNpts > config.SCYNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current Y settings will produce a large number of values: "+str(YNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return    
 
-#    h5WS=h5py.File(str(workspaceLocation),'r')
-#    WSAlg=getReduceAlgFromH5Workspace(h5WS)
+    def UpdateViewSCVDict(self):
+        print "In UpdateViewSCVDict(self)"
+        #This method updates the ViewSCSDict dictionary any time that a value
+        #is changed in the Viewing Axes field changes.  As this can be performed quickly,
+        #the entire dictionary is update when a selction is made in lieu of having a
+        #separate method for each of the 12 fields that can change.
+        
+        #Note that currently only the dictionary labels are updated and that
+        #other parameters are updated once SC calc projections occurs
+        
+        ViewSCVDict=self.ui.ViewSCVDict #for convenience and readability, shorten the name 
+        
+        #get updated labels
+        nameLst=makeSCNames(self)
+        #put labels in the View dictionary
+        ViewSCVDict['u1']['label']=nameLst[0]
+        ViewSCVDict['u2']['label']=nameLst[1]
+        ViewSCVDict['u3']['label']=nameLst[2]
+        #note that 'E' label does not change...
+        #store label changes back into the global dictionary
+        self.ui.ViewSCVDict=ViewSCVDict
+        
+        #update corresponding ViewSCData labels - X
+        self.ui.comboBoxSCVolX.setItemText(0,ViewSCVDict['u1']['label'])
+        self.ui.comboBoxSCVolX.setItemText(1,ViewSCVDict['u2']['label'])
+        self.ui.comboBoxSCVolX.setItemText(2,ViewSCVDict['u3']['label'])
+        self.ui.comboBoxSCVolX.setItemText(3,ViewSCVDict['E']['label'])
+        #update corresponding ViewSCData labels - Y
+        self.ui.comboBoxSCVolY.setItemText(0,ViewSCVDict['u1']['label'])
+        self.ui.comboBoxSCVolY.setItemText(1,ViewSCVDict['u2']['label'])
+        self.ui.comboBoxSCVolY.setItemText(2,ViewSCVDict['u3']['label'])
+        self.ui.comboBoxSCVolY.setItemText(3,ViewSCVDict['E']['label'])
+        #update corresponding ViewSCData labels - Z
+        self.ui.comboBoxSCVolZ.setItemText(0,ViewSCVDict['u1']['label'])
+        self.ui.comboBoxSCVolZ.setItemText(1,ViewSCVDict['u2']['label'])
+        self.ui.comboBoxSCVolZ.setItemText(2,ViewSCVDict['u3']['label'])
+        self.ui.comboBoxSCVolZ.setItemText(3,ViewSCVDict['E']['label'])
+        #update corresponding ViewSCData labels - E
+        self.ui.comboBoxSCVolE.setItemText(0,ViewSCVDict['u1']['label'])
+        self.ui.comboBoxSCVolE.setItemText(1,ViewSCVDict['u2']['label'])
+        self.ui.comboBoxSCVolE.setItemText(2,ViewSCVDict['u3']['label'])
+        self.ui.comboBoxSCVolE.setItemText(3,ViewSCVDict['E']['label'])
+        
+        
+    def UpdateComboSCVX(self):
+        """
+        Wrapper method to perform swapping labels for 'X' comboBox
+        """
+        print "** UpdateComboSCVX"
+        label= str(self.ui.comboBoxSCVolX.currentText())
+        self.UpdateViewSCVData(label,'u1')
+        self.ui.ViewSCVDataDeBounce=False
+        
+    def UpdateComboSCVY(self):
+        """
+        Wrapper method to perform swapping labels for 'Y' comboBox
+        """
+        print "** UpdateComboSCVY"
+        label= str(self.ui.comboBoxSCVolY.currentText())
+        self.UpdateViewSCVData(label,'u2')
+        self.ui.ViewSCVDataDeBounce=False
+                
+    def UpdateComboSCVZ(self):
+        """
+        Wrapper method to perform swapping labels for 'Z' comboBox
+        """
+        print "** UpdateComboSCVZ"
+        label= str(self.ui.comboBoxSCVolZ.currentText())
+        self.UpdateViewSCVData(label,'u3')
+        self.ui.ViewSCVDataDeBounce=False
+                
+    def UpdateComboSCVE(self):
+        """
+        Wrapper method to perform swapping labels for 'E' comboBox
+        """
+        print "** UpdateComboSCVE"
+        label= str(self.ui.comboBoxSCVolE.currentText())
+        self.UpdateViewSCVData(label,'E')
+        self.ui.ViewSCVDataDeBounce=False
+                
+    def UpdateViewSCVData(self,newLabel,newKey):
+        """
+        Method to perform swapping single crystal comboBox labels
+        newLabel: new comboBox label
+        newKey: key to index used for the swap
+        """
+        if self.ui.ViewSCVDataDeBounce:
+            #case we have a second update due to programmtically changing the current index - skip this one
+            #print "++++++++ Debounce +++++++++"
+            return
+        #get labels for each comboBox - should have a duplicate at this point
+        labels=[]
+        labels.append(str(self.ui.comboBoxSCVolX.currentText()))
+        labels.append(str(self.ui.comboBoxSCVolY.currentText()))
+        labels.append(str(self.ui.comboBoxSCVolZ.currentText()))
+        labels.append(str(self.ui.comboBoxSCVolE.currentText()))  
+        
+        #get list of possible labels - should be no duplicates
+        labelLst=[]
+        ViewSCVDict=self.ui.ViewSCVDict
+        labelLst.append(ViewSCVDict['u1']['label'])
+        labelLst.append(ViewSCVDict['u2']['label'])
+        labelLst.append(ViewSCVDict['u3']['label'])
+        labelLst.append(ViewSCVDict['E']['label'])    
+        
+        #Let's find the missing label
+        cntr=0
+        for chkLab in labelLst:
+            tst=chkLab in labels
+            if not(tst):
+                #case we found the missing label
+                missingLab=chkLab
+                missingIndx=cntr
+            cntr+=1
+        
+        #check which labels match the one passed in
+        cnt=0
+        mtch=[]
+        for label in labels:
+            if label == newLabel:
+                mtch.append(cnt)
+            cnt+=1
+
+        if len(mtch) != 2:
+            print "Did not find the correct number of labels - 2 expected but found: ",len(mtch)
+            
+        #check which index matches the index passed in
+        cnt=0
+
+        for indx in mtch:
+            if indx != int(ViewSCVDict[newKey]['index']):
+                updateCBIndx=indx
+                cnt+=1 #check to make sure we found an updateCBIndx
+            if indx == int(ViewSCVDict[newKey]['index']):
+                otherIndex=indx
+                
+        if cnt != 1:
+            print "Did not find the correct number of indicies- 1 expected but found: ",cnt
+        #The indx we found 
+        
+        #Setting the debounce flag to True enables setCurrentIndex() event generated via the code
+        #below to be ignored else letting this even be processed interferes with the current processing
+        self.ui.ViewSCVDataDeBounce=True 
+        if updateCBIndx==0:
+            self.ui.comboBoxSCVolX.setCurrentIndex(missingIndx)
+        if updateCBIndx==1:
+            self.ui.comboBoxSCVolY.setCurrentIndex(missingIndx)
+        if updateCBIndx==2:
+            self.ui.comboBoxSCVolZ.setCurrentIndex(missingIndx)
+        if updateCBIndx==3:
+            self.ui.comboBoxSCVolE.setCurrentIndex(missingIndx)    
+            
+        #Now that we have the information for the swapped combo boxes, let's swap the corresponding parameters
+        #Will simpy swap what's in the GUI widgets
+        CBIndx0=mtch[0]
+        CBIndx1=mtch[1]
+        swapSCViewParams(self,'Volume',CBIndx0,CBIndx1)
+
+    def updateSCVNpts(self):
+        
+        
+        #function to update the number of points in the Single Crystal GUI when parameters change affecting the number of points
+        
+        #Update X NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCVolXFrom.text()) != '':
+            XFrom=float(str(self.ui.lineEditSCVolXFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCVolXTo.text()) != '':
+            XTo=float(str(self.ui.lineEditSCVolXTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCVolXStep.text()) != '':
+            XStep=float(str(self.ui.lineEditSCVolXStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if XFrom >= XTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X From is greater than X To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if XStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: X Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
     
-    WSAlg=getReduceAlgFromWorkspace(workspaceName)
-
+        try:
+            XNpts=(XTo-XFrom)/XStep
+        
+        except:
+            #case where unable to successfully calculate XNpts
+            self.ui.labelSCVNptsX.setText("Npts:   ")
+            msg="Unable to calculate 'X NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCVNptsX.setText("Npts: "+str(int(XNpts)))
+            
+        if XNpts > config.SCXNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current X settings will produce a large number of values: "+str(XNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return                
+        
     
-    if WSAlg == "":
-        WSAlg="Not Available"
+        #Update Y NPTS label
+        #get parameters:
+        if str(self.ui.lineEditSCVolYFrom.text()) != '':
+            YFrom=float(str(self.ui.lineEditSCVolYFrom.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCVolYTo.text()) != '':
+            YTo=float(str(self.ui.lineEditSCVolYTo.text()))
+        else:
+            return
+        if str(self.ui.lineEditSCVolYStep.text()) != '':
+            YStep=float(str(self.ui.lineEditSCVolYStep.text()))
+        else:
+            return
+        
+        #Do some checking:
+        if YFrom >= YTo:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: Y From is greater than Y To - Please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
+            
+        if YStep == 0:
+            #case where the lower limit exceeds or is equal to the upper limit - problem case
+            msg="Problem: Y Step must be greater than 0 - Please correct"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_() 
+            return
     
+        try:
+            YNpts=(YTo-YFrom)/YStep
+        
+        except:
+            #case where unable to successfully calculate YNpts
+            self.ui.labelSCVNptsY.setText("Npts:   "+str(YNpts))
+            msg="Unable to calculate 'Y NPTS - please make corrections"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return
+        else:
+            self.ui.labelSCVNptsY.setText("Npts: "+str(int(YNpts)))
+            
+        if YNpts > config.SCYNpts:
+            #case where a large number of points has been selected
+            msg="Warning: Current Y settings will produce a large number of values: "+str(YNpts)+". Consider making changes"
+            dialog=QtGui.QMessageBox(self)
+            dialog.setText(msg)
+            dialog.exec_()         
+            return    
 
-    #two cases of rows:
-    #    1. Case where all or some rows are empty and just add directly to first available row
-	#    2. Case where all rows have content and need to add a row in this case
-	
-    #First determine if there is an open row
-    #need to determine the available row number in the workspace table
-    
-    Nrows=table.rowCount()
-    print "Nrows: ",Nrows
 
-    emptyRowCnt=0
-    emptyRows = []
-	
-    for row in range(Nrows):
-        item=str(table.item(row,0)) 
-        if item == 'None':
-            emptyRowCnt +=1
-            emptyRows.append(row)
-    print "emptyRows: ",emptyRows,"  emptyRowCnt: ",emptyRowCnt
-    if emptyRowCnt != 0:
-        #case where there is an empty row to use
-        userow=int(emptyRows[0])
-    else:
-        #case where a row needs to be added
-        userow=Nrows #recall that row indexing starts at zero thus the row to add would be at position Nrows
-        table.insertRow(Nrows)
-        col=4
-#        addComboboxToWSTCell(table,userow,col)
-        addCheckboxToWSTCell(table,userow,col,True)
+        
 
-    #now add the row		
-    table.setItem(userow,const.WSM_WorkspaceCol,QtGui.QTableWidgetItem(workspaceName)) #Workspace Name 
-    table.setItem(userow,const.WSM_TypeCol,QtGui.QTableWidgetItem(WSAlg)) #Workspace Type
-    table.setItem(userow,const.WSM_SavedCol,QtGui.QTableWidgetItem('yes')) #FIXXME Hard coded for now
-    table.setItem(userow,const.WSM_SizeCol,QtGui.QTableWidgetItem(ws_size)) #Size 
-    table.setItem(userow,const.WSM_SelectCol,QtGui.QTableWidgetItem('')) #select - will want to change this
-
-		
 if __name__=="__main__":
-    app = QtGui.QApplication(sys.argv)
-    msliceapp = MSlice()
-    msliceapp.show()
-
-    sys.exit(app.exec_())
+    activeWin=QtGui.QApplication.activeWindow()
+    print "Active Window: ",activeWin
+    if activeWin == None:
+        #case where running this application as a standalone application
+        app = QtGui.QApplication(sys.argv)
+        msliceapp = MSlice()
+        msliceapp.show()
+        exit_code=app.exec_()
+        print "exit code: ",exit_code
+        sys.exit(exit_code)
+    else:
+        #case running this application within an existing app such as mantidplot
+        #in this case, do not need to create application or handle exit case
+        msliceapp = MSlice()
+        msliceapp.show()

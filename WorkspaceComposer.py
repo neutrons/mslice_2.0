@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'WorkspaceComposer.ui'
 #
-# Created: Thu May 22 14:16:34 2014
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Wed Jan 14 11:59:00 2015
+#      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,16 +12,7 @@ from PyQt4 import QtCore, QtGui
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
-except AttributeError:
-    def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
+    _fromUtf8 = lambda s: s
 
 class Ui_WorkspaceComposer(object):
     def setupUi(self, WorkspaceComposer):
@@ -30,7 +21,7 @@ class Ui_WorkspaceComposer(object):
         self.centralwidget = QtGui.QWidget(WorkspaceComposer)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.groupBox = QtGui.QGroupBox(self.centralwidget)
-        self.groupBox.setGeometry(QtCore.QRect(690, 20, 211, 361))
+        self.groupBox.setGeometry(QtCore.QRect(690, 20, 211, 391))
         self.groupBox.setTitle(_fromUtf8(""))
         self.groupBox.setObjectName(_fromUtf8("groupBox"))
         self.line = QtGui.QFrame(self.groupBox)
@@ -39,7 +30,7 @@ class Ui_WorkspaceComposer(object):
         self.line.setFrameShadow(QtGui.QFrame.Sunken)
         self.line.setObjectName(_fromUtf8("line"))
         self.groupBox_5 = QtGui.QGroupBox(self.groupBox)
-        self.groupBox_5.setGeometry(QtCore.QRect(10, 190, 191, 161))
+        self.groupBox_5.setGeometry(QtCore.QRect(10, 190, 191, 191))
         self.groupBox_5.setObjectName(_fromUtf8("groupBox_5"))
         self.label = QtGui.QLabel(self.groupBox_5)
         self.label.setGeometry(QtCore.QRect(10, 20, 171, 20))
@@ -49,7 +40,7 @@ class Ui_WorkspaceComposer(object):
         self.lineEditGroupName.setObjectName(_fromUtf8("lineEditGroupName"))
         self.pushButtonCreateWorkspace = QtGui.QPushButton(self.groupBox_5)
         self.pushButtonCreateWorkspace.setEnabled(False)
-        self.pushButtonCreateWorkspace.setGeometry(QtCore.QRect(20, 130, 121, 23))
+        self.pushButtonCreateWorkspace.setGeometry(QtCore.QRect(20, 160, 121, 23))
         self.pushButtonCreateWorkspace.setToolTip(_fromUtf8(""))
         self.pushButtonCreateWorkspace.setObjectName(_fromUtf8("pushButtonCreateWorkspace"))
         self.radioButtonSumWS = QtGui.QRadioButton(self.groupBox_5)
@@ -59,8 +50,11 @@ class Ui_WorkspaceComposer(object):
         self.radioButtonGroupWS.setGeometry(QtCore.QRect(10, 60, 161, 17))
         self.radioButtonGroupWS.setObjectName(_fromUtf8("radioButtonGroupWS"))
         self.radioButtonExecuteEqn = QtGui.QRadioButton(self.groupBox_5)
-        self.radioButtonExecuteEqn.setGeometry(QtCore.QRect(10, 100, 171, 17))
+        self.radioButtonExecuteEqn.setGeometry(QtCore.QRect(10, 120, 171, 17))
         self.radioButtonExecuteEqn.setObjectName(_fromUtf8("radioButtonExecuteEqn"))
+        self.radioButtonMergeWS = QtGui.QRadioButton(self.groupBox_5)
+        self.radioButtonMergeWS.setGeometry(QtCore.QRect(10, 100, 161, 20))
+        self.radioButtonMergeWS.setObjectName(_fromUtf8("radioButtonMergeWS"))
         self.groupBox_6 = QtGui.QGroupBox(self.groupBox)
         self.groupBox_6.setGeometry(QtCore.QRect(10, 10, 191, 161))
         self.groupBox_6.setObjectName(_fromUtf8("groupBox_6"))
@@ -107,6 +101,8 @@ class Ui_WorkspaceComposer(object):
         self.tableWidgetWGE.setRowCount(15)
         self.tableWidgetWGE.setColumnCount(7)
         self.tableWidgetWGE.setObjectName(_fromUtf8("tableWidgetWGE"))
+        self.tableWidgetWGE.setColumnCount(7)
+        self.tableWidgetWGE.setRowCount(15)
         item = QtGui.QTableWidgetItem()
         self.tableWidgetWGE.setHorizontalHeaderItem(0, item)
         item = QtGui.QTableWidgetItem()
@@ -145,37 +141,31 @@ class Ui_WorkspaceComposer(object):
         QtCore.QMetaObject.connectSlotsByName(WorkspaceComposer)
 
     def retranslateUi(self, WorkspaceComposer):
-        WorkspaceComposer.setWindowTitle(_translate("WorkspaceComposer", "MainWindow", None))
-        self.groupBox_5.setTitle(_translate("WorkspaceComposer", "Select Task", None))
-        self.label.setText(_translate("WorkspaceComposer", "Resulting Workspace Name:", None))
-        self.lineEditGroupName.setText(_translate("WorkspaceComposer", "NewWorkspace", None))
-        self.pushButtonCreateWorkspace.setText(_translate("WorkspaceComposer", "Create Workspace", None))
-        self.radioButtonSumWS.setText(_translate("WorkspaceComposer", "Sum Workspaces", None))
-        self.radioButtonGroupWS.setText(_translate("WorkspaceComposer", "Group Workspaces", None))
-        self.radioButtonExecuteEqn.setText(_translate("WorkspaceComposer", "Execute Equation", None))
-        self.groupBox_6.setTitle(_translate("WorkspaceComposer", "Select Data", None))
-        self.pushButtonUpdate.setText(_translate("WorkspaceComposer", "Update", None))
-        self.radioButtonRemoveSelected.setText(_translate("WorkspaceComposer", "Remove Selected", None))
-        self.radioButtonClearAll.setText(_translate("WorkspaceComposer", "Clear All", None))
-        self.radioButtonSelectAll.setText(_translate("WorkspaceComposer", "Select All", None))
-        self.radioButtonLoadData.setText(_translate("WorkspaceComposer", "Load Data", None))
-        self.groupBox_2.setTitle(_translate("WorkspaceComposer", "Workspace Algebra Section", None))
-        self.lineEditEquation.setToolTip(_translate("WorkspaceComposer", "Enter an equation using the workspace indicies listed in the Workspace List above.  The shorter Index names are used for convenience.", None))
-        self.label_5.setText(_translate("WorkspaceComposer", "Enter Equation - use workspace names or indicies from the table above, for example:  (ws0-ws1)/ws2", None))
-        self.groupBox_4.setTitle(_translate("WorkspaceComposer", "Workspace List", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(0)
-        item.setText(_translate("WorkspaceComposer", "Index", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(1)
-        item.setText(_translate("WorkspaceComposer", "Workspace", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(2)
-        item.setText(_translate("WorkspaceComposer", "Location", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(3)
-        item.setText(_translate("WorkspaceComposer", "Date", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(4)
-        item.setText(_translate("WorkspaceComposer", "Size", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(5)
-        item.setText(_translate("WorkspaceComposer", "In Memory", None))
-        item = self.tableWidgetWGE.horizontalHeaderItem(6)
-        item.setText(_translate("WorkspaceComposer", "Select", None))
-        self.pushButtonDone.setText(_translate("WorkspaceComposer", "Done", None))
+        WorkspaceComposer.setWindowTitle(QtGui.QApplication.translate("WorkspaceComposer", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_5.setTitle(QtGui.QApplication.translate("WorkspaceComposer", "Select Task", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("WorkspaceComposer", "Resulting Workspace Name:", None, QtGui.QApplication.UnicodeUTF8))
+        self.lineEditGroupName.setText(QtGui.QApplication.translate("WorkspaceComposer", "NewWorkspace", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonCreateWorkspace.setText(QtGui.QApplication.translate("WorkspaceComposer", "Create Workspace", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonSumWS.setText(QtGui.QApplication.translate("WorkspaceComposer", "Sum Workspaces", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonGroupWS.setText(QtGui.QApplication.translate("WorkspaceComposer", "Group Workspaces", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonExecuteEqn.setText(QtGui.QApplication.translate("WorkspaceComposer", "Execute Equation", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonMergeWS.setText(QtGui.QApplication.translate("WorkspaceComposer", "Merge Workspaces", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_6.setTitle(QtGui.QApplication.translate("WorkspaceComposer", "Select Data", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonUpdate.setText(QtGui.QApplication.translate("WorkspaceComposer", "Update", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonRemoveSelected.setText(QtGui.QApplication.translate("WorkspaceComposer", "Remove Selected", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonClearAll.setText(QtGui.QApplication.translate("WorkspaceComposer", "Clear All", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonSelectAll.setText(QtGui.QApplication.translate("WorkspaceComposer", "Select All", None, QtGui.QApplication.UnicodeUTF8))
+        self.radioButtonLoadData.setText(QtGui.QApplication.translate("WorkspaceComposer", "Load Data", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_2.setTitle(QtGui.QApplication.translate("WorkspaceComposer", "Workspace Algebra Section", None, QtGui.QApplication.UnicodeUTF8))
+        self.lineEditEquation.setToolTip(QtGui.QApplication.translate("WorkspaceComposer", "Enter an equation using the workspace indicies listed in the Workspace List above.  The shorter Index names are used for convenience.", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_5.setText(QtGui.QApplication.translate("WorkspaceComposer", "Enter Equation - use workspace names or indicies from the table above, for example:  (ws0-ws1)/ws2", None, QtGui.QApplication.UnicodeUTF8))
+        self.groupBox_4.setTitle(QtGui.QApplication.translate("WorkspaceComposer", "Workspace List", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetWGE.horizontalHeaderItem(0).setText(QtGui.QApplication.translate("WorkspaceComposer", "Index", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetWGE.horizontalHeaderItem(1).setText(QtGui.QApplication.translate("WorkspaceComposer", "Workspace", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetWGE.horizontalHeaderItem(2).setText(QtGui.QApplication.translate("WorkspaceComposer", "Location", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetWGE.horizontalHeaderItem(3).setText(QtGui.QApplication.translate("WorkspaceComposer", "Date", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetWGE.horizontalHeaderItem(4).setText(QtGui.QApplication.translate("WorkspaceComposer", "Size", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetWGE.horizontalHeaderItem(5).setText(QtGui.QApplication.translate("WorkspaceComposer", "In Memory", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetWGE.horizontalHeaderItem(6).setText(QtGui.QApplication.translate("WorkspaceComposer", "Select", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonDone.setText(QtGui.QApplication.translate("WorkspaceComposer", "Done", None, QtGui.QApplication.UnicodeUTF8))
 
